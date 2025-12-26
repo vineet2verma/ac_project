@@ -1,0 +1,24 @@
+
+uv (Ultra-fast Python package manager & virtual environment tool)
+# pip install uv // install package
+# uv --version  // check version
+
+# uv venv // create virtual environment
+
+# Windows
+.venv\Scripts\activate
+
+# uv pip install django
+
+# django-admin startproject config . / create project 
+# python manage.py runserver / run project
+
+# uv pip freeze > requirements.txt // requirement lock
+# uv pip install -r requirements.txt // future install
+
+
+
+
+
+
+
