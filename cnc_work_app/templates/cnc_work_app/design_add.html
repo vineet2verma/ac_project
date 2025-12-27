@@ -1,0 +1,31 @@
+<div class="modal fade" id="designModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'cnc_work_app:add_design_file' order.id %}" enctype="multipart/form-data" class="modal-content">
+            {% csrf_token %}
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add Design File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <label class="form-label">File Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Upload File</label>
+                    <input type="file" name="file" class="form-control" required>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary w-100">Save</button>
+            </div>
+
+        </form>
+    </div>
+</div>

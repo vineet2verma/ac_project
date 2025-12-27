@@ -1,0 +1,66 @@
+
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data" action="{% url 'cnc_work_app:add_order' %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Title</label>
+                            <input class="form-control" type="text" name="title" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stone</label>
+                            <input class="form-control" type="text" name="stone" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Color</label>
+                            <input class="form-control" type="text" name="color">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Approval Date</label>
+                            <input class="form-control" type="date" name="approval_date" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Expected Delivery</label>
+                            <input class="form-control" type="date" name="exp_delivery_date" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Coverage Area</label>
+                            <input class="form-control" type="text" name="coverage_area">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Party Name</label>
+                            <input class="form-control" type="text" name="party_name">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Packing Instruction</label>
+                            <input class="form-control" type="text" name="packing_instruction">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Sales Person</label>
+                            <input class="form-control" type="text" name="sales_person">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Remarks</label>
+                            <input class="form-control" type="text" name="remarks">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Upload Image</label>
+                            <input class="form-control" type="file" name="image" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-success w-100">Save Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
