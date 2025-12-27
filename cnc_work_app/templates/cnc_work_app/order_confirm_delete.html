@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Delete Order{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="text-danger">Confirm Order Delete</h5>
+            <p>
+                Are you sure you want to delete order:
+                <strong>{{ order.party_name }} - {{ order.stone }}</strong>?
+            </p>
+
+            {% if order.image %}
+                <img src="{{ order.image.url }}" width="200" class="mb-3">
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'cnc_work_app:detail' order.id %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    Yes, Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

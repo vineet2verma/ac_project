@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% block title %}CNC Order{% endblock %}
+{% block navbartitle %}CNC Order{% endblock %}
+{% block content %}
+
+<style>
+    /* ================= MOBILE RESPONSIVE ERP ================= */
+  
+    @media (max-width: 768px) {
+      .erp-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+      }
+  
+      .erp-header-right {
+        align-self: flex-start;
+      }
+  
+      .order-image {
+        max-width: 100% !important;
+        margin-bottom: 10px;
+      }
+  
+      .table-responsive {
+        overflow-x: auto;
+      }
+  
+      .action-btn-group {
+        flex-wrap: wrap;
+      }
+    }
+</style>
+
+<div class="container py-3">
+    <!-- ================= ERP HEADER ================= -->
+    <div
+            class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom erp-header"
+    >
+        <!-- LEFT -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- BACK -->
+            <a
+                    href="javascript:history.back()"
+                    class="btn btn-outline-secondary btn-sm rounded-circle"
+                    title="Back"
+            >
+                <i class="bi bi-arrow-return-left"></i>
+            </a>
+            
+            <!-- ORDER ID -->
+            
+            <h5 class="m-0 fw-semibold text-primary">Order #{{ order.id }}</h5>
+            
+            <!-- EDIT -->
+            <button
+                    class="btn btn-outline-primary btn-sm rounded-circle"
+                    data-bs-toggle="modal"
+                    data-bs-target="#editOrderModal"
+            >
+                <i class="bi bi-pencil"></i>
+            </button>
+        </div>
+        
+        <!-- RIGHT -->
+        <div class="erp-header-right">
+            <span class="small text-muted me-2">Status</span>
+            <span
+                    class="badge rounded-pill px-3 py-2 {% if order.current_status == 'Complete' %} bg-success {% elif order.current_status == 'Dispatch Pending' %} bg-primary {% elif order.current_status == 'Inventory Pending' %} bg-warning text-dark {% else %} bg-danger {% endif %}"
+            >
+        {{ order.current_status }}
+      </span>
+        </div>
+    </div>
+    
+    <!-- ================= IMAGE + ORDER INFO ================= -->
+    <div class="row mb-4">
+        <div class="col-md-4 text-center">
+            {% if order.image %}
+            <img
+                    src="{{ order.image.url }}"
+                    class="img-fluid rounded border order-image"
+                    alt="{{ order.title }}"
+            />
+            {% else %}
+            <p class="text-muted small">No Image</p>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-8 table-responsive">
+            <table class="table table-sm table-bordered">
+                <tbody>
+                <tr>
+                    <th>Design</th>
+                    <td>{{ order.title }}</td>
+                </tr>
+                <tr>
+                    <th>Stone</th>
+                    <td>{{ order.stone }}</td>
+                </tr>
+                <tr>
+                    <th>Color</th>
+                    <td>{{ order.color }}</td>
+                </tr>
+                <tr>
+                    <th>Approval Date</th>
+                    <td>{{ order.approval_date }}</td>
+                </tr>
+                <tr>
+                    <th>Expected Delivery</th>
+                    <td>{{ order.exp_delivery_date }}</td>
+                </tr>
+                <tr>
+                    <th>Coverage Area</th>
+                    <td>{{ order.coverage_area }}</td>
+                </tr>
+                <tr>
+                    <th>Party Name</th>
+                    <td>{{ order.party_name }}</td>
+                </tr>
+                <tr>
+                    <th>Packing</th>
+                    <td>{{ order.packing_instruction }}</td>
+                </tr>
+                <tr>
+                    <th>Sales</th>
+                    <td>{{ order.sales_person }}</td>
+                </tr>
+                <tr>
+                    <th>Remarks</th>
+                    <td>{{ order.remarks }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- ================= DESIGN FILES ================= -->
+    <div class="mb-4">
+        <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
+            <h5 class="mb-0">Design Files</h5>
+            <button
+                    class="btn btn-primary btn-sm rounded-pill"
+                    data-bs-toggle="modal"
+                    data-bs-target="#designModal"
+            >
+                + Add Design
+            </button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-sm table-striped mt-2">
+                <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>File</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for file in design_files %}
+                <tr>
+                    <td>{{ file.name }}</td>
+                    <td><a href="{{ file.file.url }}" target="_blank">View</a></td>
+                    <td>
+              <span
+                      class="badge {% if file.status == 'approved' %} bg-success {% elif file.status == 'cancelled' %} bg-danger {% else %} bg-warning text-dark {% endif %}"
+              >
+                {{ file.status|title }}
+              </span>
+                    </td>
+                    <td>{{ file.approved_at|default:"-" }}</td>
+                    <td>
+                        {% if file.status == "pending" %}
+                        <div class="d-flex gap-1 action-btn-group">
+                            <button
+                                    class="btn btn-success btn-sm"
+                                    onclick="designAction({{ file.id }}, 'approve')"
+                            >
+                                ✔
+                            </button>
+                            <button
+                                    class="btn btn-danger btn-sm"
+                                    onclick="designAction({{ file.id }}, 'cancel')"
+                            >
+                                ✖
+                            </button>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">No design files</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- ================= MACHINE DETAILS ================= -->
+    <div class="mb-4">
+        <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
+            <h5 class="mb-0">Machine Details</h5>
+            
+            <button
+                    class="btn btn-info btn-sm rounded-pill"
+                    data-bs-toggle="modal"
+                    data-bs-target="#machineModal"
+            >
+                + Add Machine
+            </button>
+        </div>
+        
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                <tr>
+                    <th>Machine</th>
+                    <th>Hours</th>
+                    <th>Operator</th>
+                    <th>Remarks</th>
+                    <th style="width: 90px">Action</th>
+                </tr>
+                </thead>
+                
+                <tbody>
+                {% for m in machines %}
+                <tr>
+                    <td>{{ m.machine_name }}</td>
+                    <td>{{ m.working_hour }}</td>
+                    <td>{{ m.operator|default:"-" }}</td>
+                    <td>{{ m.remarks|default:"-" }}</td>
+                    <td class="text-center">
+                        <!-- EDIT -->
+                        <button
+                                type="button"
+                                class="btn btn-link p-0 text-primary edit-machine-btn"
+                                data-id="{{ m.id }}"
+                                data-machine="{{ m.machine_name }}"
+                                data-hours="{{ m.working_hour }}"
+                                data-operator="{{ m.operator }}"
+                                data-remarks="{{ m.remarks }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#machineModal"
+                        >
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        
+                        
+                        <!-- DELETE -->
+                        <form
+                                method="POST"
+                                action="{% url 'cnc_work_app:machine_delete' order.id m.id %}"
+                                style="display: inline"
+                        >
+                            {% csrf_token %}
+                            <button
+                                    type="submit"
+                                    class="btn btn-link p-0 text-danger"
+                                    onclick="return confirm('Delete this machine entry?')"
+                            >
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No machine details added
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- TOTAL HOURS -->
+        <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
+        </div>
+    </div>
+    
+    <!-- ================= INVENTORY ================= -->
+    <div class="mb-4">
+        <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
+            <h5 class="mb-0">Inventory</h5>
+            <button
+                    class="btn btn-success btn-sm rounded-pill"
+                    data-bs-toggle="modal"
+                    data-bs-target="#inventoryModal"
+            >
+                + Add
+            </button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered mt-2">
+                <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Amount</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for inv in inventory %}
+                <tr>
+                    <td>{{ inv.item_name }}</td>
+                    <td>{{ inv.qty }}</td>
+                    <td>{{ inv.amount }}</td>
+                    <td>{{ inv.total }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">No inventory</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+{% include 'cnc_work_app/order_edit.html' %}
+{% include 'cnc_work_app/design_add.html' %}
+{% include 'machine/machine_add_update.html' %}
+
+{% include 'inventory/inventory_add.html' %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+  // EDIT MACHINE
+  document.querySelectorAll(".edit-machine-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+
+      document.getElementById("machine_id").value = this.dataset.id;
+      document.getElementById("id_machine_name").value = this.dataset.machine;
+      document.getElementById("id_working_hour").value = this.dataset.hours;
+      document.getElementById("id_operator").value = this.dataset.operator || "";
+      document.getElementById("id_remarks").value = this.dataset.remarks || "";
+      document.getElementById("machineModalTitle").innerText = "Edit Machine Detail";
+    });
+  });
+
+  // RESET FOR ADD
+  document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {
+    document.getElementById("machine_id").value = "";
+    document.getElementById("machineModalTitle").innerText = "Add Machine Detail";
+    this.querySelector("form").reset();
+  });
+
+});
+
+// DESIGN FILE ACTION
+function getCSRF() {
+  return document.querySelector("[name=csrfmiddlewaretoken]").value;
+}
+
+function designAction(id, action) {
+  fetch(`/design-file/${id}/${action}/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": getCSRF() },
+  })
+    .then(() => location.reload())
+    .catch(() => alert("Action failed"));
+}
+
+</script>
+
+{% endblock %}
