@@ -1,7 +1,5 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
-
-
 # Create your models here.
 
 class ImageHandling(models.Model):
@@ -11,9 +9,8 @@ class ImageHandling(models.Model):
     def __str__(self):
         return self.title
 
-
 class Order(models.Model):
-    cnc_order_no = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    cnc_order_no = models.CharField(max_length=100, unique=True, blank=True, null=True)
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to="orders/", blank=True, null=True)
     stone = models.CharField(max_length=100, blank=True, null=True)
