@@ -9,9 +9,11 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 # Models
-from .models import ImageHandling, Order, DesignFile, MachineMaster, MachineDetail, Inventory
+from .models import ImageHandling, Order
+# from .models import (ImageHandling, Order,
+#                      DesignFile, MachineMaster, MachineDetail, Inventory)
 # Forms
-from .forms import MachineDetailForm
+# from .forms import MachineDetailForm
 # Cloudinary
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
@@ -240,7 +242,7 @@ def add_image(request):
             return redirect('cnc_work_app:index')
         return redirect('cnc_work_app:index')
 
-
+#
 # Order detail page
 def order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk)
@@ -266,94 +268,94 @@ def order_detail(request, pk):
     })
 
 
-# Design Section
-# Add Design File
-def add_design_file(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-
-    if request.method == "POST":
-        name = request.POST.get("name")
-        file = request.FILES.get("file")
-
-        if name and file:
-            DesignFile.objects.create(order=order, name=name, file=file)
-
-    return redirect("cnc_work_app:detail", pk=order.id)
-
-
-# design file action
-def design_file_action(request, pk, action):
-    design = get_object_or_404(DesignFile, pk=pk)
-
-    if action == "approve":
-        design.status = "approved"
-        design.approved_at = now()
-
-    elif action == "cancel":
-        design.status = "cancelled"
-        design.approved_at = now()
-
-    design.save()
-
-    return JsonResponse({
-        "status": design.status,
-        "approved_at": design.approved_at.strftime("%d %b %Y %I:%M %p")
-    })
-
-
-# Inventory
-# Add Inventory Item
-def add_inventory(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-    if request.method == "POST":
-        item_name = request.POST.get("item_name")
-        qty = request.POST.get("qty")
-        amount = request.POST.get("amount")
-        if item_name and qty and amount:
-            Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
-        return redirect("cnc_work_app:detail", pk=order.id)
-
-
-# Machine
-
-
-# Add Machine Detail
-def machine_add_update(request, order_id):
-    order = get_object_or_404(Order, pk=order_id)
-
-    if request.method == "POST":
-        machine_id = request.POST.get("machine_id")
-        if machine_id:
-            machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
-            form = MachineDetailForm(request.POST, instance=machine)
-        else:
-            form = MachineDetailForm(request.POST)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.order = order
-            obj.save()
-
-
-
-        return redirect("cnc_work_app:detail", pk=order.id)
-
-
-def machine_delete(request, order_id, pk):
-    machine = get_object_or_404(
-        MachineDetail,
-        id=pk,
-        order_id=order_id
-    )
-
-    if request.method == "POST":
-        machine.delete()
-
-    return redirect("cnc_work_app:detail", pk=order_id)
-
-
-# Machine Master
-# READ (LIST)
-def machine_mast_list(request):
-    machines = MachineMaster.objects.all()
-    return render(request, "machine_mast/machine_list.html", {"machines": machines})
+# # Design Section
+# # Add Design File
+# def add_design_file(request, pk):
+#     order = get_object_or_404(Order, pk=pk)
+#
+#     if request.method == "POST":
+#         name = request.POST.get("name")
+#         file = request.FILES.get("file")
+#
+#         if name and file:
+#             DesignFile.objects.create(order=order, name=name, file=file)
+#
+#     return redirect("cnc_work_app:detail", pk=order.id)
+#
+#
+# # design file action
+# def design_file_action(request, pk, action):
+#     design = get_object_or_404(DesignFile, pk=pk)
+#
+#     if action == "approve":
+#         design.status = "approved"
+#         design.approved_at = now()
+#
+#     elif action == "cancel":
+#         design.status = "cancelled"
+#         design.approved_at = now()
+#
+#     design.save()
+#
+#     return JsonResponse({
+#         "status": design.status,
+#         "approved_at": design.approved_at.strftime("%d %b %Y %I:%M %p")
+#     })
+#
+#
+# # Inventory
+# # Add Inventory Item
+# def add_inventory(request, pk):
+#     order = get_object_or_404(Order, pk=pk)
+#     if request.method == "POST":
+#         item_name = request.POST.get("item_name")
+#         qty = request.POST.get("qty")
+#         amount = request.POST.get("amount")
+#         if item_name and qty and amount:
+#             Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
+#         return redirect("cnc_work_app:detail", pk=order.id)
+#
+#
+# # Machine
+#
+#
+# # Add Machine Detail
+# def machine_add_update(request, order_id):
+#     order = get_object_or_404(Order, pk=order_id)
+#
+#     if request.method == "POST":
+#         machine_id = request.POST.get("machine_id")
+#         if machine_id:
+#             machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
+#             form = MachineDetailForm(request.POST, instance=machine)
+#         else:
+#             form = MachineDetailForm(request.POST)
+#
+#         if form.is_valid():
+#             obj = form.save(commit=False)
+#             obj.order = order
+#             obj.save()
+#
+#
+#
+#         return redirect("cnc_work_app:detail", pk=order.id)
+#
+#
+# def machine_delete(request, order_id, pk):
+#     machine = get_object_or_404(
+#         MachineDetail,
+#         id=pk,
+#         order_id=order_id
+#     )
+#
+#     if request.method == "POST":
+#         machine.delete()
+#
+#     return redirect("cnc_work_app:detail", pk=order_id)
+#
+#
+# # Machine Master
+# # READ (LIST)
+# def machine_mast_list(request):
+#     machines = MachineMaster.objects.all()
+#     return render(request, "machine_mast/machine_list.html", {"machines": machines})
