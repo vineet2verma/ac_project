@@ -3,6 +3,8 @@ from django.http import JsonResponse, HttpResponse
 from .mongo import get_orders_collection
 from django.utils import timezone
 
+
+
 # Create your views here.
 def add_orders(request):
     order = {

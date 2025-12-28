@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
+
 {% block title %}CNC Orders{% endblock %}
 {% block navbartitle %}CNC Orders{% endblock %}
 
-
 {% block navbtn1 %}
-<button class="btn btn-primary px-4 py-1.5" data-bs-toggle="modal" data-bs-target="#orderModal">
+<button class="btn btn-primary px-4 py-1.5"
+        data-bs-toggle="modal"
+        data-bs-target="#orderModal">
     + Add Design
 </button>
+{% endblock %}
+
+{% block content %}
 
 <style>
 /* ================= ERP LAYOUT ================= */
@@ -15,7 +20,6 @@
     border: 1px solid #dee2e6;
     border-radius: 6px;
     margin-bottom: 8px;
-    overflow: visible !important;
 }
 
 .erp-table th {
@@ -31,52 +35,58 @@
 
 /* ================= IMAGE PREVIEW ================= */
 .image-preview-container {
+    width: 100%;
+    max-width: 140px;
+    margin: auto;
     position: relative;
 }
 
 .preview-img {
-    width: 100px;
-    height: 100px;
+    width: 100%;
+    height: 140px;
     object-fit: cover;
     border-radius: 6px;
     border: 1px solid #ddd;
     cursor: pointer;
+    background: #f8f9fa;
+    transition: all 0.2s ease-in-out;
 }
 
-/* Bigger preview on hover (NO ZOOM) */
-.preview-img:hover {
-    position: absolute;
-    z-index: 9999;
-    width: 320px;
-    height: auto;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.35);
-    background: #fff;
-}
-
-/* Disable hover preview on mobile */
-@media (max-width: 768px) {
+/* Hover preview (desktop only) */
+@media (min-width: 769px) {
     .preview-img:hover {
-        position: static;
-        width: 100px;
-        transform: none;
-        box-shadow: none;
+        position: absolute;
+        z-index: 9999;
+        width: 320px;
+        max-height: 420px;
+        height: auto;
+        object-fit: contain;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        padding: 6px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+    }
+}
+
+/* Mobile safe */
+@media (max-width: 768px) {
+    .preview-img {
+        height: 120px;
     }
 }
 </style>
-{% endblock %}
 
-{% block content %}
-
-<!-- ================= SEARCH & FILTER BAR ================= -->
+<!-- ================= SEARCH & FILTER ================= -->
 <form method="get" class="card card-body shadow-sm mb-2">
     <div class="row g-2 align-items-end">
 
         <div class="col-md-4">
             <label class="form-label small">Search</label>
-            <input type="text" name="q" class="form-control form-control-sm"
+            <input type="text"
+                   name="q"
+                   class="form-control form-control-sm"
                    placeholder="Stone, Color, Party, Sales"
                    value="{{ request.GET.q }}">
         </div>
@@ -94,26 +104,31 @@
 
         <div class="col-md-2">
             <label class="form-label small">From Date</label>
-            <input type="date" name="from_date" class="form-control form-control-sm"
+            <input type="date"
+                   name="from_date"
+                   class="form-control form-control-sm"
                    value="{{ request.GET.from_date }}">
         </div>
 
         <div class="col-md-2">
             <label class="form-label small">To Date</label>
-            <input type="date" name="to_date" class="form-control form-control-sm"
+            <input type="date"
+                   name="to_date"
+                   class="form-control form-control-sm"
                    value="{{ request.GET.to_date }}">
         </div>
 
         <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-sm btn-primary w-100">Search</button>
-            <a href="{% url 'cnc_work_app:index' %}" class="btn btn-sm btn-secondary w-100">Reset</a>
+            <button class="btn btn-sm btn-primary w-100">Search</button>
+            <a href="{% url 'cnc_work_app:index' %}"
+               class="btn btn-sm btn-secondary w-100">Reset</a>
         </div>
 
     </div>
 </form>
 
-<!-- Pagination -->
- <div class="d-flex justify-content-between align-items-center mb-2">
+<!-- ================= PAGINATION INFO ================= -->
+<div class="d-flex justify-content-between align-items-center mb-2">
     <div class="small text-muted">
         Showing {{ page_obj.start_index }} –
         {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
@@ -121,7 +136,7 @@
 
     <form method="get" class="d-flex align-items-center gap-2">
         {% for key, value in request.GET.items %}
-            {% if key != 'per_page' and key != 'page' %}
+            {% if key != 'page' and key != 'per_page' %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -131,7 +146,7 @@
                 class="form-select form-select-sm"
                 style="width:90px"
                 onchange="this.form.submit()">
-            <option value="10" {% if per_page == 5 %}selected{% endif %}>5</option>
+            <option value="5"  {% if per_page == 5 %}selected{% endif %}>5</option>
             <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
             <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
             <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
@@ -144,12 +159,13 @@
 <div class="container-fluid px-0">
 {% for img in images %}
     <div class="erp-card p-2">
-        <div class="row g-2 align-items-start ">
+        <div class="row g-2">
+
             <!-- IMAGE -->
             <div class="col-md-2 text-center">
                 <div class="image-preview-container">
                     {% if img.image %}
-                        <img src="{{ img.image }}" class="preview-img" alt="Order Image">
+                        <img src="{{ img.image }}" class="preview-img">
                     {% else %}
                         <span class="text-muted small">No Image</span>
                     {% endif %}
@@ -185,28 +201,26 @@
                         <th>Status</th>
                         <td>
                             <span class="badge
-                                {% if img.current_status == 'Complete' %} bg-success
-                                {% elif img.current_status == 'Dispatch Pending' %} bg-primary
-                                {% elif img.current_status == 'Inventory Pending' %} bg-warning text-dark
-                                {% else %} bg-danger {% endif %}">
+                                {% if img.current_status == 'Complete' %}bg-success
+                                {% elif img.current_status == 'Dispatch Pending' %}bg-primary
+                                {% elif img.current_status == 'Inventory Pending' %}bg-warning text-dark
+                                {% else %}bg-danger{% endif %}">
                                 {{ img.current_status }}
                             </span>
                         </td>
                     </tr>
                 </table>
 
-                <!-- ACTION BUTTONS -->
-                <div class="d-flex gap-4 justify-content-between">
-                    <a href="#"
-                    class="btn btn-outline-danger btn-sm w-25">
+                <div class="d-flex gap-3">
+                    <a href="{% url 'cnc_work_app:order_delete' img.id %}"
+                       class="btn btn-outline-danger btn-sm w-25">
                         <i class="bi bi-trash"></i> Delete
                     </a>
 
-                    <a href="#"
-                    class="btn btn-outline-success btn-sm w-75">
+                    <a href="{% url 'cnc_work_app:detail' img.id %}"
+                       class="btn btn-outline-success btn-sm w-75">
                         <i class="bi bi-eye-fill"></i> View Details
                     </a>
-
                 </div>
             </div>
 
@@ -217,48 +231,29 @@
 {% endfor %}
 </div>
 
+<!-- ================= PAGINATION ================= -->
 <nav class="mt-3">
-    <ul class="pagination pagination-sm justify-content-center">
+<ul class="pagination pagination-sm justify-content-center">
 
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-            <a class="page-link"
-               href="?page=1&per_page={{ per_page }}{{ request.GET.urlencode|cut:'page='|cut:'per_page=' }}">
-                « First
-            </a>
-        </li>
-        <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}{{ request.GET.urlencode|cut:'page='|cut:'per_page=' }}">
-                ‹ Prev
-            </a>
-        </li>
-        {% endif %}
+{% if page_obj.has_previous %}
+<li class="page-item">
+<a class="page-link" href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}">‹ Prev</a>
+</li>
+{% endif %}
 
-        <li class="page-item active">
-            <span class="page-link">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-            </span>
-        </li>
+<li class="page-item active">
+<span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+</li>
 
-        {% if page_obj.has_next %}
-        <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}{{ request.GET.urlencode|cut:'page='|cut:'per_page=' }}">
-                Next ›
-            </a>
-        </li>
-        <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.paginator.num_pages }}&per_page={{ per_page }}{{ request.GET.urlencode|cut:'page='|cut:'per_page=' }}">
-                Last »
-            </a>
-        </li>
-        {% endif %}
-    </ul>
+{% if page_obj.has_next %}
+<li class="page-item">
+<a class="page-link" href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}">Next ›</a>
+</li>
+{% endif %}
+
+</ul>
 </nav>
 
-<!-- ADD MODAL -->
 {% include 'cnc_work_app/cnc_work_add_design_form.html' %}
 
 {% endblock %}

@@ -1,80 +1,121 @@
 <div class="modal fade" id="editOrderModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <form method="post" enctype="multipart/form-data"
-              action="{% url 'cnc_work_app:edit_order' order.id %}"
+        <form method="post"
+              enctype="multipart/form-data"
+              action="{% url 'cnc_work_app:edit_order' order._id %}"
               class="modal-content">
+
             {% csrf_token %}
+
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">Edit Order</h5>
-                <button type="button" class="btn-close"
+                <button type="button"
+                        class="btn-close"
                         data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <div class="row g-3">
+
                     <div class="col-md-4">
                         <label class="form-label">Title</label>
-                        <input class="form-control" type="text" name="title"
-                               value="{{ order.title }}" required>
+                        <input class="form-control"
+                               type="text"
+                               name="title"
+                               value="{{ order.title }}"
+                               required>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Stone</label>
-                        <input class="form-control" type="text" name="stone"
-                               value="{{ order.stone }}" required>
+                        <input class="form-control"
+                               type="text"
+                               name="stone"
+                               value="{{ order.stone }}"
+                               required>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Color</label>
-                        <input class="form-control" type="text" name="color"
+                        <input class="form-control"
+                               type="text"
+                               name="color"
                                value="{{ order.color }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Approval Date</label>
-                        <input class="form-control" type="date" name="approval_date"
-                               value="{{ order.approval_date|date:'Y-m-d' }}" required>
+                        <input class="form-control"
+                               type="date"
+                               name="approval_date"
+                               value="{{ order.approval_date|date:'Y-m-d' }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Expected Delivery</label>
-                        <input class="form-control" type="date" name="exp_delivery_date"
-                               value="{{ order.exp_delivery_date|date:'Y-m-d' }}" required>
+                        <input class="form-control"
+                               type="date"
+                               name="exp_delivery_date"
+                               value="{{ order.exp_delivery_date|date:'Y-m-d' }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Coverage Area</label>
-                        <input class="form-control" type="text" name="coverage_area"
+                        <input class="form-control"
+                               type="text"
+                               name="coverage_area"
                                value="{{ order.coverage_area }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Party Name</label>
-                        <input class="form-control" type="text" name="party_name"
+                        <input class="form-control"
+                               type="text"
+                               name="party_name"
                                value="{{ order.party_name }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Packing Instruction</label>
-                        <input class="form-control" type="text" name="packing_instruction"
+                        <input class="form-control"
+                               type="text"
+                               name="packing_instruction"
                                value="{{ order.packing_instruction }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Sales Person</label>
-                        <input class="form-control" type="text" name="sales_person"
+                        <input class="form-control"
+                               type="text"
+                               name="sales_person"
                                value="{{ order.sales_person }}">
                     </div>
 
                     <div class="col-6">
                         <label class="form-label">Remarks</label>
-                        <input class="form-control" type="text" name="remarks"
+                        <input class="form-control"
+                               type="text"
+                               name="remarks"
                                value="{{ order.remarks }}">
                     </div>
 
                     <div class="col-6">
                         <label class="form-label">Change Image</label>
-                        <input class="form-control" type="file" name="image">
-                        <small class="text-muted">Current: {{ order.image.name }}</small>
+                        <input class="form-control"
+                               type="file"
+                               name="image">
+
+                        {% if order.image %}
+                            <small class="text-muted d-block mt-1">
+                                Current Image:
+                                <a href="{{ order.image }}"
+                                   target="_blank">View</a>
+                            </small>
+                        {% else %}
+                            <small class="text-muted d-block mt-1">
+                                No image uploaded
+                            </small>
+                        {% endif %}
                     </div>
 
                 </div>
@@ -82,7 +123,9 @@
 
             <div class="modal-footer">
                 <button type="submit"
-                        class="btn btn-success w-100">Update Order</button>
+                        class="btn btn-success w-100">
+                    Update Order
+                </button>
             </div>
 
         </form>

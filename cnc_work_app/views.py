@@ -1,22 +1,23 @@
-from django.shortcuts import render
-from .mongo import get_orders_collection
-from cloudinary.uploader import upload
-
 # Create your views here.
 from django.utils.timezone import now
 from datetime import datetime
-
-# Create your views here.
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from .models import ImageHandling, Order, DesignFile, MachineMaster, MachineDetail, Inventory
-from .forms import MachineDetailForm
-
 from django.db.models import Q, Sum
 from django.db import transaction
 from django.contrib import messages
 from django.core.paginator import Paginator
+# Create your views here.
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse, HttpResponse
+# Models
+from .models import ImageHandling, Order, DesignFile, MachineMaster, MachineDetail, Inventory
+# Forms
+from .forms import MachineDetailForm
 # Cloudinary
+from cloudinary.uploader import upload
+from cloudinary.uploader import upload, destroy
+# Mongo db
+from .mongo import get_orders_collection
+from bson import ObjectId
 
 
 # CNC Order List
@@ -25,6 +26,10 @@ def cnc_order_list(request):
 
     # ---------- GET ALL ORDERS ----------
     orders = list(order_collection.find().sort("created_at", -1))
+
+    # 🔥 VERY IMPORTANT: Mongo _id → id (string)
+    for o in orders:
+        o["id"] = str(o["_id"])
 
     # ---------- SEARCH & FILTER ----------
     q = request.GET.get("q")
@@ -35,7 +40,7 @@ def cnc_order_list(request):
     if q:
         orders = [
             o for o in orders
-            if q.lower() in (o.get("stone", "").lower())
+        if q.lower() in (o.get("stone", "").lower())
                or q.lower() in (o.get("color", "").lower())
                or q.lower() in (o.get("party_name", "").lower())
                or q.lower() in (o.get("sales_person", "").lower())
@@ -69,19 +74,6 @@ def cnc_order_list(request):
     }
 
     return render(request, "cnc_work_app/cnc_order_list.html", context)
-
-
-# For Image Handling
-def add_image(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        myfile = request.FILES.get('image')
-        if title and myfile:
-            obj = ImageHandling(title=title, image=myfile)
-            obj.save()
-            return redirect('cnc_work_app:index')
-        return redirect('cnc_work_app:index')
-
 
 # Add Order
 def add_order(request):
@@ -128,68 +120,125 @@ def add_order(request):
 
     return redirect('cnc_work_app:index')
 
-
-
 def order_edit(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-    if request.method == "POST":
-        order.title = request.POST.get("title")
-        order.stone = request.POST.get("stone")
-        order.color = request.POST.get("color")
-        order.approval_date = request.POST.get("approval_date")
-        order.exp_delivery_date = request.POST.get("exp_delivery_date")
-        order.coverage_area = request.POST.get("coverage_area")
-        order.party_name = request.POST.get("party_name")
-        order.packing_instruction = request.POST.get("packing_instruction")
-        order.sales_person = request.POST.get("sales_person")
-        order.remarks = request.POST.get("remarks")
+    order_collection = get_orders_collection()
 
-        # ---------------- SAFE IMAGE REPLACE ----------------
+    # 🔹 Fetch existing order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(pk)})
+
+    if not order:
+        return redirect("cnc_work_app:index")
+
+    if request.method == "POST":
+
+        # ---------- DATE FIX ----------
+        approval_date = request.POST.get("approval_date")
+        exp_delivery_date = request.POST.get("exp_delivery_date")
+
+        approval_date_obj = (
+            datetime.strptime(approval_date, "%Y-%m-%d")
+            if approval_date else None
+        )
+
+        exp_delivery_date_obj = (
+            datetime.strptime(exp_delivery_date, "%Y-%m-%d")
+            if exp_delivery_date else None
+        )
+
+        # ---------- IMAGE UPDATE ----------
+        image_url = order.get("image")   # existing image
         old_public_id = None
 
         if request.FILES.get("image"):
-            # 1️⃣ Save old image public_id
-            if order.image:
-                old_public_id = order.image.public_id
+            # extract public_id from old image URL
+            if image_url:
+                try:
+                    old_public_id = image_url.split("/")[-1].split(".")[0]
+                except Exception:
+                    old_public_id = None
 
-            # 2️⃣ Assign new image (upload happens on save)
-            order.image = request.FILES["image"]
+            # upload new image
+            result = upload(
+                request.FILES["image"],
+                folder="orders"
+            )
+            image_url = result.get("secure_url")
 
-        # 3️⃣ Save order (Cloudinary upload happens here)
-        with transaction.atomic():
-            order.save()
+        # ---------- UPDATE DATA ----------
+        update_data = {
+            "title": request.POST.get("title"),
+            "stone": request.POST.get("stone"),
+            "color": request.POST.get("color"),
+            "approval_date": approval_date_obj,
+            "exp_delivery_date": exp_delivery_date_obj,
+            "coverage_area": request.POST.get("coverage_area"),
+            "party_name": request.POST.get("party_name"),
+            "packing_instruction": request.POST.get("packing_instruction"),
+            "sales_person": request.POST.get("sales_person"),
+            "remarks": request.POST.get("remarks"),
+            "image": image_url,
+            "updated_at": datetime.now(),
+        }
 
-        # 4️⃣ Delete old image ONLY after successful save
+        order_collection.update_one(
+            {"_id": ObjectId(pk)},
+            {"$set": update_data}
+        )
+
+        # ---------- DELETE OLD IMAGE (SAFE) ----------
         if old_public_id:
             try:
-                destroy(old_public_id)
+                destroy(f"orders/{old_public_id}")
             except Exception:
-                pass  # log this if needed
+                pass
 
-        return redirect("cnc_work_app:detail", pk=order.id)
-    return redirect("cnc_work_app:detail", pk=order.id)
-
+    return redirect("cnc_work_app:detail", pk=str(pk))
 
 def order_delete(request, pk):
-    order = get_object_or_404(Order, pk=pk)
+    order_collection = get_orders_collection()
+
+    # 🔹 Fetch order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(pk)})
+
+    if not order:
+        messages.error(request, "Order not found")
+        return redirect("cnc_work_app:index")
 
     if request.method == "POST":
-        # 🔥 Delete image from Cloudinary first (safe)
-        if order.image:
-            try:
-                destroy(order.image.public_id)
-            except Exception:
-                pass  # production में log करें
 
-        # 🔥 Delete order from DB
-        order.delete()
+        # 🔥 Delete image from Cloudinary (SAFE)
+        image_url = order.get("image")
+        if image_url:
+            try:
+                # extract public_id from URL
+                public_id = image_url.split("/")[-1].split(".")[0]
+                destroy(f"orders/{public_id}")
+            except Exception:
+                pass  # production में logger use करें
+
+        # 🔥 Delete order from MongoDB
+        order_collection.delete_one({"_id": ObjectId(pk)})
 
         messages.success(request, "Order deleted successfully")
         return redirect("cnc_work_app:index")
 
-    return render(request, "cnc_work_app/order_confirm_delete.html", {
-        "order": order
-    })
+    return render(
+        request,
+        "cnc_work_app/order_confirm_delete.html",
+        {"order": order}
+    )
+
+
+# For Image Handling
+def add_image(request):
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        myfile = request.FILES.get('image')
+        if title and myfile:
+            obj = ImageHandling(title=title, image=myfile)
+            obj.save()
+            return redirect('cnc_work_app:index')
+        return redirect('cnc_work_app:index')
 
 
 # Order detail page
