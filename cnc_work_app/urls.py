@@ -14,22 +14,22 @@ urlpatterns = [
     path("order/<str:pk>/delete/", views.order_delete, name="order_delete"), #Order Delete
 
     # Design
-    path("design-file/<str:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
+    # path("design-file/<str:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
 
-    path('order/<str:pk>/design/add/', views.add_design_file, name='add_design_file'),
-    path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
+    # path('order/<str:pk>/design/add/', views.add_design_file, name='add_design_file'),
+    # path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
     # path('cnc_work_app/detail/', views.view_detail, name='detail'),  # Details
 
     # Design Action
-    path( "design-file/<int:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
+    # path( "design-file/<int:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
     
     # Machine Details
-    path('machine/add/<int:order_id>/', views.machine_add_update, name='machine_add_update'),
-    path('order/<int:order_id>/machine/<int:pk>/delete/', views.machine_delete, name='machine_delete'),
+    # path('machine/add/<int:order_id>/', views.machine_add_update, name='machine_add_update'),
+    # path('order/<int:order_id>/machine/<int:pk>/delete/', views.machine_delete, name='machine_delete'),
 
 
     # Machine Master
-    path("machines_mast/", views.machine_mast_list, name="machine_list"),
+    # path("machines_mast/", views.machine_mast_list, name="machine_list"),
 
 
 

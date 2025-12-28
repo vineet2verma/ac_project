@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".onrender.com",
-    "*"
+    "*",
 ]
 
 
@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'cnc_work_app',
-
 ]
 
 MIDDLEWARE = [
