@@ -2,6 +2,8 @@
 from pymongo import MongoClient
 from django.conf import settings
 
+
+
 MONGO_URI = 'mongodb+srv://vineet2verma_db_user:3GyLmAJkpY083hwR@erp-cluster.9ayivjz.mongodb.net/?appName=erp-cluster'
 
 
