@@ -1,6 +1,6 @@
 from pathlib import Path
-import os
 from dotenv import load_dotenv
+import os
 
 import cloudinary
 import cloudinary_storage
@@ -9,6 +9,7 @@ import cloudinary_storage
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Load Env
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+MONGO_URI = os.getenv("MONGO_URI")
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -16,6 +17,9 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
 )
+
+
+
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
@@ -94,6 +98,8 @@ DATABASES = {
     }
 }
 
+# ================= DEFAULT PRIMARY KEY =================
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

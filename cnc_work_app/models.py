@@ -2,6 +2,7 @@ from django.db import models
 from cloudinary.models import CloudinaryField
 # Create your models here.
 
+
 class ImageHandling(models.Model):
     title = models.CharField(max_length=100)
     image = CloudinaryField('image', blank=True, null=True)
@@ -9,6 +10,7 @@ class ImageHandling(models.Model):
     def __str__(self):
         return self.title
 
+# Sales Orders
 class Order(models.Model):
     cnc_order_no = models.CharField(max_length=100, unique=True, blank=True, null=True)
     title = models.CharField(max_length=100)
@@ -28,6 +30,7 @@ class Order(models.Model):
         default="pending"
     )
 
+# Design
 class DesignFile(models.Model):
     STATUS_CHOICES = (
         ("pending", "Pending"),
@@ -49,6 +52,7 @@ class DesignFile(models.Model):
     def __str__(self):
         return self.name
 
+# Inventory
 class Inventory(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     item_name = models.CharField(max_length=200)
@@ -65,7 +69,7 @@ class Inventory(models.Model):
     def total(self):
         return self.qty * self.amount
 
-
+# Machine Master
 class MachineMaster(models.Model):
     machine_no = models.CharField(max_length=50, unique=True, blank=True, null=True)
     machine_name = models.CharField(max_length=150, blank=True, null=True)
@@ -74,7 +78,7 @@ class MachineMaster(models.Model):
     def __str__(self):
         return f"{self.machine_name} - {self.machine_no}"
 
-
+# Machine Detail
 class MachineDetail(models.Model):
     order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="machine_details")
     machine_name = models.ForeignKey(MachineMaster, on_delete=models.CASCADE, blank=True, null=True,
@@ -87,7 +91,7 @@ class MachineDetail(models.Model):
     def __str__(self):
         return f"{self.machine_name}"
 
-
+# QC
 class QualityCheck(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     checked_by = models.CharField(max_length=100)
@@ -105,6 +109,7 @@ class QualityCheck(models.Model):
     def __str__(self):
         return f"QC - {self.order.id}"
 
+# Dispatch
 class Dispatch(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
     vehicle_no = models.CharField(max_length=50)

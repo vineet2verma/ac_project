@@ -1,33 +1,24 @@
 
-from pymongo import MongoClient
-from django.conf import settings
+from dotenv import load_dotenv
 import os
+from pymongo import MongoClient
+from pathlib import Path
 
-MONGO_URI = 'mongodb+srv://vineet2verma_db_user:3GyLmAJkpY083hwR@erp-cluster.9ayivjz.mongodb.net/?appName=erp-cluster'
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-def get_db():
-    client = MongoClient(MONGO_URI)
-    return client['cnc_db']
+MONGO_URI = os.environ.get("MONGO_URI")
 
-def get_mongo_client():
-    return MongoClient(os.getenv("MONGO_URI"))
+# ✅ SINGLE CLIENT (IMPORTANT)
+_client = MongoClient(MONGO_URI)
+_db = _client["cnc_db"]
 
 def get_orders_collection():
-    client = get_mongo_client()
-    db = client["erp_db"]
-    return db["orders"]
+    return _db["order"]
 
-# ✅ ADD THIS
 def get_quality_collection():
-    client = get_mongo_client()
-    db = client["erp_db"]
-    return db["quality_checks"]
+    return _db["quality_checks"]
 
-
-
-
-
-
-
-
+def get_dispatch_collection():
+    return _db["dispatches"]
 

@@ -17,7 +17,7 @@ from .forms import MachineDetailForm
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
 # Mongo db
-from .mongo import get_orders_collection, get_quality_collection
+from .mongo import get_orders_collection, get_quality_collection, get_dispatch_collection
 from bson import ObjectId
 
 
@@ -192,22 +192,33 @@ def add_quality_check(request, order_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 def add_dispatch(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
+    order_collection = get_orders_collection()
+    dispatch_collection = get_dispatch_collection()  # 👈 aapko ye function banana hoga
+
+    # 🔹 Fetch order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
 
     if request.method == "POST":
-        Dispatch.objects.create(
-            order=order,
-            vehicle_no=request.POST.get("vehicle_no"),
-            lr_no=request.POST.get("lr_no"),
-            dispatch_date=request.POST.get("dispatch_date"),
-            dispatched_by=request.POST.get("dispatched_by"),
-            remarks=request.POST.get("remarks"),
+        # 🔹 Insert dispatch record
+        dispatch_collection.insert_one({
+            "order_id": ObjectId(order_id),
+            "vehicle_no": request.POST.get("vehicle_no"),
+            "lr_no": request.POST.get("lr_no"),
+            "dispatch_date": request.POST.get("dispatch_date"),
+            "dispatched_by": request.POST.get("dispatched_by"),
+            "remarks": request.POST.get("remarks"),
+            "created_at": datetime.now()
+        })
+
+        # 🔹 Update order status
+        order_collection.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"current_status": "Complete"}}
         )
 
-        order.current_status = "Complete"
-        order.save()
-
-    return redirect("cnc_work_app:detail", pk=order.id)
+    return redirect("cnc_work_app:detail", pk=order_id)
 
 
 

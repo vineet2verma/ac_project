@@ -14,7 +14,6 @@ urlpatterns = [
     # Not Clear What time it's calling
     path('cnc_work_app/add/', views.add_image, name='add_image'),    # Form POST
 
-
     path('order/<str:pk>/edit/', views.order_edit, name='edit_order'),
 
     # Design
@@ -37,7 +36,6 @@ urlpatterns = [
 
     # Quality Check
     path("order/<str:order_id>/qc/", views.add_quality_check, name="quality_check"),
-
 
     # Dispatch
     path("order/<str:order_id>/dispatch/", views.add_dispatch, name="dispatch_add"),
