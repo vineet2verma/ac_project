@@ -24,7 +24,7 @@
             <form method="post">
                 {% csrf_token %}
 
-                <a href="{% url 'cnc_work_app:detail' order.id %}"
+                <a href="{% url 'cnc_work_app:index' %}"
                    class="btn btn-secondary">
                     Cancel
                 </a>

@@ -7,13 +7,12 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 # Create your views here.
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
 # Models
 from .models import ImageHandling, Order
-# from .models import (ImageHandling, Order,
-#                      DesignFile, MachineMaster, MachineDetail, Inventory)
+from .models import (DesignFile, MachineMaster, MachineDetail, Inventory)
 # Forms
-# from .forms import MachineDetailForm
+from .forms import MachineDetailForm
 # Cloudinary
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
@@ -25,14 +24,12 @@ from bson import ObjectId
 # CNC Order List
 def cnc_order_list(request):
     order_collection = get_orders_collection()
-
     # ---------- GET ALL ORDERS ----------
     orders = list(order_collection.find().sort("created_at", -1))
 
     # 🔥 VERY IMPORTANT: Mongo _id → id (string)
     for o in orders:
         o["id"] = str(o["_id"])
-
     # ---------- SEARCH & FILTER ----------
     q = request.GET.get("q")
     status = request.GET.get("status")  # optional
@@ -53,7 +50,6 @@ def cnc_order_list(request):
     if from_date:
         from_date = datetime.strptime(from_date, "%Y-%m-%d")
         orders = [o for o in orders if o.get("approval_date") and o["approval_date"] >= from_date]
-
     if to_date:
         to_date = datetime.strptime(to_date, "%Y-%m-%d")
         orders = [o for o in orders if o.get("approval_date") and o["approval_date"] <= to_date]
@@ -64,17 +60,15 @@ def cnc_order_list(request):
         per_page = int(per_page)
     except ValueError:
         per_page = 5
-
     paginator = Paginator(orders, per_page)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     context = {
-        "images": page_obj,  # keeping same variable name for template
+        "images": orders,  # keeping same variable name for template
         "page_obj": page_obj,
         "per_page": per_page,
     }
-
     return render(request, "cnc_work_app/cnc_order_list.html", context)
 
 # Add Order
@@ -121,6 +115,86 @@ def add_order(request):
         order_collection.insert_one(data)
 
     return redirect('cnc_work_app:index')
+
+def order_delete(request, pk):
+    order_collection = get_orders_collection()
+
+    # 🔹 Fetch order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(pk)})
+
+    if not order:
+        messages.error(request, "Order not found")
+        return redirect("cnc_work_app:index")
+
+    if request.method == "POST":
+
+        # 🔥 Delete image from Cloudinary (SAFE)
+        image_url = order.get("image")
+        if image_url:
+            try:
+                # extract public_id from URL
+                public_id = image_url.split("/")[-1].split(".")[0]
+                destroy(f"orders/{public_id}")
+            except Exception:
+                pass  # production में logger use करें
+
+        # 🔥 Delete order from MongoDB
+        order_collection.delete_one({"_id": ObjectId(pk)})
+
+        messages.success(request, "Order deleted successfully")
+        return redirect("cnc_work_app:index")
+
+    return render(
+        request,
+        "cnc_work_app/order_confirm_delete.html",
+        {"order": order}
+    )
+
+# Order detail page
+def order_detail(request, pk):
+    collection = get_orders_collection()
+
+    order = collection.find_one({"_id": ObjectId(pk)})
+    if not order:
+        raise Http404("Order not found")
+
+    order["id"] = str(order["_id"])
+
+    # TEMP: Mongo only (ORM related parts disabled)
+    return render(request, "cnc_work_app/detail.html", {
+        "order": order,
+        "design_files": [],
+        "inventory": [],
+        "machines": [],
+        "machines_mast": [],
+        "machine_form": None,
+        "total_hours": 0,
+    })
+
+# def order_detail(request, pk):
+#     order = get_object_or_404(Order, pk=pk)
+#
+#     design_files = DesignFile.objects.filter(order=order)
+#     machines_mast = MachineMaster.objects.all()
+#     machines = MachineDetail.objects.filter(order=order).order_by('-id')
+#     inventory = Inventory.objects.filter(order=order)
+#     machine_form = MachineDetailForm()
+#
+#     # Machine Total Working Hours
+#     machines = MachineDetail.objects.filter(order=order)
+#     total_hours = machines.aggregate(total=Sum("working_hour"))["total"] or 0
+#
+#     return render(request, "cnc_work_app/detail.html", {
+#         "order": order,
+#         "design_files": design_files,
+#         "inventory": inventory,
+#         "machines_mast": machines_mast,
+#         "machines": machines,
+#         "machine_form": machine_form,  # ✅ IMPORTANT
+#         "total_hours": total_hours,
+#     })
+#
+
 
 def order_edit(request, pk):
     order_collection = get_orders_collection()
@@ -196,39 +270,7 @@ def order_edit(request, pk):
 
     return redirect("cnc_work_app:detail", pk=str(pk))
 
-def order_delete(request, pk):
-    order_collection = get_orders_collection()
 
-    # 🔹 Fetch order from MongoDB
-    order = order_collection.find_one({"_id": ObjectId(pk)})
-
-    if not order:
-        messages.error(request, "Order not found")
-        return redirect("cnc_work_app:index")
-
-    if request.method == "POST":
-
-        # 🔥 Delete image from Cloudinary (SAFE)
-        image_url = order.get("image")
-        if image_url:
-            try:
-                # extract public_id from URL
-                public_id = image_url.split("/")[-1].split(".")[0]
-                destroy(f"orders/{public_id}")
-            except Exception:
-                pass  # production में logger use करें
-
-        # 🔥 Delete order from MongoDB
-        order_collection.delete_one({"_id": ObjectId(pk)})
-
-        messages.success(request, "Order deleted successfully")
-        return redirect("cnc_work_app:index")
-
-    return render(
-        request,
-        "cnc_work_app/order_confirm_delete.html",
-        {"order": order}
-    )
 
 
 # For Image Handling
@@ -242,47 +284,23 @@ def add_image(request):
             return redirect('cnc_work_app:index')
         return redirect('cnc_work_app:index')
 
-#
-# Order detail page
-def order_detail(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-
-    design_files = DesignFile.objects.filter(order=order)
-    machines_mast = MachineMaster.objects.all()
-    machines = MachineDetail.objects.filter(order=order).order_by('-id')
-    inventory = Inventory.objects.filter(order=order)
-    machine_form = MachineDetailForm()
-
-    # Machine Total Working Hours
-    machines = MachineDetail.objects.filter(order=order)
-    total_hours = machines.aggregate(total=Sum("working_hour"))["total"] or 0
-
-    return render(request, "cnc_work_app/detail.html", {
-        "order": order,
-        "design_files": design_files,
-        "inventory": inventory,
-        "machines_mast": machines_mast,
-        "machines": machines,
-        "machine_form": machine_form,  # ✅ IMPORTANT
-        "total_hours": total_hours,
-    })
 
 
 # # Design Section
 # # Add Design File
-# def add_design_file(request, pk):
-#     order = get_object_or_404(Order, pk=pk)
-#
-#     if request.method == "POST":
-#         name = request.POST.get("name")
-#         file = request.FILES.get("file")
-#
-#         if name and file:
-#             DesignFile.objects.create(order=order, name=name, file=file)
-#
-#     return redirect("cnc_work_app:detail", pk=order.id)
-#
-#
+def add_design_file(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+
+    if request.method == "POST":
+        name = request.POST.get("name")
+        file = request.FILES.get("file")
+
+        if name and file:
+            DesignFile.objects.create(order=order, name=name, file=file)
+
+    return redirect("cnc_work_app:detail", pk=order.id)
+
+
 # # design file action
 # def design_file_action(request, pk, action):
 #     design = get_object_or_404(DesignFile, pk=pk)
@@ -303,44 +321,40 @@ def order_detail(request, pk):
 #     })
 #
 #
-# # Inventory
-# # Add Inventory Item
-# def add_inventory(request, pk):
-#     order = get_object_or_404(Order, pk=pk)
-#     if request.method == "POST":
-#         item_name = request.POST.get("item_name")
-#         qty = request.POST.get("qty")
-#         amount = request.POST.get("amount")
-#         if item_name and qty and amount:
-#             Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
-#         return redirect("cnc_work_app:detail", pk=order.id)
-#
-#
-# # Machine
-#
-#
-# # Add Machine Detail
-# def machine_add_update(request, order_id):
-#     order = get_object_or_404(Order, pk=order_id)
-#
-#     if request.method == "POST":
-#         machine_id = request.POST.get("machine_id")
-#         if machine_id:
-#             machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
-#             form = MachineDetailForm(request.POST, instance=machine)
-#         else:
-#             form = MachineDetailForm(request.POST)
-#
-#         if form.is_valid():
-#             obj = form.save(commit=False)
-#             obj.order = order
-#             obj.save()
-#
-#
-#
-#         return redirect("cnc_work_app:detail", pk=order.id)
-#
-#
+# Inventory
+# Add Inventory Item
+def add_inventory(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    if request.method == "POST":
+        item_name = request.POST.get("item_name")
+        qty = request.POST.get("qty")
+        amount = request.POST.get("amount")
+        if item_name and qty and amount:
+            Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
+        return redirect("cnc_work_app:detail", pk=order.id)
+
+
+# Machine
+# Add Machine Detail
+def machine_add_update(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+
+    if request.method == "POST":
+        machine_id = request.POST.get("machine_id")
+        if machine_id:
+            machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
+            form = MachineDetailForm(request.POST, instance=machine)
+        else:
+            form = MachineDetailForm(request.POST)
+
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.order = order
+            obj.save()
+
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+
 # def machine_delete(request, order_id, pk):
 #     machine = get_object_or_404(
 #         MachineDetail,

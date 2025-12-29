@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-lg">
         <form method="post"
               enctype="multipart/form-data"
-              action="{% url 'cnc_work_app:edit_order' order._id %}"
+              action="{% url 'cnc_work_app:edit_order' order.id %}"
               class="modal-content">
 
             {% csrf_token %}
