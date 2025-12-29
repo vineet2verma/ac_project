@@ -10,14 +10,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
 # Models
 from .models import ImageHandling, Order
-from .models import (DesignFile, MachineMaster, MachineDetail, Inventory)
+from .models import (DesignFile, MachineMaster, MachineDetail, Inventory, QualityCheck, Dispatch )
 # Forms
 from .forms import MachineDetailForm
 # Cloudinary
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
 # Mongo db
-from .mongo import get_orders_collection
+from .mongo import get_orders_collection, get_quality_collection
 from bson import ObjectId
 
 
@@ -170,6 +170,46 @@ def order_detail(request, pk):
         "machine_form": None,
         "total_hours": 0,
     })
+
+def add_quality_check(request, order_id):
+    if request.method == "POST":
+        qc_collection = get_quality_collection()
+        orders_collection = get_orders_collection()
+
+        qc_collection.insert_one({
+            "order_id": order_id,
+            "checked_by": request.POST.get("checked_by"),
+            "status": request.POST.get("status"),
+            "remarks": request.POST.get("remarks"),
+            "checked_at": datetime.utcnow(),
+        })
+
+        orders_collection.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"current_status": "Dispatch Pending"}}
+        )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+def add_dispatch(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+
+    if request.method == "POST":
+        Dispatch.objects.create(
+            order=order,
+            vehicle_no=request.POST.get("vehicle_no"),
+            lr_no=request.POST.get("lr_no"),
+            dispatch_date=request.POST.get("dispatch_date"),
+            dispatched_by=request.POST.get("dispatched_by"),
+            remarks=request.POST.get("remarks"),
+        )
+
+        order.current_status = "Complete"
+        order.save()
+
+    return redirect("cnc_work_app:detail", pk=order.id)
+
+
 
 # def order_detail(request, pk):
 #     order = get_object_or_404(Order, pk=pk)
@@ -353,6 +393,9 @@ def machine_add_update(request, order_id):
             obj.save()
 
         return redirect("cnc_work_app:detail", pk=order_id)
+
+
+
 
 
 # def machine_delete(request, order_id, pk):

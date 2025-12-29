@@ -88,6 +88,36 @@ class MachineDetail(models.Model):
         return f"{self.machine_name}"
 
 
+class QualityCheck(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    checked_by = models.CharField(max_length=100)
+    remarks = models.TextField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pass", "Pass"),
+            ("fail", "Fail"),
+        ],
+        default="pass"
+    )
+    checked_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"QC - {self.order.id}"
+
+class Dispatch(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    vehicle_no = models.CharField(max_length=50)
+    lr_no = models.CharField(max_length=50)
+    dispatch_date = models.DateField()
+    dispatched_by = models.CharField(max_length=100)
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Dispatch - {self.order.id}"
+
+
+
 # ###########################################
 # class Order(models.Model):
 #     cnc_order_no = models.CharField(max_length=50, unique=True,blank=True, null=True)

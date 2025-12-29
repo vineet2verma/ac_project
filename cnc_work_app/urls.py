@@ -35,6 +35,11 @@ urlpatterns = [
     # Machine Master
     # path("machines_mast/", views.machine_mast_list, name="machine_list"),
 
+    # Quality Check
+    path("order/<str:order_id>/qc/", views.add_quality_check, name="quality_check"),
 
+
+    # Dispatch
+    path("order/<str:order_id>/dispatch/", views.add_dispatch, name="dispatch_add"),
 
 ]
