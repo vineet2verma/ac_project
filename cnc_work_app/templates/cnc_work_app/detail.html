@@ -5,27 +5,27 @@
 
 <style>
     /* ================= MOBILE RESPONSIVE ERP ================= */
-  
+
     @media (max-width: 768px) {
       .erp-header {
         flex-direction: column;
         align-items: flex-start !important;
         gap: 10px;
       }
-  
+
       .erp-header-right {
         align-self: flex-start;
       }
-  
+
       .order-image {
         max-width: 100% !important;
         margin-bottom: 10px;
       }
-  
+
       .table-responsive {
         overflow-x: auto;
       }
-  
+
       .action-btn-group {
         flex-wrap: wrap;
       }
@@ -137,67 +137,89 @@
 
     <!-- ================= DESIGN FILES ================= -->
     <div class="mb-4">
-        <div
-                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
-        >
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">Design Files</h5>
-            <button
-                    class="btn btn-primary btn-sm rounded-pill"
+            <button class="btn btn-primary btn-sm rounded-pill"
                     data-bs-toggle="modal"
-                    data-bs-target="#designModal"
-            >
+                    data-bs-target="#designModal">
                 + Add Design
             </button>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-sm table-striped mt-2">
+            <table class="table table-sm table-striped mt-2 align-middle">
                 <thead class="table-light">
                 <tr>
                     <th>Name</th>
                     <th>File</th>
                     <th>Status</th>
                     <th>Date</th>
-                    <th>Action</th>
+                    <th style="width:140px">Action</th>
                 </tr>
                 </thead>
+
                 <tbody>
                 {% for file in design_files %}
                 <tr>
                     <td>{{ file.name }}</td>
-                    <td><a href="{{ file.file_url }}" target="_blank">View</a></td>
+
                     <td>
-              <span
-                      class="badge {% if file.status == 'approved' %} bg-success {% elif file.status == 'cancelled' %} bg-danger {% else %} bg-warning text-dark {% endif %}"
-              >
-                {{ file.status|title }}
-              </span>
+                        <a href="{{ file.file_url }}" target="_blank"
+                           class="btn btn-outline-secondary btn-sm">
+                            View
+                        </a>
                     </td>
-                    <td>{{ file.approved_at|default:"-" }}</td>
+
                     <td>
-                        {% if file.status == "pending" %}
+                    <span class="badge
+                        {% if file.status == 'approved' %} bg-success
+                        {% elif file.status == 'cancelled' %} bg-danger
+                        {% else %} bg-warning text-dark {% endif %}">
+                        {{ file.status|title }}
+                    </span>
+                    </td>
+
+                    <td>{{ file.approved_at|default:"-" }}</td>
+
+                    <td>
                         <div class="d-flex gap-1 action-btn-group">
-                            <button
-                                    class="btn btn-success btn-sm"
-                                    onclick="designAction({{ file.id }}, 'approve')"
-                            >
-                                ✔
+
+                            {% if file.status == "pending" %}
+                            <!-- APPROVE -->
+                            <button class="btn btn-success btn-sm"
+                                    title="Approve"
+                                    onclick="designAction('{{ file.id }}','approve')">
+                                <i class="bi bi-check-lg"></i>
                             </button>
-                            <button
-                                    class="btn btn-danger btn-sm"
-                                    onclick="designAction({{ file.id }}, 'cancel')"
-                            >
-                                ✖
+
+                            <!-- CANCEL -->
+                            <button class="btn btn-warning btn-sm"
+                                    title="Cancel"
+                                    onclick="designAction('{{ file.id }}','cancel')">
+                                <i class="bi bi-x-lg"></i>
                             </button>
+                            {% endif %}
+
+                            <!-- DELETE -->
+                            <form method="POST"
+                                  action="{% url 'cnc_work_app:design_delete' order.id file.id %}">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="btn btn-danger btn-sm"
+                                        title="Delete"
+                                        onclick="return confirm('Delete this design file?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+
                         </div>
-                        {% else %}
-                        <span class="text-muted small">—</span>
-                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center text-muted">No design files</td>
+                    <td colspan="5" class="text-center text-muted">
+                        No design files
+                    </td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -292,7 +314,6 @@
     </div>
 
 
-
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
         <div
@@ -336,68 +357,109 @@
         </div>
     </div>
 
+
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">
-        <h5 class="mb-2">Quality Check</h5>
+        <h5 class="mb-2">QC Check</h5>
 
-        <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}">
+        <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}" class="card card-body mb-2">
             {% csrf_token %}
-
             <div class="row g-2">
-                <div class="col-md-3">
-                    <input name="checked_by" class="form-control form-control-sm" placeholder="Checked By" required>
-                </div>
-
+                <div class="col-md-3"><input name="checked_by" class="form-control form-control-sm"
+                                             placeholder="Checked By" required></div>
                 <div class="col-md-3">
                     <select name="status" class="form-select form-select-sm">
                         <option value="pass">Pass</option>
                         <option value="fail">Fail</option>
                     </select>
                 </div>
-
-                <div class="col-md-4">
-                    <input name="remarks" class="form-control form-control-sm" placeholder="Remarks">
+                <div class="col-md-4"><input name="remarks" class="form-control form-control-sm" placeholder="Remarks">
                 </div>
-
                 <div class="col-md-2">
-                    <button class="btn btn-success btn-sm w-100">Submit QC</button>
+                    <button class="btn btn-success btn-sm w-100">Submit</button>
                 </div>
             </div>
         </form>
+
+        {% if quality_checks %}
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Checked By</th>
+                <th>Status</th>
+                <th>Remarks</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for q in quality_checks %}
+            <tr>
+                <td>{{ q.created_at|default:"-" }}</td>
+                <td>{{ q.checked_by }}</td>
+                <td>
+          <span class="badge {% if q.status == 'pass' %}bg-success{% else %}bg-danger{% endif %}">
+            {{ q.status|upper }}
+          </span>
+                </td>
+                <td>{{ q.remarks|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted small">No quality checks</p>
+        {% endif %}
     </div>
 
     <!-- ================= DISPATCH ================= -->
     <div class="mb-4">
         <h5 class="mb-2">Dispatch</h5>
 
-        <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}">
+        <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}" class="card card-body mb-2">
             {% csrf_token %}
-
             <div class="row g-2">
+                <div class="col-md-2"><input name="vehicle_no" class="form-control form-control-sm"
+                                             placeholder="Vehicle No" required></div>
+                <div class="col-md-2"><input name="lr_no" class="form-control form-control-sm" placeholder="LR No"
+                                             required></div>
+                <div class="col-md-3"><input type="date" name="dispatch_date" class="form-control form-control-sm"
+                                             required></div>
+                <div class="col-md-3"><input name="dispatched_by" class="form-control form-control-sm"
+                                             placeholder="Dispatched By"></div>
                 <div class="col-md-2">
-                    <input name="vehicle_no" class="form-control form-control-sm" placeholder="Vehicle No" required>
-                </div>
-
-                <div class="col-md-2">
-                    <input name="lr_no" class="form-control form-control-sm" placeholder="LR No" required>
-                </div>
-
-                <div class="col-md-2">
-                    <input type="date" name="dispatch_date" class="form-control form-control-sm" required>
-                </div>
-
-                <div class="col-md-3">
-                    <input name="dispatched_by" class="form-control form-control-sm" placeholder="Dispatched By">
-                </div>
-
-                <div class="col-md-3">
-                    <input name="remarks" class="form-control form-control-sm" placeholder="Remarks">
+                    <button class="btn btn-primary btn-sm w-100">Dispatch</button>
                 </div>
             </div>
-
-            <button class="btn btn-primary btn-sm mt-2">Confirm Dispatch</button>
         </form>
+
+        {% if dispatches %}
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>LR</th>
+                <th>By</th>
+                <th>Remarks</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for d in dispatches %}
+            <tr>
+                <td>{{ d.dispatch_date }}</td>
+                <td>{{ d.vehicle_no }}</td>
+                <td>{{ d.lr_no }}</td>
+                <td>{{ d.dispatched_by|default:"-" }}</td>
+                <td>{{ d.remarks|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted small">No dispatch records</p>
+        {% endif %}
     </div>
+
 
 </div>
 

@@ -267,6 +267,18 @@ def order_detail(request, pk):
         m["machine_date"] = m.get("date")      # safe mapping
         total_hours += float(m.get("working_hour", 0))
 
+        # -------- QUALITY CHECK --------
+    qc_col = get_quality_collection()
+    quality_checks = list(qc_col.find({"order_id": pk}).sort("created_at", -1))
+    for q in quality_checks:
+        q["id"] = str(q["_id"])
+
+    # -------- DISPATCH --------
+    dispatch_col = get_dispatch_collection()
+    dispatches = list(dispatch_col.find({"order_id": pk}).sort("created_at", -1))
+    for d in dispatches:
+        d["id"] = str(d["_id"])
+
     # ---------------- RENDER ----------------
     return render(request, "cnc_work_app/detail.html", {
         "order": order,
@@ -274,8 +286,10 @@ def order_detail(request, pk):
         "inventory": [],
         "machines_mast": machines_mast,
         "machines": machines,
-        "quality_checks": [],
-        "dispatches": [],
+        "quality_checks": quality_checks,  # 🔥
+        "dispatches": dispatches,  # 🔥
+        # "quality_checks": [],
+        # "dispatches": [],
         "machine_form": None,
         "total_hours": total_hours,
     })
@@ -362,6 +376,19 @@ def design_action(request, design_id, action):
         )
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+# Design Delete
+def design_delete(request, order_id, design_id):
+    if request.method != "POST":
+        raise Http404("Invalid request")
+
+    design_col = get_design_files_collection()
+
+    design_col.delete_one({
+        "_id": ObjectId(design_id),
+        "order_id": order_id
+    })
+
+    return redirect("cnc_work_app:order_detail", pk=order_id)
 #
 def add_machine_work(request, order_id):
     if request.method == "POST":
