@@ -165,7 +165,7 @@
                 {% for file in design_files %}
                 <tr>
                     <td>{{ file.name }}</td>
-                    <td><a href="{{ file.file.url }}" target="_blank">View</a></td>
+                    <td><a href="{{ file.file_url }}" target="_blank">View</a></td>
                     <td>
               <span
                       class="badge {% if file.status == 'approved' %} bg-success {% elif file.status == 'cancelled' %} bg-danger {% else %} bg-warning text-dark {% endif %}"
@@ -225,6 +225,7 @@
             <table class="table table-sm table-bordered">
                 <thead class="table-light">
                 <tr>
+                    <th>Date</th>
                     <th>Machine</th>
                     <th>Hours</th>
                     <th>Operator</th>
@@ -236,6 +237,7 @@
                 <tbody>
                 {% for m in machines %}
                 <tr>
+                    <td>{{ m.work_date }}</td>
                     <td>{{ m.machine_name }}</td>
                     <td>{{ m.working_hour }}</td>
                     <td>{{ m.operator|default:"-" }}</td>
@@ -251,8 +253,7 @@
                                 data-operator="{{ m.operator }}"
                                 data-remarks="{{ m.remarks }}"
                                 data-bs-toggle="modal"
-                                data-bs-target="#machineModal"
-                        >
+                                data-bs-target="#machineModal">
                             <i class="bi bi-pencil-square"></i>
                         </button>
 
@@ -289,6 +290,8 @@
         <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
         </div>
     </div>
+
+
 
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
@@ -332,7 +335,6 @@
             </table>
         </div>
     </div>
-
 
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">
@@ -411,16 +413,21 @@
 
   // EDIT MACHINE
   document.querySelectorAll(".edit-machine-btn").forEach(btn => {
-    btn.addEventListener("click", function () {
+  btn.addEventListener("click", function () {
 
-      document.getElementById("machine_id").value = this.dataset.id;
-      document.getElementById("id_machine_name").value = this.dataset.machine;
-      document.getElementById("id_working_hour").value = this.dataset.hours;
-      document.getElementById("id_operator").value = this.dataset.operator || "";
-      document.getElementById("id_remarks").value = this.dataset.remarks || "";
-      document.getElementById("machineModalTitle").innerText = "Edit Machine Detail";
-    });
+    // set hidden id
+    document.getElementById("machine_work_id").value = this.dataset.id;
+
+    // fill form values
+    document.getElementById("id_working_hour").value = this.dataset.hours;
+    document.getElementById("id_operator").value = this.dataset.operator || "";
+    document.getElementById("id_remarks").value = this.dataset.remarks || "";
+
+    // 🔁 change form action to EDIT
+    document.querySelector("#machineModal form").action =
+      `/order/{{ order.id }}/machine/${this.dataset.id}/edit/`;
   });
+});
 
   // RESET FOR ADD
   document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {

@@ -13,12 +13,30 @@ MONGO_URI = os.environ.get("MONGO_URI")
 _client = MongoClient(MONGO_URI)
 _db = _client["cnc_db"]
 
+# Master
+def get_machine_master_collection():
+    return _db["machine_master"]
+
+def get_inventory_master_collection():
+    return _db["inventory_masters"]
+
+# db working
 def get_orders_collection():
     return _db["order"]
+
+def get_design_files_collection():
+    return _db["design_files"]
+
+def get_machine_work_collection():
+    return _db["machine_work"]
+
+def get_inventory_collection():
+    return _db["inventory"]
 
 def get_quality_collection():
     return _db["quality_checks"]
 
 def get_dispatch_collection():
     return _db["dispatches"]
+
 

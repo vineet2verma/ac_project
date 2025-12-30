@@ -1,6 +1,8 @@
 # Create your views here.
 from django.utils.timezone import now
-from datetime import datetime
+from datetime import datetime, date
+from django.views.decorators.http import require_POST
+from django.utils import timezone
 from django.db.models import Q, Sum
 from django.db import transaction
 from django.contrib import messages
@@ -9,16 +11,21 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
 # Models
-from .models import ImageHandling, Order
-from .models import (DesignFile, MachineMaster, MachineDetail, Inventory, QualityCheck, Dispatch )
+# from .models import ImageHandling
+# from .models import (MachineMaster, MachineDetail, Inventory, QualityCheck, Dispatch )
 # Forms
 from .forms import MachineDetailForm
 # Cloudinary
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
-# Mongo db
-from .mongo import get_orders_collection, get_quality_collection, get_dispatch_collection
 from bson import ObjectId
+# Mongo db
+from .mongo import (get_orders_collection,
+                    get_design_files_collection,
+                    get_machine_master_collection,get_machine_work_collection,
+                    get_inventory_master_collection,get_inventory_collection,
+                    get_quality_collection, get_dispatch_collection
+                    )
 
 
 # CNC Order List
@@ -115,138 +122,7 @@ def add_order(request):
         order_collection.insert_one(data)
 
     return redirect('cnc_work_app:index')
-
-def order_delete(request, pk):
-    order_collection = get_orders_collection()
-
-    # 🔹 Fetch order from MongoDB
-    order = order_collection.find_one({"_id": ObjectId(pk)})
-
-    if not order:
-        messages.error(request, "Order not found")
-        return redirect("cnc_work_app:index")
-
-    if request.method == "POST":
-
-        # 🔥 Delete image from Cloudinary (SAFE)
-        image_url = order.get("image")
-        if image_url:
-            try:
-                # extract public_id from URL
-                public_id = image_url.split("/")[-1].split(".")[0]
-                destroy(f"orders/{public_id}")
-            except Exception:
-                pass  # production में logger use करें
-
-        # 🔥 Delete order from MongoDB
-        order_collection.delete_one({"_id": ObjectId(pk)})
-
-        messages.success(request, "Order deleted successfully")
-        return redirect("cnc_work_app:index")
-
-    return render(
-        request,
-        "cnc_work_app/order_confirm_delete.html",
-        {"order": order}
-    )
-
-# Order detail page
-def order_detail(request, pk):
-    collection = get_orders_collection()
-
-    order = collection.find_one({"_id": ObjectId(pk)})
-    if not order:
-        raise Http404("Order not found")
-
-    order["id"] = str(order["_id"])
-
-    # TEMP: Mongo only (ORM related parts disabled)
-    return render(request, "cnc_work_app/detail.html", {
-        "order": order,
-        "design_files": [],
-        "inventory": [],
-        "machines": [],
-        "machines_mast": [],
-        "machine_form": None,
-        "total_hours": 0,
-    })
-
-def add_quality_check(request, order_id):
-    if request.method == "POST":
-        qc_collection = get_quality_collection()
-        orders_collection = get_orders_collection()
-
-        qc_collection.insert_one({
-            "order_id": order_id,
-            "checked_by": request.POST.get("checked_by"),
-            "status": request.POST.get("status"),
-            "remarks": request.POST.get("remarks"),
-            "checked_at": datetime.utcnow(),
-        })
-
-        orders_collection.update_one(
-            {"_id": ObjectId(order_id)},
-            {"$set": {"current_status": "Dispatch Pending"}}
-        )
-
-    return redirect("cnc_work_app:detail", pk=order_id)
-
-def add_dispatch(request, order_id):
-    order_collection = get_orders_collection()
-    dispatch_collection = get_dispatch_collection()  # 👈 aapko ye function banana hoga
-
-    # 🔹 Fetch order from MongoDB
-    order = order_collection.find_one({"_id": ObjectId(order_id)})
-    if not order:
-        raise Http404("Order not found")
-
-    if request.method == "POST":
-        # 🔹 Insert dispatch record
-        dispatch_collection.insert_one({
-            "order_id": ObjectId(order_id),
-            "vehicle_no": request.POST.get("vehicle_no"),
-            "lr_no": request.POST.get("lr_no"),
-            "dispatch_date": request.POST.get("dispatch_date"),
-            "dispatched_by": request.POST.get("dispatched_by"),
-            "remarks": request.POST.get("remarks"),
-            "created_at": datetime.now()
-        })
-
-        # 🔹 Update order status
-        order_collection.update_one(
-            {"_id": ObjectId(order_id)},
-            {"$set": {"current_status": "Complete"}}
-        )
-
-    return redirect("cnc_work_app:detail", pk=order_id)
-
-
-
-# def order_detail(request, pk):
-#     order = get_object_or_404(Order, pk=pk)
-#
-#     design_files = DesignFile.objects.filter(order=order)
-#     machines_mast = MachineMaster.objects.all()
-#     machines = MachineDetail.objects.filter(order=order).order_by('-id')
-#     inventory = Inventory.objects.filter(order=order)
-#     machine_form = MachineDetailForm()
-#
-#     # Machine Total Working Hours
-#     machines = MachineDetail.objects.filter(order=order)
-#     total_hours = machines.aggregate(total=Sum("working_hour"))["total"] or 0
-#
-#     return render(request, "cnc_work_app/detail.html", {
-#         "order": order,
-#         "design_files": design_files,
-#         "inventory": inventory,
-#         "machines_mast": machines_mast,
-#         "machines": machines,
-#         "machine_form": machine_form,  # ✅ IMPORTANT
-#         "total_hours": total_hours,
-#     })
-#
-
-
+# Edit Order
 def order_edit(request, pk):
     order_collection = get_orders_collection()
 
@@ -320,36 +196,344 @@ def order_edit(request, pk):
                 pass
 
     return redirect("cnc_work_app:detail", pk=str(pk))
+# Delete Order
+def order_delete(request, pk):
+    order_collection = get_orders_collection()
 
+    # 🔹 Fetch order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(pk)})
 
+    if not order:
+        messages.error(request, "Order not found")
+        return redirect("cnc_work_app:index")
 
+    if request.method == "POST":
 
-# For Image Handling
-def add_image(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        myfile = request.FILES.get('image')
-        if title and myfile:
-            obj = ImageHandling(title=title, image=myfile)
-            obj.save()
-            return redirect('cnc_work_app:index')
-        return redirect('cnc_work_app:index')
+        # 🔥 Delete image from Cloudinary (SAFE)
+        image_url = order.get("image")
+        if image_url:
+            try:
+                # extract public_id from URL
+                public_id = image_url.split("/")[-1].split(".")[0]
+                destroy(f"orders/{public_id}")
+            except Exception:
+                pass  # production में logger use करें
 
+        # 🔥 Delete order from MongoDB
+        order_collection.delete_one({"_id": ObjectId(pk)})
 
+        messages.success(request, "Order deleted successfully")
+        return redirect("cnc_work_app:index")
 
-# # Design Section
-# # Add Design File
+    return render(
+        request,
+        "cnc_work_app/order_confirm_delete.html",
+        {"order": order}
+    )
+# Order detail page
+def order_detail(request, pk):
+    order_col = get_orders_collection()
+    design_col = get_design_files_collection()
+    machine_master_col = get_machine_master_collection()
+    machine_work_col = get_machine_work_collection()
+
+    # ---------------- ORDER ----------------
+    order = order_col.find_one({"_id": ObjectId(pk)})
+    if not order:
+        raise Http404("Order not found")
+
+    order["id"] = str(order["_id"])
+
+    # ---------------- DESIGN FILES ----------------
+    design_files = list(
+        design_col.find({"order_id": pk}).sort("created_at", -1)
+    )
+    for f in design_files:
+        f["id"] = str(f["_id"])
+
+    # ---------------- MACHINE MASTER (Dropdown) ----------------
+    machines_mast = list(machine_master_col.find({"is_active": True}))
+    for m in machines_mast:
+        m["id"] = str(m["_id"])   # ✅ for dropdown
+
+    # ---------------- MACHINE WORK (Table + Delete/Edit) ----------------
+    machines = list(
+        machine_work_col.find({"order_id": pk}).sort("created_at", -1)
+    )
+
+    total_hours = 0
+    for m in machines:
+        m["id"] = str(m["_id"])                # 🔥 MOST IMPORTANT LINE
+        m["machine_date"] = m.get("date")      # safe mapping
+        total_hours += float(m.get("working_hour", 0))
+
+    # ---------------- RENDER ----------------
+    return render(request, "cnc_work_app/detail.html", {
+        "order": order,
+        "design_files": design_files,
+        "inventory": [],
+        "machines_mast": machines_mast,
+        "machines": machines,
+        "quality_checks": [],
+        "dispatches": [],
+        "machine_form": None,
+        "total_hours": total_hours,
+    })
+# Order Quality Check
+def add_quality_check(request, order_id):
+    if request.method == "POST":
+        qc_collection = get_quality_collection()
+        orders_collection = get_orders_collection()
+
+        qc_collection.insert_one({
+            "order_id": order_id,
+            "checked_by": request.POST.get("checked_by"),
+            "status": request.POST.get("status"),
+            "remarks": request.POST.get("remarks"),
+            "checked_at": datetime.utcnow(),
+        })
+
+        orders_collection.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"current_status": "Dispatch Pending"}}
+        )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+# Order Dispatches
+def add_dispatch(request, order_id):
+    order_collection = get_orders_collection()
+    dispatch_collection = get_dispatch_collection()  # 👈 aapko ye function banana hoga
+
+    # 🔹 Fetch order from MongoDB
+    order = order_collection.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
+
+    if request.method == "POST":
+        # 🔹 Insert dispatch record
+        dispatch_collection.insert_one({
+            "order_id": ObjectId(order_id),
+            "vehicle_no": request.POST.get("vehicle_no"),
+            "lr_no": request.POST.get("lr_no"),
+            "dispatch_date": request.POST.get("dispatch_date"),
+            "dispatched_by": request.POST.get("dispatched_by"),
+            "remarks": request.POST.get("remarks"),
+            "created_at": datetime.now()
+        })
+
+        # 🔹 Update order status
+        order_collection.update_one(
+            {"_id": ObjectId(order_id)},
+            {"$set": {"current_status": "Complete"}}
+        )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+# Add Design File
 def add_design_file(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-
     if request.method == "POST":
         name = request.POST.get("name")
         file = request.FILES.get("file")
 
         if name and file:
-            DesignFile.objects.create(order=order, name=name, file=file)
+            upload_result = upload(file,folder="design_files")
+            design_collection = get_design_files_collection()
 
-    return redirect("cnc_work_app:detail", pk=order.id)
+            design_collection.insert_one({
+                "order_id": pk,                     # Mongo Order ID (string)
+                "name": name,
+                "file_url": upload_result["secure_url"],
+                "public_id": upload_result["public_id"],
+                "status": "pending",
+                "created_at": datetime.utcnow(),
+            })
+
+    return redirect("cnc_work_app:detail", pk=pk)
+# Add Design Action
+def design_action(request, design_id, action):
+    collection = get_design_files_collection()
+
+    if action in ["approve", "cancel"]:
+        collection.update_one(
+            {"_id": ObjectId(design_id)},
+            {"$set": {
+                "status": "approved" if action == "approve" else "cancelled",
+                "approved_at": datetime.utcnow()
+            }}
+        )
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+#
+def add_machine_work(request, order_id):
+    if request.method == "POST":
+        machine_id = request.POST.get("machine_id")
+        working_hour = float(request.POST.get("working_hour"))
+        operator = request.POST.get("operator")
+        remarks = request.POST.get("remarks")
+
+        master_col = get_machine_master_collection()
+        machine = master_col.find_one({"_id": ObjectId(machine_id)})
+
+        work_col = get_machine_work_collection()
+        work_col.insert_one({
+            "order_id": order_id,
+            "machine_id": machine_id,
+            "machine_name": machine["machine_name"],
+            "work_date": date.today().isoformat(),   # ✅ default today
+            "working_hour": working_hour,
+            "operator": operator,
+            "remarks": remarks,
+            "created_at": datetime.utcnow()
+        })
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+# # Machine Master
+# ================= MACHINE MASTER LIST =================
+def machine_master(request):
+    col = get_machine_master_collection()
+    machines = list(col.find().sort("created_at", -1))
+    # Mongo _id → string for template
+    for m in machines: m["id"] = str(m["_id"])
+    return render(request,"machine_mast/machine_master_add.html",{"machines": machines})
+# ================= ADD MACHINE =================
+@require_POST
+def machine_master_add(request):
+    col = get_machine_master_collection()
+    machine_name = request.POST.get("machine_name", "").strip()
+    machine_code = request.POST.get("machine_code", "").strip()
+    is_active = request.POST.get("is_active") == "on"
+    if not machine_name or not machine_code: return redirect("machine_master")
+
+    col.insert_one({
+        "machine_name": machine_name,
+        "machine_code": machine_code,
+        "is_active": is_active,
+        "created_at": timezone.now()
+    })
+    return redirect("cnc_work_app:machine_master")
+# ================= TOGGLE ACTIVE / INACTIVE =================
+@require_POST
+def machine_master_toggle(request, pk):
+    col = get_machine_master_collection()
+    try:
+        oid = ObjectId(pk)
+    except Exception:
+        return redirect("cnc_work_app:machine_master")
+
+    machine = col.find_one({"_id": oid})
+    if machine:
+        col.update_one(
+            {"_id": oid},
+            {"$set": {"is_active": not machine.get("is_active", True)}}
+        )
+
+    return redirect("cnc_work_app:machine_master")
+
+# Machine Detail in Order
+def add_machine_master(name, code=None):
+    col = get_machine_master_collection()
+    col.insert_one({
+        "machine_name": name,
+        "machine_code": code,
+        "is_active": True,
+        "created_at": datetime.utcnow()
+    })
+# Machine Order Delete
+def machine_delete(request, order_id, machine_work_id):
+    if request.method == "POST":
+        col = get_machine_work_collection()
+        col.delete_one({"_id": ObjectId(machine_work_id)})
+    return redirect("cnc_work_app:detail", pk=order_id)
+# Machine Order Edit
+def machine_edit(request, order_id, machine_work_id):
+    col = get_machine_work_collection()
+
+    if request.method == "POST":
+        col.update_one(
+            {"_id": ObjectId(machine_work_id)},
+            {"$set": {
+                "working_hour": float(request.POST.get("working_hour")),
+                "operator": request.POST.get("operator"),
+                "remarks": request.POST.get("remarks"),
+            }}
+        )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+# Active Machines
+def get_active_machines():
+    col = get_machine_master_collection()
+    machines = list(col.find({"is_active": True}))
+    for m in machines:
+        m["id"] = str(m["_id"])
+    return machines
+
+
+def add_inventory(request):
+    pass
+
+
+# # READ (LIST)
+# def machine_mast_list(request):
+#     machines = MachineMaster.objects.all()
+#     return render(request, "machine_mast/machine_list.html", {"machines": machines})
+
+
+# def order_detail(request, pk):
+#     order = get_object_or_404(Order, pk=pk)
+#
+#     design_files = DesignFile.objects.filter(order=order)
+#     machines_mast = MachineMaster.objects.all()
+#     machines = MachineDetail.objects.filter(order=order).order_by('-id')
+#     inventory = Inventory.objects.filter(order=order)
+#     machine_form = MachineDetailForm()
+#
+#     # Machine Total Working Hours
+#     machines = MachineDetail.objects.filter(order=order)
+#     total_hours = machines.aggregate(total=Sum("working_hour"))["total"] or 0
+#
+#     return render(request, "cnc_work_app/detail.html", {
+#         "order": order,
+#         "design_files": design_files,
+#         "inventory": inventory,
+#         "machines_mast": machines_mast,
+#         "machines": machines,
+#         "machine_form": machine_form,  # ✅ IMPORTANT
+#         "total_hours": total_hours,
+#     })
+#
+
+
+
+
+
+# For Image Handling
+# def add_image(request):
+#     if request.method == 'POST':
+#         title = request.POST.get('title')
+#         myfile = request.FILES.get('image')
+#         if title and myfile:
+#             obj = ImageHandling(title=title, image=myfile)
+#             obj.save()
+#             return redirect('cnc_work_app:index')
+#         return redirect('cnc_work_app:index')
+
+
+
+# # Design Section
+# # Add Design File
+
+# def add_design_file(request, pk):
+#     order = get_object_or_404(Order, pk=pk)
+#
+#     if request.method == "POST":
+#         name = request.POST.get("name")
+#         file = request.FILES.get("file")
+#
+#         if name and file:
+#             DesignFile.objects.create(order=order, name=name, file=file)
+#
+#     return redirect("cnc_work_app:detail", pk=order.id)
 
 
 # # design file action
@@ -374,36 +558,38 @@ def add_design_file(request, pk):
 #
 # Inventory
 # Add Inventory Item
-def add_inventory(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-    if request.method == "POST":
-        item_name = request.POST.get("item_name")
-        qty = request.POST.get("qty")
-        amount = request.POST.get("amount")
-        if item_name and qty and amount:
-            Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
-        return redirect("cnc_work_app:detail", pk=order.id)
+# def add_inventory(request, pk):
+#     pass
+    # order = get_object_or_404(Order, pk=pk)
+    # if request.method == "POST":
+    #     item_name = request.POST.get("item_name")
+    #     qty = request.POST.get("qty")
+    #     amount = request.POST.get("amount")
+    #     if item_name and qty and amount:
+    #         Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
+    #     return redirect("cnc_work_app:detail", pk=order.id)
 
 
 # Machine
 # Add Machine Detail
-def machine_add_update(request, order_id):
-    order = get_object_or_404(Order, pk=order_id)
-
-    if request.method == "POST":
-        machine_id = request.POST.get("machine_id")
-        if machine_id:
-            machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
-            form = MachineDetailForm(request.POST, instance=machine)
-        else:
-            form = MachineDetailForm(request.POST)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.order = order
-            obj.save()
-
-        return redirect("cnc_work_app:detail", pk=order_id)
+# def machine_add_update(request, order_id):
+#     pass
+    # order = get_object_or_404(Order, pk=order_id)
+    #
+    # if request.method == "POST":
+    #     machine_id = request.POST.get("machine_id")
+    #     if machine_id:
+    #         machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
+    #         form = MachineDetailForm(request.POST, instance=machine)
+    #     else:
+    #         form = MachineDetailForm(request.POST)
+    #
+    #     if form.is_valid():
+    #         obj = form.save(commit=False)
+    #         obj.order = order
+    #         obj.save()
+    #
+    #     return redirect("cnc_work_app:detail", pk=order_id)
 
 
 
@@ -422,8 +608,3 @@ def machine_add_update(request, order_id):
 #     return redirect("cnc_work_app:detail", pk=order_id)
 #
 #
-# # Machine Master
-# # READ (LIST)
-# def machine_mast_list(request):
-#     machines = MachineMaster.objects.all()
-#     return render(request, "machine_mast/machine_list.html", {"machines": machines})
