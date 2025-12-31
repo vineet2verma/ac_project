@@ -1,10 +1,10 @@
 # Create your views here.
-from django.utils.timezone import now
+# from django.utils.timezone import now
 from datetime import datetime, date
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from django.db.models import Q, Sum
-from django.db import transaction
+# from django.db.models import Q, Sum
+# from django.db import transaction
 from django.contrib import messages
 from django.core.paginator import Paginator
 # Create your views here.
@@ -14,7 +14,7 @@ from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http40
 # from .models import ImageHandling
 # from .models import (MachineMaster, MachineDetail, Inventory, QualityCheck, Dispatch )
 # Forms
-from .forms import MachineDetailForm
+# from .forms import MachineDetailForm
 # Cloudinary
 from cloudinary.uploader import upload
 from cloudinary.uploader import upload, destroy
@@ -26,6 +26,7 @@ from .mongo import (get_orders_collection,
                     get_inventory_master_collection,get_inventory_collection,
                     get_order_inventory_collection,
                     get_quality_collection, get_dispatch_collection,
+                    category_collection,
                     )
 
 
@@ -301,7 +302,6 @@ def order_detail(request, pk):
         "dispatches": dispatches,
     })
 
-
 # Order Quality Check
 def add_quality_check(request, order_id):
     if request.method == "POST":
@@ -554,38 +554,92 @@ def add_order_inventory(request, order_id):
 
     return redirect("cnc_work_app:detail", pk=order_id)
 
-# # READ (LIST)
-# def machine_mast_list(request):
-#     machines = MachineMaster.objects.all()
-#     return render(request, "machine_mast/machine_list.html", {"machines": machines})
 
+# Inventory Master
+def inventory_master(request):
+    inv_col = get_inventory_master_collection()
+    cat_col = category_collection()
 
-# def order_detail(request, pk):
-#     order = get_object_or_404(Order, pk=pk)
-#
-#     design_files = DesignFile.objects.filter(order=order)
-#     machines_mast = MachineMaster.objects.all()
-#     machines = MachineDetail.objects.filter(order=order).order_by('-id')
-#     inventory = Inventory.objects.filter(order=order)
-#     machine_form = MachineDetailForm()
-#
-#     # Machine Total Working Hours
-#     machines = MachineDetail.objects.filter(order=order)
-#     total_hours = machines.aggregate(total=Sum("working_hour"))["total"] or 0
-#
-#     return render(request, "cnc_work_app/detail.html", {
-#         "order": order,
-#         "design_files": design_files,
-#         "inventory": inventory,
-#         "machines_mast": machines_mast,
-#         "machines": machines,
-#         "machine_form": machine_form,  # ✅ IMPORTANT
-#         "total_hours": total_hours,
-#     })
-#
+    # ADD / UPDATE
+    if request.method == "POST":
+        item_id = request.POST.get("item_id")
 
+        data = {
+            "item_name": request.POST.get("item_name"),
+            "category": request.POST.get("category"),
+            "location": request.POST.get("location"),
+            "unit": request.POST.get("unit"),
+            "current_qty": float(request.POST.get("opening_qty", 0)),
+            "rate": float(request.POST.get("rate")),
+            "reorder_level": float(request.POST.get("reorder_level")),
+            "is_active": True,
+            "created_at": datetime.now()
+        }
 
+        if item_id:  # UPDATE
+            inv_col.update_one(
+                {"_id": ObjectId(item_id)},
+                {"$set": data}
+            )
+        else:  # ADD
+            opening_qty = float(request.POST.get("opening_qty"))
 
+            data.update({
+                "opening_qty": opening_qty,
+                "current_qty": opening_qty,
+                "created_at": datetime.now()
+            })
+            inv_col.insert_one(data)
+
+        return redirect("inv_app:inventory_master")
+
+    # Inventory List
+    items = list(inv_col.find({"is_active": True}).sort("created_at", -1))
+    for i in items: i["id"] = str(i["_id"])
+
+    # 🔹 CATEGORY LIST (for dropdown)
+    categories = list(cat_col.find({"is_active": True}))
+    for c in categories: c["id"] = str(c["_id"])
+
+    return render(request, "inv_app/inventory/inventory_master.html", {
+        "items": items,
+        "categories": categories,
+    })
+
+# Inventory Delete
+def inventory_delete(request, pk):
+    col = get_inventory_master_collection()
+    col.delete_one({"_id": ObjectId(pk)})
+    return redirect("inv_app:inventory_master")
+
+# Inventory Category Master
+def category_master(request):
+    col = category_collection()
+    if request.method == "POST":
+        name = request.POST.get("category_name")
+        if name:
+            col.insert_one({
+                "category_name": name,
+                "is_active": True,
+                "created_at": datetime.now()
+            })
+        return redirect("inv_app:category_master")
+
+    # categories = list(col.find({"is_active": True}))
+    categories = list(col.find({"is_active": {"$ne": False}}))
+    for c in categories:
+        c["id"] = str(c["_id"])
+
+    return render(
+        request, "inv_app/category/category_master.html",
+        {"categories": categories}
+    )
+
+# Inventory Category Delete
+def category_delete(request, pk):
+    col = category_collection()
+    col.delete_one({"_id": ObjectId(pk)})
+    return redirect("inv_app:category_master")
 
 
 # For Image Handling
@@ -600,92 +654,3 @@ def add_order_inventory(request, order_id):
 #         return redirect('cnc_work_app:index')
 
 
-
-# # Design Section
-# # Add Design File
-
-# def add_design_file(request, pk):
-#     order = get_object_or_404(Order, pk=pk)
-#
-#     if request.method == "POST":
-#         name = request.POST.get("name")
-#         file = request.FILES.get("file")
-#
-#         if name and file:
-#             DesignFile.objects.create(order=order, name=name, file=file)
-#
-#     return redirect("cnc_work_app:detail", pk=order.id)
-
-
-# # design file action
-# def design_file_action(request, pk, action):
-#     design = get_object_or_404(DesignFile, pk=pk)
-#
-#     if action == "approve":
-#         design.status = "approved"
-#         design.approved_at = now()
-#
-#     elif action == "cancel":
-#         design.status = "cancelled"
-#         design.approved_at = now()
-#
-#     design.save()
-#
-#     return JsonResponse({
-#         "status": design.status,
-#         "approved_at": design.approved_at.strftime("%d %b %Y %I:%M %p")
-#     })
-#
-#
-# Inventory
-# Add Inventory Item
-# def add_inventory(request, pk):
-#     pass
-    # order = get_object_or_404(Order, pk=pk)
-    # if request.method == "POST":
-    #     item_name = request.POST.get("item_name")
-    #     qty = request.POST.get("qty")
-    #     amount = request.POST.get("amount")
-    #     if item_name and qty and amount:
-    #         Inventory.objects.create(order=order, item_name=item_name, qty=qty, amount=amount)
-    #     return redirect("cnc_work_app:detail", pk=order.id)
-
-
-# Machine
-# Add Machine Detail
-# def machine_add_update(request, order_id):
-#     pass
-    # order = get_object_or_404(Order, pk=order_id)
-    #
-    # if request.method == "POST":
-    #     machine_id = request.POST.get("machine_id")
-    #     if machine_id:
-    #         machine = get_object_or_404(MachineDetail, id=machine_id, order=order)
-    #         form = MachineDetailForm(request.POST, instance=machine)
-    #     else:
-    #         form = MachineDetailForm(request.POST)
-    #
-    #     if form.is_valid():
-    #         obj = form.save(commit=False)
-    #         obj.order = order
-    #         obj.save()
-    #
-    #     return redirect("cnc_work_app:detail", pk=order_id)
-
-
-
-
-
-# def machine_delete(request, order_id, pk):
-#     machine = get_object_or_404(
-#         MachineDetail,
-#         id=pk,
-#         order_id=order_id
-#     )
-#
-#     if request.method == "POST":
-#         machine.delete()
-#
-#     return redirect("cnc_work_app:detail", pk=order_id)
-#
-#

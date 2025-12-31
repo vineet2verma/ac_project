@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'cnc_work_app',
-    'inv_app',
 ]
 
 MIDDLEWARE = [
