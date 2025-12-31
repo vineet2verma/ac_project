@@ -24,7 +24,8 @@ from .mongo import (get_orders_collection,
                     get_design_files_collection,
                     get_machine_master_collection,get_machine_work_collection,
                     get_inventory_master_collection,get_inventory_collection,
-                    get_quality_collection, get_dispatch_collection
+                    get_order_inventory_collection,
+                    get_quality_collection, get_dispatch_collection,
                     )
 
 
@@ -230,36 +231,45 @@ def order_delete(request, pk):
         "cnc_work_app/order_confirm_delete.html",
         {"order": order}
     )
+
+
+
 # Order detail page
 def order_detail(request, pk):
     order_col = get_orders_collection()
     design_col = get_design_files_collection()
     machine_master_col = get_machine_master_collection()
     machine_work_col = get_machine_work_collection()
+    inv_master_col = get_inventory_master_collection()
+    order_inv_col = get_order_inventory_collection()
+    qc_col = get_quality_collection()
+    dispatch_col = get_dispatch_collection()
 
     # ---------------- ORDER ----------------
     order = order_col.find_one({"_id": ObjectId(pk)})
-    if not order:
-        raise Http404("Order not found")
-
+    if not order: raise Http404("Order not found")
     order["id"] = str(order["_id"])
 
     # ---------------- DESIGN FILES ----------------
-    design_files = list(
-        design_col.find({"order_id": pk}).sort("created_at", -1)
-    )
-    for f in design_files:
-        f["id"] = str(f["_id"])
+    design_files = list(design_col.find({"order_id": pk}).sort("created_at", -1))
+    for f in design_files: f["id"] = str(f["_id"])
+
+    # ----------------- INVENTORY MASTER (Dropdown) -----------------
+    inventory_items = list(inv_master_col.find({"is_active": True}))
+    for i in inventory_items: i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
+
+    # ----------------- ORDER INVENTORY (TABLE) -----------------
+    inventory = list(order_inv_col.find({"order_id": pk}))
+    for inv in inventory: inv["id"] = str(inv["_id"])  # 🔥 VERY IMPORTANT
+
+    print("inventory == >>>", inventory)
 
     # ---------------- MACHINE MASTER (Dropdown) ----------------
     machines_mast = list(machine_master_col.find({"is_active": True}))
-    for m in machines_mast:
-        m["id"] = str(m["_id"])   # ✅ for dropdown
+    for m in machines_mast: m["id"] = str(m["_id"])   # ✅ for dropdown
 
     # ---------------- MACHINE WORK (Table + Delete/Edit) ----------------
-    machines = list(
-        machine_work_col.find({"order_id": pk}).sort("created_at", -1)
-    )
+    machines = list(machine_work_col.find({"order_id": pk}).sort("created_at", -1))
 
     total_hours = 0
     for m in machines:
@@ -267,32 +277,33 @@ def order_detail(request, pk):
         m["machine_date"] = m.get("date")      # safe mapping
         total_hours += float(m.get("working_hour", 0))
 
-        # -------- QUALITY CHECK --------
+    # ---------------------- QUALITY CHECK  ----------------------
     qc_col = get_quality_collection()
     quality_checks = list(qc_col.find({"order_id": pk}).sort("created_at", -1))
-    for q in quality_checks:
-        q["id"] = str(q["_id"])
+    for q in quality_checks: q["id"] = str(q["_id"])
 
-    # -------- DISPATCH --------
+    #  ---------------------- DISPATCH  ----------------------
     dispatch_col = get_dispatch_collection()
     dispatches = list(dispatch_col.find({"order_id": pk}).sort("created_at", -1))
-    for d in dispatches:
-        d["id"] = str(d["_id"])
+    for d in dispatches: d["id"] = str(d["_id"])
 
     # ---------------- RENDER ----------------
     return render(request, "cnc_work_app/detail.html", {
         "order": order,
         "design_files": design_files,
-        "inventory": [],
+        # Inventory
+        "inventory_items": inventory_items,
+        "inventory" : inventory,
+        # Machine
         "machines_mast": machines_mast,
         "machines": machines,
-        "quality_checks": quality_checks,  # 🔥
-        "dispatches": dispatches,  # 🔥
-        # "quality_checks": [],
-        # "dispatches": [],
-        "machine_form": None,
         "total_hours": total_hours,
+        # QC + Dispatch
+        "quality_checks": quality_checks,
+        "dispatches": dispatches,
     })
+
+
 # Order Quality Check
 def add_quality_check(request, order_id):
     if request.method == "POST":
@@ -495,10 +506,55 @@ def get_active_machines():
         m["id"] = str(m["_id"])
     return machines
 
+def add_order_inventory(request, order_id):
 
-def add_inventory(request):
-    pass
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
 
+    inv_master_col = get_inventory_master_collection()
+    order_inv_col = get_order_inventory_collection()
+
+    inventory_id = request.POST.get("inventory_id")
+    qty = float(request.POST.get("qty", 0))
+
+    # 🔴 SAFETY CHECK 1
+    if not inventory_id:
+        raise Http404("Inventory item not selected")
+
+    # 🔴 SAFETY CHECK 2
+    try:
+        inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    except Exception:
+        raise Http404("Invalid inventory id")
+
+    # 🔴 SAFETY CHECK 3
+    if not inv:
+        raise Http404("Inventory item not found")
+
+    available_qty = float(inv.get("current_qty", 0))
+
+    # 🔴 SAFETY CHECK 4 (STOCK VALIDATION)
+    if qty > available_qty:
+        raise Http404("Qty exceeds available stock")
+
+    # ================= SAVE ORDER INVENTORY =================
+    order_inv_col.insert_one({
+        "order_id": order_id,
+        "inventory_id": inventory_id,
+        "item_name": inv["item_name"],
+        "qty": qty,
+        "rate": inv.get("rate", 0),
+        "total": qty * float(inv.get("rate", 0)),
+        "created_at": datetime.now()
+    })
+
+    # ================= UPDATE MASTER STOCK =================
+    inv_master_col.update_one(
+        {"_id": ObjectId(inventory_id)},
+        {"$inc": {"current_qty": -qty}}
+    )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
 
 # # READ (LIST)
 # def machine_mast_list(request):

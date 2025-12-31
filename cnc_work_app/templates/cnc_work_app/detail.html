@@ -321,7 +321,7 @@
         >
             <h5 class="mb-0">Inventory</h5>
             <button
-                    class="btn btn-success btn-sm rounded-pill"
+                    class="btn btn-success btn-sm rounded-pill px-4"
                     data-bs-toggle="modal"
                     data-bs-target="#inventoryModal"
             >
@@ -344,7 +344,7 @@
                 <tr>
                     <td>{{ inv.item_name }}</td>
                     <td>{{ inv.qty }}</td>
-                    <td>{{ inv.amount }}</td>
+                    <td>{{ inv.rate }}</td>
                     <td>{{ inv.total }}</td>
                 </tr>
                 {% empty %}
@@ -514,6 +514,52 @@ function designAction(id, action) {
     .catch(() => alert("Action failed"));
 }
 
+
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+      /* ================= INVENTORY VALIDATION ================= */
+
+      const inventorySelect = document.getElementById("inventory_id");
+      const availableStock = document.getElementById("available_stock");
+      const qtyInput = document.getElementById("consume_qty");
+      const alertBox = document.getElementById("stockAlert");
+      const saveBtn = document.getElementById("saveBtn");
+
+      let maxStock = 0;
+
+      if (inventorySelect) {
+
+        inventorySelect.addEventListener("change", function () {
+          const selected = this.options[this.selectedIndex];
+
+          maxStock = parseFloat(selected.dataset.stock || 0);
+          availableStock.value = maxStock;
+
+          qtyInput.value = "";
+          qtyInput.classList.remove("is-invalid", "is-valid");
+          alertBox.classList.add("d-none");
+          saveBtn.disabled = false;
+        });
+
+        qtyInput.addEventListener("input", function () {
+          const qty = parseFloat(this.value || 0);
+
+          if (qty > maxStock) {
+            this.classList.add("is-invalid");
+            alertBox.classList.remove("d-none");
+            saveBtn.disabled = true;
+          } else {
+            this.classList.remove("is-invalid");
+            alertBox.classList.add("d-none");
+            saveBtn.disabled = false;
+          }
+        });
+      }
+
+    });
+</script>
+
 
 {% endblock %}

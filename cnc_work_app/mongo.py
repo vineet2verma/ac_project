@@ -20,9 +20,15 @@ def get_machine_master_collection():
 def get_inventory_master_collection():
     return _db["inventory_masters"]
 
+def category_collection():
+    return _db["inventory_categories"]
+
 # db working
 def get_orders_collection():
     return _db["order"]
+
+def get_order_inventory_collection():
+    return _db["order_inventory"]
 
 def get_design_files_collection():
     return _db["design_files"]

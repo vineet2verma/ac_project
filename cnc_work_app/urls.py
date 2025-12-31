@@ -24,8 +24,8 @@ urlpatterns = [
     # path( "design-file/<int:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
 
     # Inventory
-    path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
-    # path('cnc_work_app/detail/', views.view_detail, name='detail'),  # Details
+    path("order/<str:order_id>/inventory/add/",views.add_order_inventory,name="order_inventory_add"),
+    # path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
 
     # Machine Work Detail
     path("order/<str:order_id>/machine/add/",views.add_machine_work,name="add_machine_work"),
