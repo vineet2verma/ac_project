@@ -12,10 +12,6 @@ urlpatterns = [
     # Detail
     path("order/<str:pk>/", views.order_detail, name="detail"),  # order detail
 
-
-    # Not Clear What time it's calling
-    # path('cnc_work_app/add/', views.add_image, name='add_image'),    # Form POST
-
     # Design
     path('order/<str:pk>/design/add/', views.add_design_file, name='add_design_file'),
     path("design-file/<str:design_id>/<str:action>/",views.design_action,name="design_action"),
@@ -26,18 +22,17 @@ urlpatterns = [
     # Category Master
     path("inventory/category/", views.category_master, name="category_master"),
     path("inventory/category/<str:pk>/delete/", views.category_delete, name="category_delete"),
+
     # Inventory
     path("inventory/master/", views.inventory_master, name="inventory_master"),
     path("inventory/<str:pk>/delete/", views.inventory_delete, name="inventory_delete"),
-    # path("order/<str:order_id>/inventory/add/",views.add_order_inventory,name="order_inventory_add"),
+    path("order/<str:order_id>/inventory/add/",views.add_order_inventory,name="order_inventory_add"),
     # path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
 
     # Machine Work Detail
     path("order/<str:order_id>/machine/add/",views.add_machine_work,name="add_machine_work"),
     path("order/<str:order_id>/machine/<str:machine_work_id>/edit/",views.machine_edit,name="machine_edit"),
     path("order/<str:order_id>/machine/<str:machine_work_id>/delete/",views.machine_delete,name="machine_delete"),
-
-    # path('machine/add/<str:pk>/', views.machine_add_update, name='machine_add_update'),
 
     # Machine Master
     path("machine-master/", views.machine_master, name="machine_master"),
@@ -50,6 +45,7 @@ urlpatterns = [
     # Dispatch
     path("order/<str:order_id>/dispatch/", views.add_dispatch, name="dispatch_add"),
 
-
+    # Not Clear What time it's calling
+    # path('cnc_work_app/add/', views.add_image, name='add_image'),    # Form POST
 
 ]

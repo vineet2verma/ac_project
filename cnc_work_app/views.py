@@ -260,8 +260,8 @@ def order_detail(request, pk):
     for i in inventory_items: i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
 
     # ----------------- ORDER INVENTORY (TABLE) -----------------
-    inventory = list(order_inv_col.find({"order_id": pk}))
-    for inv in inventory: inv["id"] = str(inv["_id"])  # 🔥 VERY IMPORTANT
+    order_inventory = list(order_inv_col.find({"order_id": pk}))
+    for oi in order_inventory: oi["id"] = str(oi["_id"])
 
     # ---------------- MACHINE MASTER (Dropdown) ----------------
     machines_mast = list(machine_master_col.find({"is_active": True}))
@@ -292,7 +292,7 @@ def order_detail(request, pk):
         "design_files": design_files,
         # Inventory
         "inventory_items": inventory_items,
-        "inventory" : inventory,
+        "order_inventory": order_inventory,  # table
         # Machine
         "machines_mast": machines_mast,
         "machines": machines,
@@ -555,6 +555,7 @@ def add_order_inventory(request, order_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 
+
 # Inventory Master
 def inventory_master(request):
     inv_col = get_inventory_master_collection()
@@ -601,7 +602,7 @@ def inventory_master(request):
     categories = list(cat_col.find({"is_active": True}))
     for c in categories: c["id"] = str(c["_id"])
 
-    return render(request, "inv_app/inventory/inventory_master.html", {
+    return render(request, "inventory/inventory_master.html", {
         "items": items,
         "categories": categories,
     })
@@ -631,7 +632,7 @@ def category_master(request):
         c["id"] = str(c["_id"])
 
     return render(
-        request, "inv_app/category/category_master.html",
+        request, "category/category_master.html",
         {"categories": categories}
     )
 
