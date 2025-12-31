@@ -1,3 +1,4 @@
+
 from django.urls import path
 from . import views
 
@@ -11,7 +12,4 @@ urlpatterns = [
     # Inventory
     path("inventory/master/", views.inventory_master, name="inventory_master"),
     path("inventory/<str:pk>/delete/", views.inventory_delete, name="inventory_delete"),
-
-
-
 ]
