@@ -262,8 +262,6 @@ def order_detail(request, pk):
     inventory = list(order_inv_col.find({"order_id": pk}))
     for inv in inventory: inv["id"] = str(inv["_id"])  # 🔥 VERY IMPORTANT
 
-    print("inventory == >>>", inventory)
-
     # ---------------- MACHINE MASTER (Dropdown) ----------------
     machines_mast = list(machine_master_col.find({"is_active": True}))
     for m in machines_mast: m["id"] = str(m["_id"])   # ✅ for dropdown
