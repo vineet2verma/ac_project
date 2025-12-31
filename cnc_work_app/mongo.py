@@ -14,34 +14,34 @@ _client = MongoClient(MONGO_URI)
 _db = _client["cnc_db"]
 
 # Master
-def get_machine_master_collection():
-    return _db["machine_master"]
-
 def get_inventory_master_collection():
     return _db["inventory_masters"]
 
 def category_collection():
-    return _db["inventory_categories"]
+    return _db["categories_masters"]
 
-# db working
+def get_machine_master_collection():
+    return _db["machine_master"]
+
+# Master End
+# Collection
+# Order Collection
 def get_orders_collection():
     return _db["order"]
-
+# order_inventory
 def get_order_inventory_collection():
     return _db["order_inventory"]
 
+# Order Design
 def get_design_files_collection():
     return _db["design_files"]
-
+# Order Machine
 def get_machine_work_collection():
     return _db["machine_work"]
-
-def get_inventory_collection():
-    return _db["inventory"]
-
+# Order QC
 def get_quality_collection():
     return _db["quality_checks"]
-
+# Order Dispatch
 def get_dispatch_collection():
     return _db["dispatches"]
 

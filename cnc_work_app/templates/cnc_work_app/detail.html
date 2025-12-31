@@ -47,11 +47,11 @@
             >
                 <i class="bi bi-arrow-return-left"></i>
             </a>
-
+            
             <!-- ORDER ID -->
-
+            
             <h5 class="m-0 fw-semibold text-primary">Order #{{ order.id }}</h5>
-
+            
             <!-- EDIT -->
             <button
                     class="btn btn-outline-primary btn-sm rounded-circle"
@@ -61,7 +61,7 @@
                 <i class="bi bi-pencil"></i>
             </button>
         </div>
-
+        
         <!-- RIGHT -->
         <div class="erp-header-right">
             <span class="small text-muted me-2">Status</span>
@@ -72,7 +72,7 @@
       </span>
         </div>
     </div>
-
+    
     <!-- ================= IMAGE + ORDER INFO ================= -->
     <div class="row mb-4">
         <div class="col-md-4 text-center">
@@ -86,7 +86,7 @@
             <p class="text-muted small">No Image</p>
             {% endif %}
         </div>
-
+        
         <div class="col-md-8 table-responsive">
             <table class="table table-sm table-bordered">
                 <tbody>
@@ -134,7 +134,7 @@
             </table>
         </div>
     </div>
-
+    
     <!-- ================= DESIGN FILES ================= -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -145,7 +145,7 @@
                 + Add Design
             </button>
         </div>
-
+        
         <div class="table-responsive">
             <table class="table table-sm table-striped mt-2 align-middle">
                 <thead class="table-light">
@@ -157,19 +157,19 @@
                     <th style="width:140px">Action</th>
                 </tr>
                 </thead>
-
+                
                 <tbody>
                 {% for file in design_files %}
                 <tr>
                     <td>{{ file.name }}</td>
-
+                    
                     <td>
                         <a href="{{ file.file_url }}" target="_blank"
                            class="btn btn-outline-secondary btn-sm">
                             View
                         </a>
                     </td>
-
+                    
                     <td>
                     <span class="badge
                         {% if file.status == 'approved' %} bg-success
@@ -178,12 +178,12 @@
                         {{ file.status|title }}
                     </span>
                     </td>
-
+                    
                     <td>{{ file.approved_at|default:"-" }}</td>
-
+                    
                     <td>
                         <div class="d-flex gap-1 action-btn-group">
-
+                            
                             {% if file.status == "pending" %}
                             <!-- APPROVE -->
                             <button class="btn btn-success btn-sm"
@@ -191,7 +191,7 @@
                                     onclick="designAction('{{ file.id }}','approve')">
                                 <i class="bi bi-check-lg"></i>
                             </button>
-
+                            
                             <!-- CANCEL -->
                             <button class="btn btn-warning btn-sm"
                                     title="Cancel"
@@ -199,7 +199,7 @@
                                 <i class="bi bi-x-lg"></i>
                             </button>
                             {% endif %}
-
+                            
                             <!-- DELETE -->
                             <form method="POST"
                                   action="{% url 'cnc_work_app:design_delete' order.id file.id %}">
@@ -211,7 +211,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-
+                        
                         </div>
                     </td>
                 </tr>
@@ -226,14 +226,14 @@
             </table>
         </div>
     </div>
-
+    
     <!-- ================= MACHINE DETAILS ================= -->
     <div class="mb-4">
         <div
                 class="d-flex justify-content-between align-items-center flex-wrap gap-2"
         >
             <h5 class="mb-0">Machine Details</h5>
-
+            
             <button
                     class="btn btn-info btn-sm rounded-pill"
                     data-bs-toggle="modal"
@@ -242,7 +242,7 @@
                 + Add Machine
             </button>
         </div>
-
+        
         <div class="table-responsive mt-2">
             <table class="table table-sm table-bordered">
                 <thead class="table-light">
@@ -255,7 +255,7 @@
                     <th style="width: 90px">Action</th>
                 </tr>
                 </thead>
-
+                
                 <tbody>
                 {% for m in machines %}
                 <tr>
@@ -278,8 +278,8 @@
                                 data-bs-target="#machineModal">
                             <i class="bi bi-pencil-square"></i>
                         </button>
-
-
+                        
+                        
                         <!-- DELETE -->
                         <form
                                 method="POST"
@@ -307,17 +307,15 @@
                 </tbody>
             </table>
         </div>
-
+        
         <!-- TOTAL HOURS -->
         <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
         </div>
     </div>
-
+    
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
-        <div
-                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
-        >
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">Inventory</h5>
             <button
                     class="btn btn-success btn-sm rounded-pill px-4"
@@ -327,7 +325,7 @@
                 + Add
             </button>
         </div>
-
+        
         <div class="table-responsive">
             <table class="table table-sm table-bordered mt-2">
                 <thead>
@@ -336,15 +334,26 @@
                     <th>Qty</th>
                     <th>Rate</th>
                     <th>Total</th>
+                    <th style="width:80px;">Action</th>
                 </tr>
                 </thead>
                 <tbody>
-                {% for inv in order_inventory  %}
+                {% for inv in order_inventory %}
                 <tr>
                     <td>{{ inv.item_name }}</td>
                     <td>{{ inv.qty }}</td>
                     <td>{{ inv.rate }}</td>
                     <td>{{ inv.total }}</td>
+                    <td class="text-center">
+                        <form method="POST"
+                              action="{% url 'cnc_work_app:delete_inventory' order_id=order.id inv_id=inv.id %}"
+                              onsubmit="return confirm('Delete this inventory item?');">
+                            {% csrf_token %}
+                            <button class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -355,11 +364,11 @@
             </table>
         </div>
     </div>
-
+    
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">
         <h5 class="mb-2">QC Check</h5>
-
+        
         <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}" class="card card-body mb-2">
             {% csrf_token %}
             <div class="row g-2">
@@ -378,7 +387,7 @@
                 </div>
             </div>
         </form>
-
+        
         {% if quality_checks %}
         <table class="table table-sm table-bordered">
             <thead class="table-light">
@@ -408,11 +417,11 @@
         <p class="text-muted small">No quality checks</p>
         {% endif %}
     </div>
-
+    
     <!-- ================= DISPATCH ================= -->
     <div class="mb-4">
         <h5 class="mb-2">Dispatch</h5>
-
+        
         <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}" class="card card-body mb-2">
             {% csrf_token %}
             <div class="row g-2">
@@ -429,7 +438,7 @@
                 </div>
             </div>
         </form>
-
+        
         {% if dispatches %}
         <table class="table table-sm table-bordered">
             <thead class="table-light">

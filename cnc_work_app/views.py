@@ -23,7 +23,7 @@ from bson import ObjectId
 from .mongo import (get_orders_collection,
                     get_design_files_collection,
                     get_machine_master_collection,get_machine_work_collection,
-                    get_inventory_master_collection,get_inventory_collection,
+                    get_inventory_master_collection,
                     get_order_inventory_collection,
                     get_quality_collection, get_dispatch_collection,
                     category_collection,
@@ -79,7 +79,6 @@ def cnc_order_list(request):
         "per_page": per_page,
     }
     return render(request, "cnc_work_app/cnc_order_list.html", context)
-
 # Add Order
 def add_order(request):
     order_collection = get_orders_collection()
@@ -232,9 +231,6 @@ def order_delete(request, pk):
         "cnc_work_app/order_confirm_delete.html",
         {"order": order}
     )
-
-
-
 # Order detail page
 def order_detail(request, pk):
     order_col = get_orders_collection()
@@ -248,24 +244,29 @@ def order_detail(request, pk):
 
     # ---------------- ORDER ----------------
     order = order_col.find_one({"_id": ObjectId(pk)})
-    if not order: raise Http404("Order not found")
+    if not order:
+        raise Http404("Order not found")
     order["id"] = str(order["_id"])
 
     # ---------------- DESIGN FILES ----------------
     design_files = list(design_col.find({"order_id": pk}).sort("created_at", -1))
-    for f in design_files: f["id"] = str(f["_id"])
+    for f in design_files:
+        f["id"] = str(f["_id"])
 
     # ----------------- INVENTORY MASTER (Dropdown) -----------------
     inventory_items = list(inv_master_col.find({"is_active": True}))
-    for i in inventory_items: i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
+    for i in inventory_items:
+        i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
 
     # ----------------- ORDER INVENTORY (TABLE) -----------------
     order_inventory = list(order_inv_col.find({"order_id": pk}))
-    for oi in order_inventory: oi["id"] = str(oi["_id"])
+    for oi in order_inventory:
+        oi["id"] = str(oi["_id"])
 
     # ---------------- MACHINE MASTER (Dropdown) ----------------
     machines_mast = list(machine_master_col.find({"is_active": True}))
-    for m in machines_mast: m["id"] = str(m["_id"])   # ✅ for dropdown
+    for m in machines_mast:
+        m["id"] = str(m["_id"])   # ✅ for dropdown
 
     # ---------------- MACHINE WORK (Table + Delete/Edit) ----------------
     machines = list(machine_work_col.find({"order_id": pk}).sort("created_at", -1))
@@ -277,14 +278,17 @@ def order_detail(request, pk):
         total_hours += float(m.get("working_hour", 0))
 
     # ---------------------- QUALITY CHECK  ----------------------
-    qc_col = get_quality_collection()
     quality_checks = list(qc_col.find({"order_id": pk}).sort("created_at", -1))
-    for q in quality_checks: q["id"] = str(q["_id"])
+    for q in quality_checks:
+        q["id"] = str(q["_id"])
 
     #  ---------------------- DISPATCH  ----------------------
-    dispatch_col = get_dispatch_collection()
     dispatches = list(dispatch_col.find({"order_id": pk}).sort("created_at", -1))
-    for d in dispatches: d["id"] = str(d["_id"])
+    for d in dispatches:
+        d["id"] = str(d["_id"])
+
+
+
 
     # ---------------- RENDER ----------------
     return render(request, "cnc_work_app/detail.html", {
@@ -301,6 +305,7 @@ def order_detail(request, pk):
         "quality_checks": quality_checks,
         "dispatches": dispatches,
     })
+
 
 # Order Quality Check
 def add_quality_check(request, order_id):
@@ -516,14 +521,11 @@ def add_order_inventory(request, order_id):
     qty = float(request.POST.get("qty", 0))
 
     # 🔴 SAFETY CHECK 1
-    if not inventory_id:
-        raise Http404("Inventory item not selected")
+    if not inventory_id: raise Http404("Inventory item not selected")
 
     # 🔴 SAFETY CHECK 2
-    try:
-        inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
-    except Exception:
-        raise Http404("Invalid inventory id")
+    try: inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    except Exception: raise Http404("Invalid inventory id")
 
     # 🔴 SAFETY CHECK 3
     if not inv:
@@ -554,7 +556,34 @@ def add_order_inventory(request, order_id):
 
     return redirect("cnc_work_app:detail", pk=order_id)
 
+# Delete Inventory From Order
+def delete_inventory(request, order_id, inv_id):
+    order_inv_col = get_order_inventory_collection()
+    inv_master_col = get_inventory_master_collection()
 
+    if request.method == "POST":
+        # 🔹 Step 1: Get order inventory record
+        order_inv = order_inv_col.find_one({
+            "_id": ObjectId(inv_id),
+            "order_id": order_id   # string (as per your DB)
+        })
+
+        if not order_inv:
+            raise Http404("Inventory item not found")
+
+        inventory_id = order_inv["inventory_id"]   # string
+        qty = float(order_inv.get("qty", 0))
+
+        # 🔹 Step 2: Reverse stock (ADD BACK)
+        inv_master_col.update_one(
+            {"_id": ObjectId(inventory_id)},
+            {"$inc": {"current_qty": qty}}
+        )
+
+        # 🔹 Step 3: Delete order inventory record
+        order_inv_col.delete_one({"_id": ObjectId(inv_id)})
+
+    return redirect("cnc_work_app:detail", pk=order_id)
 
 # Inventory Master
 def inventory_master(request):
@@ -607,11 +636,11 @@ def inventory_master(request):
         "categories": categories,
     })
 
-# Inventory Delete
+# Inventory Delete From Master
 def inventory_delete(request, pk):
     col = get_inventory_master_collection()
     col.delete_one({"_id": ObjectId(pk)})
-    return redirect("inv_app:inventory_master")
+    return redirect("cnc_work_app:index")
 
 # Inventory Category Master
 def category_master(request):
@@ -624,7 +653,7 @@ def category_master(request):
                 "is_active": True,
                 "created_at": datetime.now()
             })
-        return redirect("inv_app:category_master")
+        return redirect("cnc_work_app:category_master")
 
     # categories = list(col.find({"is_active": True}))
     categories = list(col.find({"is_active": {"$ne": False}}))
@@ -640,7 +669,7 @@ def category_master(request):
 def category_delete(request, pk):
     col = category_collection()
     col.delete_one({"_id": ObjectId(pk)})
-    return redirect("inv_app:category_master")
+    return redirect("cnc_work_app:category_master")
 
 
 # For Image Handling

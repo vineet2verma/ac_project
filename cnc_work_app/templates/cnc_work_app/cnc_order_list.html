@@ -14,118 +14,154 @@
 {% block content %}
 
 <style>
-/* ================= ERP LAYOUT ================= */
-.erp-card {
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    margin-bottom: 8px;
-}
-
-.erp-table th {
-    font-weight: 600;
-    font-size: 12px;
-    color: #555;
-}
-
-.erp-table td {
-    font-size: 12px;
-    text-align: right;
-}
-
-/* ================= IMAGE PREVIEW ================= */
-.image-preview-container {
-    width: 100%;
-    max-width: 140px;
-    margin: auto;
-    position: relative;
-}
-
-.preview-img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid #ddd;
-    cursor: pointer;
-    background: #f8f9fa;
-    transition: all 0.2s ease-in-out;
-}
-
-/* Hover preview (desktop only) */
-@media (min-width: 769px) {
-    .preview-img:hover {
-        position: absolute;
-        z-index: 9999;
-        width: 320px;
-        max-height: 420px;
-        height: auto;
-        object-fit: contain;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
+    /* ================= ERP LAYOUT ================= */
+    .erp-card {
         background: #fff;
-        padding: 6px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
-}
-
-/* Mobile safe */
-@media (max-width: 768px) {
+    
+    .erp-table th {
+        font-weight: 600;
+        font-size: 12px;
+        color: #555;
+    }
+    
+    .erp-table td {
+        font-size: 12px;
+        text-align: right;
+    }
+    
+    /* ================= IMAGE PREVIEW ================= */
+    .image-preview-container {
+        width: 100%;
+        max-width: 140px;
+        margin: auto;
+        position: relative;
+    }
+    
     .preview-img {
-        height: 120px;
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        background: #f8f9fa;
+        transition: all 0.2s ease-in-out;
     }
-}
+    
+    /* Hover preview (desktop only) */
+    @media (min-width: 769px) {
+        .preview-img:hover {
+            position: absolute;
+            z-index: 9999;
+            width: 320px;
+            max-height: 420px;
+            height: auto;
+            object-fit: contain;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 6px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+        }
+    }
+    
+    /* Mobile safe */
+    @media (max-width: 768px) {
+        .preview-img {
+            height: 120px;
+        }
+    }
 </style>
 
-<!-- ================= SEARCH & FILTER ================= -->
-<form method="get" class="card card-body shadow-sm mb-2">
-    <div class="row g-2 align-items-end">
-
-        <div class="col-md-4">
-            <label class="form-label small">Search</label>
-            <input type="text"
-                   name="q"
-                   class="form-control form-control-sm"
-                   placeholder="Stone, Color, Party, Sales"
-                   value="{{ request.GET.q }}">
+<!-- ================= SEARCH & FILTER (ACCORDION) ================= -->
+<div class="accordion mb-3" id="searchAccordion">
+    
+    <div class="accordion-item border shadow-sm">
+        <h2 class="accordion-header" id="headingSearch">
+            <button class="accordion-button collapsed py-2"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseSearch"
+                    aria-expanded="false"
+                    aria-controls="collapseSearch">
+                🔍 Search & Filter Orders
+            </button>
+        </h2>
+        
+        <div id="collapseSearch"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingSearch"
+             data-bs-parent="#searchAccordion">
+            
+            <div class="accordion-body">
+                
+                <form method="get">
+                    <div class="row g-2 align-items-end">
+                        
+                        <!-- SEARCH -->
+                        <div class="col-md-4">
+                            <label class="form-label small">Search</label>
+                            <input type="text"
+                                   name="q"
+                                   class="form-control form-control-sm"
+                                   placeholder="Stone, Color, Party, Sales"
+                                   value="{{ request.GET.q }}">
+                        </div>
+                        
+                        <!-- STATUS -->
+                        <div class="col-md-2">
+                            <label class="form-label small">Status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="">All</option>
+                                <option value="Complete" {% if request.GET.status == "Complete" %}selected{% endif                                %}>Complete</option>
+                                <option value="Dispatch Pending" {% if request.GET.status == "Dispatch Pending"                                %}selected{% endif %}>Dispatch Pending</option>
+                                <option value="Inventory Pending" {% if request.GET.status == "Inventory Pending" %}selected{% endif %}>Inventory Pending</option>
+                                <option value="Design Pending" {% if request.GET.status == "Design Pending"                                %}selected{% endif %}>Design Pending</option>
+                            </select>
+                        </div>
+                        
+                        <!-- FROM DATE -->
+                        <div class="col-md-2">
+                            <label class="form-label small">From Date</label>
+                            <input type="date"
+                                   name="from_date"
+                                   class="form-control form-control-sm"
+                                   value="{{ request.GET.from_date }}">
+                        </div>
+                        
+                        <!-- TO DATE -->
+                        <div class="col-md-2">
+                            <label class="form-label small">To Date</label>
+                            <input type="date"
+                                   name="to_date"
+                                   class="form-control form-control-sm"
+                                   value="{{ request.GET.to_date }}">
+                        </div>
+                        
+                        <!-- BUTTONS -->
+                        <div class="col-md-2 d-flex gap-2">
+                            <button class="btn btn-sm btn-primary w-100">
+                                Search
+                            </button>
+                            <a href="{% url 'cnc_work_app:index' %}"
+                               class="btn btn-sm btn-secondary w-100">
+                                Reset
+                            </a>
+                        </div>
+                    
+                    </div>
+                </form>
+            
+            </div>
         </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">Status</label>
-            <select name="status" class="form-select form-select-sm">
-                <option value="">All</option>
-                <option value="Complete" {% if request.GET.status == "Complete" %}selected{% endif %}>Complete</option>
-                <option value="Dispatch Pending" {% if request.GET.status == "Dispatch Pending" %}selected{% endif %}>Dispatch Pending</option>
-                <option value="Inventory Pending" {% if request.GET.status == "Inventory Pending" %}selected{% endif %}>Inventory Pending</option>
-                <option value="Design Pending" {% if request.GET.status == "Design Pending" %}selected{% endif %}>Design Pending</option>
-            </select>
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">From Date</label>
-            <input type="date"
-                   name="from_date"
-                   class="form-control form-control-sm"
-                   value="{{ request.GET.from_date }}">
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">To Date</label>
-            <input type="date"
-                   name="to_date"
-                   class="form-control form-control-sm"
-                   value="{{ request.GET.to_date }}">
-        </div>
-
-        <div class="col-md-2 d-flex gap-2">
-            <button class="btn btn-sm btn-primary w-100">Search</button>
-            <a href="{% url 'cnc_work_app:index' %}"
-               class="btn btn-sm btn-secondary w-100">Reset</a>
-        </div>
-
     </div>
-</form>
+
+</div>
 
 <!-- ================= PAGINATION INFO ================= -->
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -133,20 +169,20 @@
         Showing {{ page_obj.start_index }} –
         {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
     </div>
-
+    
     <form method="get" class="d-flex align-items-center gap-2">
         {% for key, value in request.GET.items %}
-            {% if key != 'page' and key != 'per_page' %}
-                <input type="hidden" name="{{ key }}" value="{{ value }}">
-            {% endif %}
+        {% if key != 'page' and key != 'per_page' %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endif %}
         {% endfor %}
-
+        
         <label class="small">Rows:</label>
         <select name="per_page"
                 class="form-select form-select-sm"
                 style="width:90px"
                 onchange="this.form.submit()">
-            <option value="5"  {% if per_page == 5 %}selected{% endif %}>5</option>
+            <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
             <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
             <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
             <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
@@ -157,46 +193,76 @@
 
 <!-- ================= ORDER LIST ================= -->
 <div class="container-fluid px-0">
-{% for img in images %}
+    {% for img in images %}
     <div class="erp-card p-2">
         <div class="row g-2">
-
+            
             <!-- IMAGE -->
             <div class="col-md-2 text-center">
                 <div class="image-preview-container">
                     {% if img.image %}
-                        <img src="{{ img.image }}" class="preview-img">
+                    <img src="{{ img.image }}" class="preview-img">
                     {% else %}
-                        <span class="text-muted small">No Image</span>
+                    <span class="text-muted small">No Image</span>
                     {% endif %}
                 </div>
             </div>
-
+            
             <!-- DETAILS 1 -->
             <div class="col-md-3">
                 <table class="table table-sm erp-table mb-0">
-                    <tr><th>Stone</th><td>{{ img.stone }}</td></tr>
-                    <tr><th>Color</th><td>{{ img.color }}</td></tr>
-                    <tr><th>Remarks</th><td>{{ img.remarks }}</td></tr>
-                    <tr><th>Packing</th><td>{{ img.packing_instruction }}</td></tr>
+                    <tr>
+                        <th>Stone</th>
+                        <td>{{ img.stone }}</td>
+                    </tr>
+                    <tr>
+                        <th>Color</th>
+                        <td>{{ img.color }}</td>
+                    </tr>
+                    <tr>
+                        <th>Remarks</th>
+                        <td>{{ img.remarks }}</td>
+                    </tr>
+                    <tr>
+                        <th>Packing</th>
+                        <td>{{ img.packing_instruction }}</td>
+                    </tr>
                 </table>
             </div>
-
+            
             <!-- DETAILS 2 -->
             <div class="col-md-3">
                 <table class="table table-sm erp-table mb-0">
-                    <tr><th>Approval</th><td>{{ img.approval_date }}</td></tr>
-                    <tr><th>Delivery</th><td>{{ img.exp_delivery_date }}</td></tr>
-                    <tr><th>Coverage</th><td>{{ img.coverage_area }}</td></tr>
-                    <tr><th>Party</th><td>{{ img.party_name }}</td></tr>
+                    <tr>
+                        <th>Approval</th>
+                        <td>{{ img.approval_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Delivery</th>
+                        <td>{{ img.exp_delivery_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Coverage</th>
+                        <td>{{ img.coverage_area }}</td>
+                    </tr>
+                    <tr>
+                        <th>Party</th>
+                        <td>{{ img.party_name }}</td>
+                    </tr>
                 </table>
             </div>
-
+            
             <!-- ACTIONS -->
             <div class="col-md-4">
                 <table class="table table-sm erp-table mb-1">
-                    <tr><th>Sales</th><td>{{ img.sales_person }}</td></tr>
-                    <tr><th>Design</th><td>{{ img.title }}</td></tr>
+                    <tr>
+                        <th>Sales</th>
+                        <td>{{ img.sales_person }}</td>
+                    </tr>
+                    <tr>
+                        <th>Design</th>
+                        <td>{{ img.title }}</td>
+                    </tr>
                     <tr>
                         <th>Status</th>
                         <td>
@@ -210,48 +276,48 @@
                         </td>
                     </tr>
                 </table>
-
+                
                 <div class="d-flex gap-3">
                     <a href="{% url 'cnc_work_app:order_delete' img.id %}"
                        class="btn btn-outline-danger btn-sm w-25">
                         <i class="bi bi-trash"></i> Delete
                     </a>
-
+                    
                     <a href="{% url 'cnc_work_app:detail' img.id %}"
                        class="btn btn-outline-success btn-sm w-75">
                         <i class="bi bi-eye-fill"></i> View Details
                     </a>
                 </div>
             </div>
-
+        
         </div>
     </div>
-{% empty %}
+    {% empty %}
     <p class="text-muted text-center">No CNC orders found.</p>
-{% endfor %}
+    {% endfor %}
 </div>
 
 <!-- ================= PAGINATION ================= -->
 <nav class="mt-3">
-<ul class="pagination pagination-sm justify-content-center">
-
-{% if page_obj.has_previous %}
-<li class="page-item">
-<a class="page-link" href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}">‹ Prev</a>
-</li>
-{% endif %}
-
-<li class="page-item active">
-<span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-</li>
-
-{% if page_obj.has_next %}
-<li class="page-item">
-<a class="page-link" href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}">Next ›</a>
-</li>
-{% endif %}
-
-</ul>
+    <ul class="pagination pagination-sm justify-content-center">
+        
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}">‹ Prev</a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}">Next ›</a>
+        </li>
+        {% endif %}
+    
+    </ul>
 </nav>
 
 {% include 'cnc_work_app/cnc_work_add_design_form.html' %}
