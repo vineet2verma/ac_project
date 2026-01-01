@@ -1,5 +1,54 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h4>ERP Dashboard</h4>
+
+<div class="container-fluid">
+
+    <h4 class="mb-3">ERP Dashboard</h4>
+
+    <div class="mb-2 text-muted">
+        Welcome <strong>{{ username }}</strong>
+        (Role: {{ role }})
+    </div>
+
+    <div class="row mt-4">
+
+        <!-- Orders -->
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Total Orders</h6>
+                <h3>128</h3>
+            </div>
+        </div>
+
+        <!-- Inventory -->
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Inventory Items</h6>
+                <h3>542</h3>
+            </div>
+        </div>
+
+        <!-- CNC -->
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>CNC Jobs</h6>
+                <h3>37</h3>
+            </div>
+        </div>
+
+        <!-- Users (Admin Only) -->
+        {% if role == "ADMIN" %}
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 bg-light">
+                <h6>Total Users</h6>
+                <h3>12</h3>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
 {% endblock %}
