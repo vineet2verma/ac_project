@@ -397,12 +397,24 @@ def design_delete(request, order_id, design_id):
 
     design_col = get_design_files_collection()
 
-    design_col.delete_one({
+    # 🔹 Fetch design first
+    design = design_col.find_one({
         "_id": ObjectId(design_id),
         "order_id": order_id
     })
 
-    return redirect("cnc_work_app:order_detail", pk=order_id)
+    if not design:
+        raise Http404("Design not found")
+
+    # 🔹 Delete from Cloudinary
+    public_id = design.get("public_id")
+    if public_id:
+        destroy(public_id, resource_type="image")
+        # resource_type="raw" if pdf/dwg etc.
+
+    design_col.delete_one({"_id": ObjectId(design_id),"order_id": order_id })
+
+    return redirect("cnc_work_app:detail", pk=order_id)
 #
 def add_machine_work(request, order_id):
     if request.method == "POST":
@@ -621,7 +633,7 @@ def inventory_master(request):
             })
             inv_col.insert_one(data)
 
-        return redirect("inv_app:inventory_master")
+        return redirect("cnc_work_app:inventory_master")
 
     # Inventory List
     items = list(inv_col.find({"is_active": True}).sort("created_at", -1))

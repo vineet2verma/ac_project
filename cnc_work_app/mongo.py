@@ -13,6 +13,10 @@ MONGO_URI = os.environ.get("MONGO_URI")
 _client = MongoClient(MONGO_URI)
 _db = _client["cnc_db"]
 
+# User
+def users_collection():
+    return _db["users"]
+
 # Master
 def get_inventory_master_collection():
     return _db["inventory_masters"]
