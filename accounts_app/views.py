@@ -80,7 +80,7 @@ def update_user(request, user_id):
             {"$set": {
                 "full_name": request.POST.get("full_name"),
                 "mobile": request.POST.get("mobile"),
-                "location": request.POST.get("location"),
+                "department": request.POST.get("department"),
                 "role": request.POST.get("role"),
                 "is_active": request.POST.get("is_active") == "true"
             }}

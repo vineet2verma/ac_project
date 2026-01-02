@@ -2,13 +2,13 @@
 {% block content %}
 
 <div class="container-fluid py-3">
-
+    
     <!-- PAGE HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">User Master</h5>
         <span class="text-muted small">Admin Control Panel</span>
     </div>
-
+    
     <!-- USER TABLE -->
     <div class="card shadow-sm">
         <div class="table-responsive">
@@ -18,6 +18,7 @@
                     <th>Full Name</th>
                     <th>Username</th>
                     <th>Mobile</th>
+                    <th>DOB</th>
                     <th>Department</th>
                     <th>Role</th>
                     <th>Status</th>
@@ -30,15 +31,16 @@
                     <td>{{ u.full_name }}</td>
                     <td>{{ u.username }}</td>
                     <td>{{ u.mobile }}</td>
+                    <td>{{ u.dob|default:"-" }}</td>
                     <td>{{ u.department }}</td>
                     <td>
                         <span class="badge bg-info">{{ u.role }}</span>
                     </td>
                     <td>
                         {% if u.is_active %}
-                            <span class="badge bg-success">Active</span>
+                        <span class="badge bg-success">Active</span>
                         {% else %}
-                            <span class="badge bg-danger">Inactive</span>
+                        <span class="badge bg-danger">Inactive</span>
                         {% endif %}
                     </td>
                     <td class="text-center">
@@ -65,16 +67,16 @@
               class="modal-content"
               onsubmit="return confirmRoleChange('{{ u.role }}', this);">
             {% csrf_token %}
-
+            
             <!-- MODAL HEADER -->
             <div class="modal-header">
                 <h6 class="modal-title">Edit User</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
+            
             <!-- MODAL BODY -->
             <div class="modal-body">
-
+                
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Full Name</label>
@@ -82,21 +84,28 @@
                                value="{{ u.full_name }}"
                                class="form-control" required>
                     </div>
-
+                    <div class="col-md-6">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date"
+                               name="dob"
+                               value="{{ u.dob }}"
+                               class="form-control">
+                    </div>
+                    
                     <div class="col-md-6">
                         <label class="form-label">Mobile</label>
                         <input type="text" name="mobile"
                                value="{{ u.mobile }}"
                                class="form-control">
                     </div>
-
+                    
                     <div class="col-md-6">
-                        <label class="form-label">Location</label>
-                        <input type="text" name="location"
-                               value="{{ u.location }}"
+                        <label class="form-label">Department</label>
+                        <input type="text" name="department"
+                               value="{{ u.department }}"
                                class="form-control">
                     </div>
-
+                    
                     <div class="col-md-3">
                         <label class="form-label">Role</label>
                         <select name="role" class="form-select role-select">
@@ -108,7 +117,7 @@
                             <option value="DESIGNER" {% if u.role == "DESIGNER" %}selected{% endif %}>DESIGNER</option>
                         </select>
                     </div>
-
+                    
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select name="is_active" class="form-select">
@@ -117,9 +126,9 @@
                         </select>
                     </div>
                 </div>
-
+                
                 <hr class="my-3">
-
+                
                 <!-- RESET PASSWORD -->
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-muted small">
@@ -131,9 +140,9 @@
                         Reset Password
                     </a>
                 </div>
-
+            
             </div>
-
+            
             <!-- MODAL FOOTER -->
             <div class="modal-footer">
                 <button type="button"
@@ -145,7 +154,7 @@
                     Save Changes
                 </button>
             </div>
-
+        
         </form>
     </div>
 </div>
@@ -153,20 +162,20 @@
 
 <!-- ================= JS ================= -->
 <script>
-function confirmRoleChange(oldRole, form) {
-    const newRole = form.querySelector(".role-select").value;
-
-    if (oldRole !== newRole) {
-        return confirm(
-            "You are changing the user role from '" +
-            oldRole +
-            "' to '" +
-            newRole +
-            "'.\n\nDo you want to continue?"
-        );
+    function confirmRoleChange(oldRole, form) {
+        const newRole = form.querySelector(".role-select").value;
+    
+        if (oldRole !== newRole) {
+            return confirm(
+                "You are changing the user role from '" +
+                oldRole +
+                "' to '" +
+                newRole +
+                "'.\n\nDo you want to continue?"
+            );
+        }
+        return true;
     }
-    return true;
-}
 </script>
 
 {% endblock %}

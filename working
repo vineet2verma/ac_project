@@ -1,0 +1,90 @@
+
+Pending Work
+
+Role
+    ......
+Dashboard
+    total orders
+        total
+        running
+        completed
+        delayed
+    machine work
+        total machine
+        today working
+    inventory
+        reorder alert
+    sales work
+        s.name , design , stage
+inventory
+    stock in
+    bulk upload by excel
+    stock ledger
+    stock aging
+    dashbord widget
+
+order : cnc page
+    order time line
+    dropdown
+        pending order => default set
+        complete order
+    status
+    set limit for fetching
+
+order detail :
+    status
+    image download
+    print
+    designer role
+    production role
+    inventory
+        inv>order items allowed in order but alert
+        inv search option
+    add post check point
+    dispatch role
+    dispatch image
+
+purchase page
+    requisition
+
+| Role                 | Navbar में क्या दिखे                 |
+| -------------------- | ------------------------------------ |
+| **ADMIN**            | Dashboard, Users, Inventory, Reports |
+| **MANAGER**          | Dashboard, Inventory                 |
+| **PRODUCTION**       | Inventory, Orders                    |
+| **SALES**            | CNC Orders                           |
+| **All Logged Users** | Logout + Username                    |
+
+
+| User Role  | Navbar             |
+| ---------- | ------------------ |
+| ADMIN      | Full control menu  |
+| MANAGER    | Limited dashboard  |
+| PRODUCTION | Inventory + Orders |
+| SALES      | Only CNC Orders    |
+| Logged Out | Navbar hidden      |
+
+Inventory Master
+        ↓
+Inventory Ledger (IN / OUT)
+        ↓
+Order Inventory Consumption
+        ↓
+Dispatch (LOCK INVENTORY)
+        ↓
+Low Stock Alert (Dashboard)
+
+AFTER DISPATCH → LOCK INVENTORY 🚫
+
+👉 Once order is dispatched:
+❌ No more inventory edits
+❌ No machine edits
+❌ No design edits
+
+1️⃣ Inventory ledger page (IN / OUT)
+2️⃣ Reorder auto alert dashboard
+3️⃣ Inventory return / wastage
+4️⃣ Printable material issue slip
+
+
+
