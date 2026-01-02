@@ -5,6 +5,7 @@ from .views import user_master, update_user
 app_name = "accounts_app"
 
 urlpatterns = [
+    path("", login_view, name="login"),
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
     path("signup/", signup_view, name="signup"),
