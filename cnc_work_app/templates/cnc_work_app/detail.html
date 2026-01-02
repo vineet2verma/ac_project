@@ -51,7 +51,8 @@
             <!-- ORDER ID -->
             
             <h5 class="m-0 fw-semibold text-primary"><span class="fw-bold">Title : </span>{{ order.title }} || {{ order.sales_person }} ||</h5>
-            
+
+            {% if request.session.mongo_role == "ADMIN" %}
             <!-- EDIT -->
             <button
                     class="btn btn-outline-primary btn-sm rounded-circle"
@@ -60,6 +61,7 @@
             >
                 <i class="bi bi-pencil"></i>
             </button>
+            {% endif %}
         </div>
         
         <!-- RIGHT -->
@@ -312,7 +314,8 @@
         <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
         </div>
     </div>
-    
+
+    {% if request.session.mongo_role == "ADMIN" or request.session.mongo_role == "PRODUCTION" %}
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -364,6 +367,7 @@
             </table>
         </div>
     </div>
+    {% endif %}
     
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">

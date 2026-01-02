@@ -6,3 +6,4 @@ from accounts_app.views import mongo_login_required, mongo_role_required
 def dashboard(request):
     return render(request, "core_app/dashboard.html")
 
+

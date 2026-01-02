@@ -4,7 +4,6 @@ from . import views
 app_name = 'cnc_work_app'
 
 urlpatterns = [
-    path('', views.cnc_order_list, name='index'),  # List view
     path('cnc_work_app/', views.cnc_order_list, name='index'),  # List view
     path('cnc_work_app/order/', views.add_order, name='add_order'),  # Form POST
     path("order/<str:pk>/delete/", views.order_delete, name="order_delete"),  # Order Delete
