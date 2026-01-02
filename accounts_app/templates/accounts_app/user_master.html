@@ -102,7 +102,10 @@
                         <select name="role" class="form-select role-select">
                             <option value="ADMIN" {% if u.role == "ADMIN" %}selected{% endif %}>ADMIN</option>
                             <option value="MANAGER" {% if u.role == "MANAGER" %}selected{% endif %}>MANAGER</option>
-                            <option value="STAFF" {% if u.role == "STAFF" %}selected{% endif %}>STAFF</option>
+                            <option value="SALES" {% if u.role == "SALES" %}selected{% endif %}>SALES</option>
+                            <option value="PRODUCTION" {% if u.role == "PRODUCTION" %}selected{% endif %}>PRODUCTION</option>
+                            <option value="DISPATCH" {% if u.role == "DISPATCH" %}selected{% endif %}>DISPATCH</option>
+                            <option value="DESIGNER" {% if u.role == "DESIGNER" %}selected{% endif %}>DESIGNER</option>
                         </select>
                     </div>
 

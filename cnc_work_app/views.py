@@ -1,5 +1,4 @@
 # Create your views here.
-# from django.utils.timezone import now
 from datetime import datetime, date
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -28,7 +27,6 @@ from .mongo import (get_orders_collection,
                     get_quality_collection, get_dispatch_collection,
                     category_collection,
                     )
-
 
 # CNC Order List
 def cnc_order_list(request):
