@@ -1,38 +1,135 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="max-width:420px;margin:auto;background:#fff;padding:25px;border-radius:6px;">
-    <h4 class="mb-3">Create New User</h4>
+<div class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
+    <div class="card shadow-sm" style="width:460px;">
+        <div class="card-body p-4">
 
-    <form method="POST">
-        {% csrf_token %}
+            <h4 class="text-center mb-3">Create New User</h4>
+            <p class="text-center text-muted mb-4">
+                User registration (role assigned by Admin)
+            </p>
 
-        <input type="text"
-               name="username"
-               class="form-control mb-2"
-               placeholder="Username"
-               required>
+            <form method="POST">
+                {% csrf_token %}
 
-        <input type="password"
-               name="password"
-               class="form-control mb-2"
-               placeholder="Password"
-               required>
+                <!-- Full Name -->
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text"
+                           name="full_name"
+                           class="form-control"
+                           placeholder="Enter full name"
+                           required>
+                </div>
 
-        <select name="role" class="form-control mb-3" required>
-            <option value="">Select Role</option>
-            <option value="ADMIN">Admin</option>
-            <option value="MANAGER">Manager</option>
-            <option value="STAFF">Staff</option>
-        </select>
+                <!-- Username -->
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text"
+                           name="username"
+                           class="form-control"
+                           placeholder="Enter username"
+                           required>
+                </div>
 
-        <button class="btn btn-primary w-100">Create User</button>
-    </form>
+                <!-- Date of Birth -->
+                <div class="mb-3">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date"
+                           name="dob"
+                           class="form-control"
+                           required>
+                </div>
 
-    {% if messages %}
-        {% for msg in messages %}
-            <div class="mt-2 text-danger">{{ msg }}</div>
-        {% endfor %}
-    {% endif %}
+                <!-- Mobile Number -->
+                <div class="mb-3">
+                    <label class="form-label">Mobile Number</label>
+                    <input type="tel"
+                           name="mobile"
+                           class="form-control"
+                           placeholder="10-digit mobile number"
+                           pattern="[0-9]{10}"
+                           required>
+                </div>
+
+                <!-- Location -->
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <input type="text"
+                           name="department"
+                           class="form-control"
+                           placeholder="City / State"
+                           required>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <div class="position-relative">
+                        <input type="password"
+                               name="password"
+                               id="password"
+                               class="form-control"
+                               placeholder="Enter password"
+                               required>
+                        <span onclick="togglePassword('password')"
+                              class="position-absolute top-50 end-0 translate-middle-y me-3"
+                              style="cursor:pointer;">
+                            👁️
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="mb-4">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="position-relative">
+                        <input type="password"
+                               name="confirm_password"
+                               id="confirm_password"
+                               class="form-control"
+                               placeholder="Re-enter password"
+                               required>
+                        <span onclick="togglePassword('confirm_password')"
+                              class="position-absolute top-50 end-0 translate-middle-y me-3"
+                              style="cursor:pointer;">
+                            👁️
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary w-100">
+                    Create Account
+                </button>
+            </form>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="alert alert-{{ msg.tags }} mt-3 text-center">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Login link -->
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Already have an account?
+                    <a href="{% url 'accounts_app:login' %}">Login here</a>
+                </small>
+            </div>
+
+        </div>
+    </div>
 </div>
+
+<script>
+function togglePassword(id) {
+    const field = document.getElementById(id);
+    field.type = field.type === "password" ? "text" : "password";
+}
+</script>
 {% endblock %}

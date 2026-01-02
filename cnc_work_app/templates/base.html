@@ -26,7 +26,7 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'core_app:dashboard' %}">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'cnc_work_app:index' %}">CNC Work</a></li>
 
                 <!-- Inventory -->
@@ -72,7 +72,7 @@
             </ul>
             {% block navbtn1 %}{% endblock %}
 
-            <a class="btn btn-outline-danger ms-2" href="#">
+            <a class="btn btn-outline-danger ms-2" href="{% url 'accounts_app:logout' %}">
                 {{ user.username }} <i class="bi bi-box-arrow-right"></i>
             </a>
         </div>

@@ -38,7 +38,7 @@
             class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom erp-header"
     >
         <!-- LEFT -->
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
             <!-- BACK -->
             <a
                     href="{% url 'cnc_work_app:index' %}"
@@ -50,7 +50,7 @@
             
             <!-- ORDER ID -->
             
-            <h5 class="m-0 fw-semibold text-primary">Order #{{ order.id }}</h5>
+            <h5 class="m-0 fw-semibold text-primary"><span class="fw-bold">Title : </span>{{ order.title }} || {{ order.sales_person }} ||</h5>
             
             <!-- EDIT -->
             <button

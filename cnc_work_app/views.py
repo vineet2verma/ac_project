@@ -79,6 +79,8 @@ def cnc_order_list(request):
         "per_page": per_page,
     }
     return render(request, "cnc_work_app/cnc_order_list.html", context)
+
+# Order Session
 # Add Order
 def add_order(request):
     order_collection = get_orders_collection()
@@ -306,7 +308,56 @@ def order_detail(request, pk):
         "dispatches": dispatches,
     })
 
+# Design Session
+# Add Design File
+def add_design_file(request, pk):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        file = request.FILES.get("file")
 
+        if name and file:
+            upload_result = upload(file,folder="design_files")
+            design_collection = get_design_files_collection()
+
+            design_collection.insert_one({
+                "order_id": pk,                     # Mongo Order ID (string)
+                "name": name,
+                "file_url": upload_result["secure_url"],
+                "public_id": upload_result["public_id"],
+                "status": "pending",
+                "created_at": datetime.utcnow(),
+            })
+
+    return redirect("cnc_work_app:detail", pk=pk)
+# Add Design Action
+def design_action(request, design_id, action):
+    collection = get_design_files_collection()
+
+    if action in ["approve", "cancel"]:
+        collection.update_one(
+            {"_id": ObjectId(design_id)},
+            {"$set": {
+                "status": "approved" if action == "approve" else "cancelled",
+                "approved_at": datetime.utcnow()
+            }}
+        )
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+# Design Delete
+def design_delete(request, order_id, design_id):
+    if request.method != "POST":
+        raise Http404("Invalid request")
+
+    design_col = get_design_files_collection()
+
+    design_col.delete_one({
+        "_id": ObjectId(design_id),
+        "order_id": order_id
+    })
+
+    return redirect("cnc_work_app:order_detail", pk=order_id)
+
+# Quality & Dispatch Session
 # Order Quality Check
 def add_quality_check(request, order_id):
     if request.method == "POST":
@@ -356,66 +407,9 @@ def add_dispatch(request, order_id):
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
-# Add Design File
-def add_design_file(request, pk):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        file = request.FILES.get("file")
 
-        if name and file:
-            upload_result = upload(file,folder="design_files")
-            design_collection = get_design_files_collection()
-
-            design_collection.insert_one({
-                "order_id": pk,                     # Mongo Order ID (string)
-                "name": name,
-                "file_url": upload_result["secure_url"],
-                "public_id": upload_result["public_id"],
-                "status": "pending",
-                "created_at": datetime.utcnow(),
-            })
-
-    return redirect("cnc_work_app:detail", pk=pk)
-# Add Design Action
-def design_action(request, design_id, action):
-    collection = get_design_files_collection()
-
-    if action in ["approve", "cancel"]:
-        collection.update_one(
-            {"_id": ObjectId(design_id)},
-            {"$set": {
-                "status": "approved" if action == "approve" else "cancelled",
-                "approved_at": datetime.utcnow()
-            }}
-        )
-
-    return redirect(request.META.get("HTTP_REFERER", "/"))
-# Design Delete
-def design_delete(request, order_id, design_id):
-    if request.method != "POST":
-        raise Http404("Invalid request")
-
-    design_col = get_design_files_collection()
-
-    # 🔹 Fetch design first
-    design = design_col.find_one({
-        "_id": ObjectId(design_id),
-        "order_id": order_id
-    })
-
-    if not design:
-        raise Http404("Design not found")
-
-    # 🔹 Delete from Cloudinary
-    public_id = design.get("public_id")
-    if public_id:
-        destroy(public_id, resource_type="image")
-        # resource_type="raw" if pdf/dwg etc.
-
-    design_col.delete_one({"_id": ObjectId(design_id),"order_id": order_id })
-
-    return redirect("cnc_work_app:detail", pk=order_id)
-#
+# Machine Session
+# Add Machine
 def add_machine_work(request, order_id):
     if request.method == "POST":
         machine_id = request.POST.get("machine_id")
@@ -464,6 +458,7 @@ def machine_master_add(request):
         "created_at": timezone.now()
     })
     return redirect("cnc_work_app:machine_master")
+
 # ================= TOGGLE ACTIVE / INACTIVE =================
 @require_POST
 def machine_master_toggle(request, pk):
@@ -481,7 +476,6 @@ def machine_master_toggle(request, pk):
         )
 
     return redirect("cnc_work_app:machine_master")
-
 # Machine Detail in Order
 def add_machine_master(name, code=None):
     col = get_machine_master_collection()
@@ -512,7 +506,6 @@ def machine_edit(request, order_id, machine_work_id):
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
-
 # Active Machines
 def get_active_machines():
     col = get_machine_master_collection()
@@ -520,6 +513,7 @@ def get_active_machines():
     for m in machines:
         m["id"] = str(m["_id"])
     return machines
+
 
 def add_order_inventory(request, order_id):
 
@@ -633,7 +627,7 @@ def inventory_master(request):
             })
             inv_col.insert_one(data)
 
-        return redirect("cnc_work_app:inventory_master")
+        return redirect("inv_app:inventory_master")
 
     # Inventory List
     items = list(inv_col.find({"is_active": True}).sort("created_at", -1))

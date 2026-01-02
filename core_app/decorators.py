@@ -5,7 +5,7 @@ def login_required(view):
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         if not request.session.get("uid"):
-            return redirect("login")
+            return redirect("accounts_app:login")
         return view(request, *args, **kwargs)
     return wrapper
 
@@ -14,7 +14,7 @@ def role_required(roles):
         @wraps(view)
         def wrapper(request, *args, **kwargs):
             if request.session.get("role") not in roles:
-                return redirect("dashboard")
+                return redirect("core_app:dashboard")
             return view(request, *args, **kwargs)
         return wrapper
     return decorator

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid py-3">
+
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">User Master</h5>
+        <span class="text-muted small">Admin Control Panel</span>
+    </div>
+
+    <!-- USER TABLE -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Mobile</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th width="140" class="text-center">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.full_name }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.mobile }}</td>
+                    <td>{{ u.department }}</td>
+                    <td>
+                        <span class="badge bg-info">{{ u.role }}</span>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editUser{{ u.id }}">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= EDIT USER MODALS ================= -->
+{% for u in users %}
+<div class="modal fade" id="editUser{{ u.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="POST"
+              action="{% url 'accounts_app:update_user' u.id %}"
+              class="modal-content"
+              onsubmit="return confirmRoleChange('{{ u.role }}', this);">
+            {% csrf_token %}
+
+            <!-- MODAL HEADER -->
+            <div class="modal-header">
+                <h6 class="modal-title">Edit User</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- MODAL BODY -->
+            <div class="modal-body">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name"
+                               value="{{ u.full_name }}"
+                               class="form-control" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Mobile</label>
+                        <input type="text" name="mobile"
+                               value="{{ u.mobile }}"
+                               class="form-control">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location"
+                               value="{{ u.location }}"
+                               class="form-control">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select role-select">
+                            <option value="ADMIN" {% if u.role == "ADMIN" %}selected{% endif %}>ADMIN</option>
+                            <option value="MANAGER" {% if u.role == "MANAGER" %}selected{% endif %}>MANAGER</option>
+                            <option value="STAFF" {% if u.role == "STAFF" %}selected{% endif %}>STAFF</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="is_active" class="form-select">
+                            <option value="true" {% if u.is_active %}selected{% endif %}>Active</option>
+                            <option value="false" {% if not u.is_active %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- RESET PASSWORD -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Reset user password (admin action)
+                    </span>
+                    <a href="{% url 'accounts_app:reset_password' u.id %}"
+                       class="btn btn-outline-danger btn-sm"
+                       onclick="return confirm('Reset password for this user?');">
+                        Reset Password
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- MODAL FOOTER -->
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button class="btn btn-primary btn-sm">
+                    Save Changes
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ================= JS ================= -->
+<script>
+function confirmRoleChange(oldRole, form) {
+    const newRole = form.querySelector(".role-select").value;
+
+    if (oldRole !== newRole) {
+        return confirm(
+            "You are changing the user role from '" +
+            oldRole +
+            "' to '" +
+            newRole +
+            "'.\n\nDo you want to continue?"
+        );
+    }
+    return true;
+}
+</script>
+
+{% endblock %}

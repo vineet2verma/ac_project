@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ERP Login</title>
+    <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
@@ -25,6 +25,7 @@
             width: 100%;
             padding: 10px;
             margin-top: 10px;
+            box-sizing: border-box;
         }
         button {
             width: 100%;
@@ -41,23 +42,76 @@
             margin-top: 10px;
             text-align: center;
         }
+
+        /* 👁️ Password toggle */
+        .password-wrapper {
+            position: relative;
+        }
+        .toggle-eye {
+            position: absolute;
+            right: 10px;
+            top: 55%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            user-select: none;
+        }
+
+        /* Links */
+        .login-links {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        .login-links a {
+            text-decoration: none;
+            color: #0d6efd;
+        }
+        .login-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
 <body>
 
 <div class="login-box">
-    <h3>ERP System Login</h3>
+    <h3>System Login</h3>
 
     <form method="POST">
         {% csrf_token %}
 
-        <input type="text" name="username" placeholder="Username" required>
+        <input type="text"
+               name="username"
+               placeholder="Username"
+               required>
 
-        <input type="password" name="password" placeholder="Password" required>
+        <!-- PASSWORD WITH TOGGLE -->
+        <div class="password-wrapper">
+            <input type="password"
+                   name="password"
+                   id="password"
+                   placeholder="Password"
+                   required>
+
+            <span class="toggle-eye"
+                  onclick="togglePassword()">👁️</span>
+        </div>
 
         <button type="submit">Login</button>
     </form>
+
+    <!-- Links -->
+    <div class="login-links">
+        <a href="{% url 'accounts_app:signup' %}">
+            Create New User
+        </a>
+        <a href="{% url 'accounts_app:forgot_password' %}">
+            Forgot Password?
+        </a>
+    </div>
 
     {% if messages %}
         {% for msg in messages %}
@@ -65,6 +119,13 @@
         {% endfor %}
     {% endif %}
 </div>
+
+<script>
+    function togglePassword() {
+        const pwd = document.getElementById("password");
+        pwd.type = pwd.type === "password" ? "text" : "password";
+    }
+</script>
 
 </body>
 </html>
