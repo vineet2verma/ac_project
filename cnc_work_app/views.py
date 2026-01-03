@@ -31,52 +31,61 @@ from .mongo import (get_orders_collection,
 # CNC Order List
 def cnc_order_list(request):
     order_collection = get_orders_collection()
-    # ---------- GET ALL ORDERS ----------
-    orders = list(order_collection.find().sort("created_at", -1))
 
-    # 🔥 VERY IMPORTANT: Mongo _id → id (string)
-    for o in orders:
-        o["id"] = str(o["_id"])
-    # ---------- SEARCH & FILTER ----------
+    page = int(request.GET.get("page", 1))
+    per_page = int(request.GET.get("per_page", 10))
+    skip = (page - 1) * per_page
+
+    query = {}
+
     q = request.GET.get("q")
-    status = request.GET.get("status")  # optional
+    status = request.GET.get("status")
     from_date = request.GET.get("from_date")
     to_date = request.GET.get("to_date")
 
     if q:
-        orders = [
-            o for o in orders
-        if q.lower() in (o.get("stone", "").lower())
-               or q.lower() in (o.get("color", "").lower())
-               or q.lower() in (o.get("party_name", "").lower())
-               or q.lower() in (o.get("sales_person", "").lower())
-               or q.lower() in (o.get("title", "").lower())
+        query["$or"] = [
+            {"stone": {"$regex": q, "$options": "i"}},
+            {"color": {"$regex": q, "$options": "i"}},
+            {"party_name": {"$regex": q, "$options": "i"}},
+            {"sales_person": {"$regex": q, "$options": "i"}},
+            {"title": {"$regex": q, "$options": "i"}},
         ]
 
-        # ---------- DATE FILTER ----------
-    if from_date:
-        from_date = datetime.strptime(from_date, "%Y-%m-%d")
-        orders = [o for o in orders if o.get("approval_date") and o["approval_date"] >= from_date]
-    if to_date:
-        to_date = datetime.strptime(to_date, "%Y-%m-%d")
-        orders = [o for o in orders if o.get("approval_date") and o["approval_date"] <= to_date]
+    if status:
+        query["status"] = status
 
-        # ---------- PAGINATION ----------
-    per_page = request.GET.get("per_page", 5)
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 5
-    paginator = Paginator(orders, per_page)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    if from_date or to_date:
+        query["approval_date"] = {}
+        if from_date:
+            query["approval_date"]["$gte"] = datetime.strptime(from_date, "%Y-%m-%d")
+        if to_date:
+            query["approval_date"]["$lte"] = datetime.strptime(to_date, "%Y-%m-%d")
 
-    context = {
-        "images": orders,  # keeping same variable name for template
+    total_count = order_collection.count_documents(query)
+
+    orders = list(
+        order_collection.find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(per_page)
+    )
+
+    for o in orders:
+        o["id"] = str(o["_id"])
+
+    paginator = Paginator(range(total_count), per_page)
+    page_obj = paginator.get_page(page)
+
+    return render(request, "cnc_work_app/cnc_order_list.html", {
+        "images": orders,
         "page_obj": page_obj,
         "per_page": per_page,
-    }
-    return render(request, "cnc_work_app/cnc_order_list.html", context)
+        "total": total_count
+    })
+
+
+
 
 # Order Session
 # Add Order
@@ -123,6 +132,7 @@ def add_order(request):
         order_collection.insert_one(data)
 
     return redirect('cnc_work_app:index')
+
 # Edit Order
 def order_edit(request, pk):
     order_collection = get_orders_collection()
@@ -305,6 +315,7 @@ def order_detail(request, pk):
         "quality_checks": quality_checks,
         "dispatches": dispatches,
     })
+
 
 # Design Session
 # Add Design File
@@ -513,6 +524,7 @@ def get_active_machines():
     return machines
 
 
+# Inventory Session
 def add_order_inventory(request, order_id):
 
     if request.method != "POST":
@@ -561,7 +573,7 @@ def add_order_inventory(request, order_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 # Delete Inventory From Order
-def delete_inventory(request, order_id, inv_id):
+def delete_order_inventory(request, order_id, inv_id):
     order_inv_col = get_order_inventory_collection()
     inv_master_col = get_inventory_master_collection()
 
@@ -590,7 +602,7 @@ def delete_inventory(request, order_id, inv_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 # Inventory Master
-def inventory_master(request):
+def inventory_master_view(request):
     inv_col = get_inventory_master_collection()
     cat_col = category_collection()
 
@@ -625,7 +637,7 @@ def inventory_master(request):
             })
             inv_col.insert_one(data)
 
-        return redirect("inv_app:inventory_master")
+        return redirect("cnc_work_app:inventory_master")
 
     # Inventory List
     items = list(inv_col.find({"is_active": True}).sort("created_at", -1))
@@ -641,10 +653,11 @@ def inventory_master(request):
     })
 
 # Inventory Delete From Master
-def inventory_delete(request, pk):
+def inventory_master_delete(request, pk):
     col = get_inventory_master_collection()
     col.delete_one({"_id": ObjectId(pk)})
-    return redirect("cnc_work_app:index")
+    print("inventory delete ...")
+    return redirect("cnc_work_app:inventory_master")
 
 # Inventory Category Master
 def category_master(request):

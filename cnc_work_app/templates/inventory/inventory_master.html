@@ -76,7 +76,7 @@
 <!-- ================= MODAL ================= -->
 <div class="modal fade" id="inventoryModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <form method="POST" class="modal-content">
+        <form method="POST" data-loader-text="Saving order, please wait…" class="modal-content">
             {% csrf_token %}
             <input type="hidden" name="item_id" id="item_id">
 

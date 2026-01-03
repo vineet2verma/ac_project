@@ -7,13 +7,27 @@ from django.contrib.auth.hashers import make_password, check_password
 from cnc_work_app.mongo import users_collection
 from bson import ObjectId
 
+def mongo_login_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not request.session.get("mongo_user_id"):
+            return redirect("accounts_app:login")
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
-def logout_view(request):
-    request.session.flush()
-    return redirect("accounts_app:login")
+def mongo_role_required(allowed_roles):
+    def decorator(view_func):
+        def wrapper(request, *args, **kwargs):
+            roles = request.session.get("mongo_roles", [])
 
-# @login_required
-# @role_required(["ADMIN"])
+            # ✅ MULTI ROLE MATCH
+            if not any(role in allowed_roles for role in roles):
+                messages.error(request, "Permission denied")
+                return redirect("accounts_app:login")
+
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
 def signup_view(request):
     if request.method == "POST":
         data = {
@@ -42,7 +56,7 @@ def signup_view(request):
             "mobile": data["mobile"],
             "department": data["department"],
             "password": make_password(data["password"]),
-            "role": "STAFF",     # 🔒 Admin controlled
+            "roles" : [],
             "is_active": True,
         })
 
@@ -51,8 +65,58 @@ def signup_view(request):
 
     return render(request, "accounts_app/signup.html")
 
-# @login_required
-# @role_required(["ADMIN"])
+@mongo_login_required
+@mongo_role_required(["ADMIN"])
+def forgot_password(request):
+    if request.method == "POST":
+        messages.success(request,"If this user exists, the admin will reset the password.")
+    return render(request,"accounts_app/forgot_password.html")
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = users_collection().find_one({
+            "username": username,
+            "is_active": True
+        })
+
+        if user and check_password(password, user["password"]):
+            # 🔐 manual session
+            request.session["mongo_user_id"] = str(user["_id"])
+            request.session["mongo_username"] = user["username"]
+            request.session["mongo_roles"] = user.get("roles", [])
+
+            roles = user.get("roles", [])
+
+            print(f"Username: {user['username']} | Roles: {roles}")
+
+            # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
+            if "ADMIN" in roles:
+                return redirect("core_app:dashboard")
+            elif "SALES" in roles:
+                return redirect("cnc_work_app:index")
+            elif "DESIGNER" in roles:
+                return redirect("cnc_work_app:index")
+            elif "PRODUCTION" in roles:
+                return redirect("cnc_work_app:index")
+            elif "INVENTORY" in roles:
+                return redirect("cnc_work_app:index")
+            elif "QC" in roles:
+                return redirect("cnc_work_app:index")
+
+            else:
+                messages.error(request, "No valid role assigned.")
+                return redirect("accounts_app:login")
+    return render(request, "accounts_app/login.html")
+
+def logout_view(request):
+    request.session.flush()
+    return redirect("accounts_app:login")
+
+@mongo_login_required
+@mongo_role_required(["ADMIN"])
 def user_master(request):
     users_col = users_collection()
     users = list(users_col.find())
@@ -60,10 +124,14 @@ def user_master(request):
     ROLE_CHOICES = [
         "ADMIN",
         "MANAGER",
+        "DASHBOARD",
+        "REPORT",
         "SALES",
+        "DESIGNER",
         "PRODUCTION",
+        "INVENTORY",
+        "QC",
         "DISPATCH",
-        "DESIGNER"
     ]
 
     for u in users:
@@ -79,9 +147,8 @@ def user_master(request):
         }
     )
 
-
-# @login_required
-# @role_required(["ADMIN"])
+@mongo_login_required
+@mongo_role_required(["ADMIN"])
 def update_user(request, user_id):
     if request.method == "POST":
         users_col = users_collection()
@@ -108,25 +175,20 @@ def update_user(request, user_id):
 
     return redirect("accounts_app:user_master")
 
-def forgot_password(request):
-    if request.method == "POST":
-        messages.success(
-            request,
-            "If this user exists, the admin will reset the password."
-        )
 
-    return render(
-        request,
-        "accounts_app/forgot_password.html"
-    )
-
+@mongo_login_required
+@mongo_role_required(["ADMIN"])
 def generate_temp_password(length=8):
     chars = string.ascii_letters + string.digits
     return "".join(random.choice(chars) for _ in range(length))
 
+
+@mongo_login_required
+@mongo_role_required(["ADMIN"])
 def reset_password(request, user_id):
     users_col = users_collection()
     temp_password = generate_temp_password()
+
     result = users_col.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {
@@ -138,64 +200,10 @@ def reset_password(request, user_id):
     if result.modified_count == 1:
         messages.success(
             request,
-            f"Password reset successfully. Temporary password: {temp_password}"
+            f"Password reset successful. Temporary password: {temp_password}"
         )
     else:
-        messages.error(
-            request,
-            "Unable to reset password. User not found."
-        )
+        messages.error(request, "User not found")
 
     return redirect("accounts_app:user_master")
-
-
-def mongo_login_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.session.get("mongo_user_id"):
-            return redirect("accounts_app:login")
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-def mongo_role_required(allowed_roles):
-    def decorator(view_func):
-        def wrapper(request, *args, **kwargs):
-            role = request.session.get("mongo_role")
-            if role not in allowed_roles:
-                return redirect("accounts_app:login")
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
-
-def login_view(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-
-        user = users_collection().find_one({
-            "username": username,
-            "is_active": True
-        })
-
-        if user and check_password(password, user["password"]):
-            # 🔐 manual session
-            request.session["mongo_user_id"] = str(user["_id"])
-            request.session["mongo_role"] = user["role"]
-            request.session["mongo_username"] = user["username"]
-
-            # 🎯 ROLE BASED REDIRECT
-            if user["role"] in ["ADMIN", "MANAGER"]:
-                return redirect("core_app:dashboard")
-
-            elif user["role"] == "SALES":
-                return redirect("cnc_work_app:index")
-
-            else:
-                # fallback (optional)
-                return redirect("accounts_app:login")
-
-        return render(request, "accounts_app/login.html", {
-            "error": "Invalid credentials"
-        })
-
-    return render(request, "accounts_app/login.html")
 

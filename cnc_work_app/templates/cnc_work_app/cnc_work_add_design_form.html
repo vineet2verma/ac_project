@@ -7,7 +7,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="post" enctype="multipart/form-data" action="{% url 'cnc_work_app:add_order' %}">
+                <form method="post" data-loader-text="Saving order, please wait…" enctype="multipart/form-data"
+                      action="{% url 'cnc_work_app:add_order' %}">
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-md-4">
