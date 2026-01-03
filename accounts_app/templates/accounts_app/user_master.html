@@ -34,7 +34,9 @@
                     <td>{{ u.dob|default:"-" }}</td>
                     <td>{{ u.department }}</td>
                     <td>
-                        <span class="badge bg-info">{{ u.role }}</span>
+                        {% for r in u.roles %}
+                        <span class="badge bg-info me-1">{{ r }}</span>
+                        {% endfor %}
                     </td>
                     <td>
                         {% if u.is_active %}
@@ -65,7 +67,7 @@
         <form method="POST"
               action="{% url 'accounts_app:update_user' u.id %}"
               class="modal-content"
-              onsubmit="return confirmRoleChange('{{ u.role }}', this);">
+              onsubmit="return confirmRoleChange(this);">
             {% csrf_token %}
             
             <!-- MODAL HEADER -->
@@ -106,17 +108,28 @@
                                class="form-control">
                     </div>
                     
-                    <div class="col-md-3">
-                        <label class="form-label">Role</label>
-                        <select name="role" class="form-select role-select">
-                            <option value="ADMIN" {% if u.role == "ADMIN" %}selected{% endif %}>ADMIN</option>
-                            <option value="MANAGER" {% if u.role == "MANAGER" %}selected{% endif %}>MANAGER</option>
-                            <option value="SALES" {% if u.role == "SALES" %}selected{% endif %}>SALES</option>
-                            <option value="PRODUCTION" {% if u.role == "PRODUCTION" %}selected{% endif %}>PRODUCTION</option>
-                            <option value="DISPATCH" {% if u.role == "DISPATCH" %}selected{% endif %}>DISPATCH</option>
-                            <option value="DESIGNER" {% if u.role == "DESIGNER" %}selected{% endif %}>DESIGNER</option>
-                        </select>
-                    </div>
+                    <div class="col-md-12">
+    <label class="form-label fw-semibold">User Roles</label>
+
+    <div class="row g-2">
+        {% for role in ROLE_CHOICES %}
+        <div class="col-md-4">
+            <div class="form-check">
+                <input class="form-check-input role-checkbox"
+                       type="checkbox"
+                       name="roles"
+                       value="{{ role }}"
+                       id="role_{{ role }}_{{ u.id }}"
+                       {% if role in u.roles %}checked{% endif %}>
+                <label class="form-check-label"
+                       for="role_{{ role }}_{{ u.id }}">
+                    {{ role }}
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
                     
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
@@ -162,20 +175,14 @@
 
 <!-- ================= JS ================= -->
 <script>
-    function confirmRoleChange(oldRole, form) {
-        const newRole = form.querySelector(".role-select").value;
-    
-        if (oldRole !== newRole) {
-            return confirm(
-                "You are changing the user role from '" +
-                oldRole +
-                "' to '" +
-                newRole +
-                "'.\n\nDo you want to continue?"
-            );
-        }
-        return true;
+    function confirmRoleChange(form) {
+    const checked = form.querySelectorAll(".role-checkbox:checked");
+    if (checked.length === 0) {
+        alert("At least one role must be selected.");
+        return false;
     }
+    return confirm("You are updating user roles. Continue?");
+}
 </script>
 
 {% endblock %}

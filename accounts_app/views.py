@@ -8,8 +8,6 @@ from cnc_work_app.mongo import users_collection
 from bson import ObjectId
 
 
-
-
 def logout_view(request):
     request.session.flush()
     return redirect("accounts_app:login")
@@ -59,15 +57,28 @@ def user_master(request):
     users_col = users_collection()
     users = list(users_col.find())
 
-    # 🔑 Convert Mongo _id to template-safe id
+    ROLE_CHOICES = [
+        "ADMIN",
+        "MANAGER",
+        "SALES",
+        "PRODUCTION",
+        "DISPATCH",
+        "DESIGNER"
+    ]
+
     for u in users:
         u["id"] = str(u["_id"])
+        u["roles"] = u.get("roles", [])
 
     return render(
         request,
         "accounts_app/user_master.html",
-        {"users": users}
+        {
+            "users": users,
+            "ROLE_CHOICES": ROLE_CHOICES
+        }
     )
+
 
 # @login_required
 # @role_required(["ADMIN"])
@@ -75,19 +86,27 @@ def update_user(request, user_id):
     if request.method == "POST":
         users_col = users_collection()
 
+        roles = request.POST.getlist("roles")  # ✅ MULTIPLE ROLES
+
+        if not roles:
+            messages.error(request, "At least one role is required.")
+            return redirect("accounts_app:user_master")
+
         users_col.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": {
                 "full_name": request.POST.get("full_name"),
+                "dob": request.POST.get("dob") or None,
                 "mobile": request.POST.get("mobile"),
                 "department": request.POST.get("department"),
-                "role": request.POST.get("role"),
+                "roles": roles,
                 "is_active": request.POST.get("is_active") == "true"
             }}
         )
 
         messages.success(request, "User updated successfully")
-        return redirect("accounts_app:user_master")
+
+    return redirect("accounts_app:user_master")
 
 def forgot_password(request):
     if request.method == "POST":
@@ -105,12 +124,9 @@ def generate_temp_password(length=8):
     chars = string.ascii_letters + string.digits
     return "".join(random.choice(chars) for _ in range(length))
 
-
 def reset_password(request, user_id):
     users_col = users_collection()
-
     temp_password = generate_temp_password()
-
     result = users_col.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {
