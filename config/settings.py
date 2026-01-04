@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'accounts_app',
     'core_app',
     'inv_app',
+    'todo_app'
 
 ]
 

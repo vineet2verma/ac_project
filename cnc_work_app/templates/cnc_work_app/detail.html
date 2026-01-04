@@ -73,8 +73,8 @@
             
             <!-- ORDER ID -->
             
-            <h5 class="m-0 fw-semibold text-primary"><span class="fw-bold">Title : </span>{{ order.title }} || {{
-                order.sales_person }} ||</h5>
+            <h5 class="m-0 fw-semibold text-primary">
+                <span class="fw-bold">Title : </span>{{ order.title }} || {{ order.sales_person }} ||</h5>
             
             
             <!-- EDIT -->
@@ -530,11 +530,11 @@
 <!-- MODALS -->
 {% include 'cnc_work_app/order_edit.html' %}
 {% include 'cnc_work_app/design_add.html' %}
-{% include 'machine/machine_add_update.html' %}
+{% include 'cnc_work_app/machine_add_update.html' %}
 
-{% include 'inventory/inventory_add.html' %}
+{% include 'cnc_work_app/inventory_add.html' %}
 
-/* ================= DOWNLOAD IMAGE ================= */
+
 <script>
     function downloadOrderImage() {
         const imgUrl = "{{ order.image }}";
@@ -554,7 +554,7 @@
     }
 </script>
 
-/* ================= MACHINE ================= */
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 

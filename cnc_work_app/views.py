@@ -118,6 +118,7 @@ def add_order(request):
             'created_at' : datetime.now(),
             'approval_date' : approval_date_obj,
             'exp_delivery_date' : exp_delivery_date_obj,
+            'current_status' : "Design Pending",
         }
         order_collection.insert_one(data)
 
@@ -313,13 +314,20 @@ def order_detail(request, pk):
 # Design Session
 # Add Design File
 def add_design_file(request, pk):
+    order_collection = get_orders_collection()
+    design_collection = get_design_files_collection()
+
+    # 🔹 Fetch order first
+    order = order_collection.find_one({"_id": ObjectId(pk)})
+    if not order:
+        raise Http404("Order not found")
+
     if request.method == "POST":
         name = request.POST.get("name")
         file = request.FILES.get("file")
 
         if name and file:
             upload_result = upload(file,folder="design_files")
-            design_collection = get_design_files_collection()
 
             design_collection.insert_one({
                 "order_id": pk,                     # Mongo Order ID (string)
@@ -327,10 +335,17 @@ def add_design_file(request, pk):
                 "file_url": upload_result["secure_url"],
                 "public_id": upload_result["public_id"],
                 "status": "pending",
+                "created_by": request.session.get("mongo_username"),
                 "created_at": datetime.utcnow(),
             })
+            # 🔹 UPDATE ORDER STATUS
+            order_collection.update_one(
+                {"_id": ObjectId(pk)},
+                {"$set": {"current_status": "Inventory Pending"}}
+            )
 
     return redirect("cnc_work_app:detail", pk=pk)
+
 # Add Design Action
 def design_action(request, design_id, action):
     collection = get_design_files_collection()
@@ -376,10 +391,13 @@ def add_quality_check(request, order_id):
 
         orders_collection.update_one(
             {"_id": ObjectId(order_id)},
-            {"$set": {"current_status": "Dispatch Pending"}}
+            {"$set": {
+                "current_status": "Dispatch Pending"
+            }}
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
+
 # Order Dispatches
 def add_dispatch(request, order_id):
     order_collection = get_orders_collection()
@@ -389,6 +407,10 @@ def add_dispatch(request, order_id):
     order = order_collection.find_one({"_id": ObjectId(order_id)})
     if not order:
         raise Http404("Order not found")
+
+    # 🔒 SAFETY: Prevent double dispatch
+    if order.get("current_status") == "COMPLETED":
+        raise Http404("Order already dispatched")
 
     if request.method == "POST":
         # 🔹 Insert dispatch record
@@ -405,7 +427,10 @@ def add_dispatch(request, order_id):
         # 🔹 Update order status
         order_collection.update_one(
             {"_id": ObjectId(order_id)},
-            {"$set": {"current_status": "Complete"}}
+            {"$set": {
+                "current_status": "Complete",
+                "dispatched_at": datetime.now()
+            }}
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
@@ -446,7 +471,7 @@ def machine_master(request):
     machines = list(col.find().sort("created_at", -1))
     # Mongo _id → string for template
     for m in machines: m["id"] = str(m["_id"])
-    return render(request,"machine_mast/machine_master_add.html",{"machines": machines})
+    return render(request,"cnc_work_app/machine_master_add.html",{"machines": machines})
 
 @require_POST
 def machine_master_add(request):
@@ -520,14 +545,13 @@ def machine_edit(request, order_id, machine_work_id):
 # Add Inventory In Order
 # Add Inventory In Order (ERP FINAL)
 def add_order_inventory(request, order_id):
-
-    if request.method != "POST":
-        return redirect("cnc_work_app:detail", pk=order_id)
-
     inv_master_col = get_inventory_master_collection()
     order_inv_col = get_order_inventory_collection()
     ledger_col = get_inventory_ledger_collection()
     order_col = get_orders_collection()
+
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
 
     inventory_id = request.POST.get("inventory_id")
     qty = float(request.POST.get("qty", 0))
@@ -536,6 +560,10 @@ def add_order_inventory(request, order_id):
     if not inventory_id:
         raise Http404("Inventory item not selected")
 
+    # 🔹 Fetch order from MongoDB
+    order = order_col.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
     inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
     if not inv:
         raise Http404("Inventory item not found")
@@ -543,13 +571,7 @@ def add_order_inventory(request, order_id):
     available_qty = float(inv.get("current_qty", 0))
     if qty > available_qty:
         raise Http404("Qty exceeds available stock")
-
     rate = float(inv.get("rate", 0))
-
-    # 🔹 FETCH ORDER DETAILS (FOR REMARKS)
-    order = order_col.find_one({"_id": ObjectId(order_id)})
-    if not order:
-        raise Http404("Order not found")
 
     order_title = order.get("title", "Order")
     sales_person = order.get("sales_person", "-")
@@ -591,6 +613,14 @@ def add_order_inventory(request, order_id):
     inv_master_col.update_one(
         {"_id": inv["_id"]},
         {"$inc": {"current_qty": -qty}}
+    )
+    # 🔹 Update order status
+    order_col.update_one(
+        {"_id": ObjectId(order_id)},
+        {"$set": {
+            "current_status": "QC Pending",
+            "dispatched_at": datetime.now()
+        }}
     )
 
     return redirect("cnc_work_app:detail", pk=order_id)

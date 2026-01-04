@@ -59,7 +59,7 @@ def inventory_master_view(request):
     categories = list(cat_col.find({"is_active": True}))
     for c in categories: c["id"] = str(c["_id"])
 
-    return render(request, "inventory/inventory_master.html", {
+    return render(request, "inv_app/inventory_master.html", {
         "items": items,
         "categories": categories,
     })
@@ -223,7 +223,7 @@ def inventory_ledger_view(request):
 
 
 
-    return render(request, "inventory/inventory_ledger.html", {
+    return render(request, "inv_app/inventory_ledger.html", {
         "items": items,
         "ledger": ledger
     })
@@ -306,7 +306,7 @@ def category_master(request):
         c["id"] = str(c["_id"])
 
     return render(
-        request, "category/category_master.html",
+        request, "inv_app/category_master.html",
         {"categories": categories}
     )
 
