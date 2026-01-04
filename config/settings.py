@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     'cnc_work_app',
     'accounts_app',
     'core_app',
+    'inv_app',
+    'todo_app',
 
 ]
 

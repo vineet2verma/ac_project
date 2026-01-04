@@ -19,12 +19,12 @@ urlpatterns = [
     # path( "design-file/<int:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
 
     # Category Master
-    path("inventory/category/", views.category_master, name="category_master"),
-    path("inventory/category/<str:pk>/delete/", views.category_delete, name="category_delete"),
+    # path("inventory/category/", views.category_master, name="category_master"),
+    # path("inventory/category/<str:pk>/delete/", views.category_delete, name="category_delete"),
 
     # Inventory
-    path("inventory/master/", views.inventory_master_view, name="inventory_master"),
-    path("inventory/<str:pk>/delete/", views.inventory_master_delete, name="inventory_delete"),
+    # path("inventory/master/", views.inventory_master_view, name="inventory_master"),
+    # path("inventory/<str:pk>/delete/", views.inventory_master_delete, name="inventory_delete"),
     path("order/<str:order_id>/inventory/add/", views.add_order_inventory, name="order_inventory_add"),
     path("order/<str:order_id>/inventory/delete/<str:inv_id>/",views.delete_order_inventory,name="delete_inventory"),
     # path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),

@@ -315,7 +315,7 @@
         </div>
     </div>
 
-    {% if request.session.mongo_role == "ADMIN" or request.session.mongo_role == "PRODUCTION" %}
+
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -360,14 +360,15 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center text-muted">No inventory added</td>
+                    <td colspan="5" class="text-center text-muted">No inventory added</td>
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    {% endif %}
+
+    
     
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">

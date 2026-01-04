@@ -49,4 +49,6 @@ def get_quality_collection():
 def get_dispatch_collection():
     return _db["dispatches"]
 
-
+# To Do's
+def todo_collection():
+    return _db["todos"]
