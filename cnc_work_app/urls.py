@@ -15,19 +15,10 @@ urlpatterns = [
     path('order/<str:pk>/design/add/', views.add_design_file, name='add_design_file'),
     path("design-file/<str:design_id>/<str:action>/", views.design_action, name="design_action"),
     path("order/<str:order_id>/design/<str:design_id>/delete/", views.design_delete, name="design_delete"),
-    # Design Action
-    # path( "design-file/<int:pk>/<str:action>/", views.design_file_action, name="design_file_action"),
-
-    # Category Master
-    # path("inventory/category/", views.category_master, name="category_master"),
-    # path("inventory/category/<str:pk>/delete/", views.category_delete, name="category_delete"),
 
     # Inventory
-    # path("inventory/master/", views.inventory_master_view, name="inventory_master"),
-    # path("inventory/<str:pk>/delete/", views.inventory_master_delete, name="inventory_delete"),
     path("order/<str:order_id>/inventory/add/", views.add_order_inventory, name="order_inventory_add"),
     path("order/<str:order_id>/inventory/delete/<str:inv_id>/",views.delete_order_inventory,name="delete_inventory"),
-    # path('order/<str:pk>/inventory/add/', views.add_inventory, name='add_inventory'),
 
     # Machine Work Detail
     path("order/<str:order_id>/machine/add/", views.add_machine_work, name="add_machine_work"),
@@ -44,8 +35,5 @@ urlpatterns = [
 
     # Dispatch
     path("order/<str:order_id>/dispatch/", views.add_dispatch, name="dispatch_add"),
-
-    # Not Clear What time it's calling
-    # path('cnc_work_app/add/', views.add_image, name='add_image'),    # Form POST
 
 ]
