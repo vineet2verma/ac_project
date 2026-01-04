@@ -30,6 +30,29 @@
         flex-wrap: wrap;
       }
     }
+    /* ================= PRINT PDF ================= */
+    @media print {
+            body {
+                background: #fff !important;
+            }
+            .btn,
+            .action-btn-group,
+            .modal,
+            .erp-header-right,
+            .no-print {
+                display: none !important;
+            }
+            table {
+                font-size: 12px !important;
+            }
+            .order-image {
+                max-width: 300px !important;
+                margin-bottom: 10px;
+            }
+            .container {
+                max-width: 100% !important;
+            }
+        }
 </style>
 
 <div class="container py-3">
@@ -50,9 +73,10 @@
             
             <!-- ORDER ID -->
             
-            <h5 class="m-0 fw-semibold text-primary"><span class="fw-bold">Title : </span>{{ order.title }} || {{ order.sales_person }} ||</h5>
-
-            {% if request.session.mongo_role == "ADMIN" %}
+            <h5 class="m-0 fw-semibold text-primary"><span class="fw-bold">Title : </span>{{ order.title }} || {{
+                order.sales_person }} ||</h5>
+            
+            
             <!-- EDIT -->
             <button
                     class="btn btn-outline-primary btn-sm rounded-circle"
@@ -61,17 +85,39 @@
             >
                 <i class="bi bi-pencil"></i>
             </button>
-            {% endif %}
+        
         </div>
         
         <!-- RIGHT -->
+        
         <div class="erp-header-right">
-            <span class="small text-muted me-2">Status</span>
-            <span
-                    class="badge rounded-pill px-3 py-2 {% if order.current_status == 'Complete' %} bg-success {% elif order.current_status == 'Dispatch Pending' %} bg-primary {% elif order.current_status == 'Inventory Pending' %} bg-warning text-dark {% else %} bg-danger {% endif %}"
-            >
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                
+                
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if order.image %}
+                    <!-- DOWNLOAD IMAGE -->
+                    <button class="btn btn-outline-secondary btn-sm"
+                            onclick="downloadOrderImage()"
+                            title="Download Image">
+                        <i class="bi bi-download"></i> Image
+                    </button>
+                    {% endif %}
+                    
+                    <!-- PRINT PDF -->
+                    <button class="btn btn-outline-dark btn-sm"
+                            onclick="printOrderPDF()"
+                            title="Print PDF">
+                        <i class="bi bi-printer"></i> Print
+                    </button>
+                
+                </div>
+                <span class="small text-muted me-2">Status</span>
+                <span
+                        class="badge rounded-pill px-3 py-2 {% if order.current_status == 'Complete' %} bg-success {% elif order.current_status == 'Dispatch Pending' %} bg-primary {% elif order.current_status == 'Inventory Pending' %} bg-warning text-dark {% else %} bg-danger {% endif %}">
         {{ order.current_status }}
       </span>
+            </div>
         </div>
     </div>
     
@@ -251,6 +297,7 @@
                 <tr>
                     <th>Date</th>
                     <th>Machine</th>
+                    <th>Type</th>
                     <th>Hours</th>
                     <th>Operator</th>
                     <th>Remarks</th>
@@ -263,6 +310,11 @@
                 <tr>
                     <td>{{ m.work_date }}</td>
                     <td>{{ m.machine_name }}</td>
+                    <td>
+                      <span class="badge {% if m.work_type == 'DOWNTIME' %}bg-danger{% else %}bg-success{% endif %}">
+                        {{ m.work_type|title }}
+                      </span>
+                    </td>
                     <td>{{ m.working_hour }}</td>
                     <td>{{ m.operator|default:"-" }}</td>
                     <td>{{ m.remarks|default:"-" }}</td>
@@ -272,10 +324,11 @@
                                 type="button"
                                 class="btn btn-link p-0 text-primary edit-machine-btn"
                                 data-id="{{ m.id }}"
-                                data-machine="{{ m.machine_name }}"
+                                data-machine-id="{{ m.machine_id }}"
                                 data-hours="{{ m.working_hour }}"
                                 data-operator="{{ m.operator }}"
                                 data-remarks="{{ m.remarks }}"
+                                data-type="{{ m.work_type }}"
                                 data-bs-toggle="modal"
                                 data-bs-target="#machineModal">
                             <i class="bi bi-pencil-square"></i>
@@ -314,8 +367,8 @@
         <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
         </div>
     </div>
-
-
+    
+    
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -367,7 +420,6 @@
             </table>
         </div>
     </div>
-
     
     
     <!-- ================= QUALITY CHECK ================= -->
@@ -482,33 +534,72 @@
 
 {% include 'inventory/inventory_add.html' %}
 
+/* ================= DOWNLOAD IMAGE ================= */
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    function downloadOrderImage() {
+        const imgUrl = "{{ order.image }}";
+        if (!imgUrl) return;
+    
+        const a = document.createElement("a");
+        a.href = imgUrl;
+        a.download = "{{ order.title|slugify }}.jpg";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+    
+    /* ================= PRINT AS PDF ================= */
+    function printOrderPDF() {
+        window.print();
+    }
+</script>
 
-  // EDIT MACHINE
+/* ================= MACHINE ================= */
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
   document.querySelectorAll(".edit-machine-btn").forEach(btn => {
-  btn.addEventListener("click", function () {
+    btn.addEventListener("click", function () {
 
-    // set hidden id
-    document.getElementById("machine_work_id").value = this.dataset.id;
+      // hidden id
+      document.getElementById("machine_work_id").value = this.dataset.id;
 
-    // fill form values
-    document.getElementById("id_working_hour").value = this.dataset.hours;
-    document.getElementById("id_operator").value = this.dataset.operator || "";
-    document.getElementById("id_remarks").value = this.dataset.remarks || "";
+      // ✅ SET MACHINE DROPDOWN (MAIN FIX)
+      document.getElementById("machine_id").value =
+        this.dataset.machineId;
 
-    // 🔁 change form action to EDIT
-    document.querySelector("#machineModal form").action =
-      `/order/{{ order.id }}/machine/${this.dataset.id}/edit/`;
+      // other fields
+      document.getElementById("id_working_hour").value =
+        this.dataset.hours;
+
+      document.getElementById("id_operator").value =
+        this.dataset.operator || "";
+
+      document.getElementById("id_remarks").value =
+        this.dataset.remarks || "";
+
+      document.getElementById("id_work_type").value =
+        this.dataset.type || "ONTIME";
+
+      // ✅ CHANGE FORM ACTION TO EDIT
+      document.querySelector("#machineModal form").action =
+        `/order/{{ order.id }}/machine/${this.dataset.id}/edit/`;
+    });
   });
-});
 
-  // RESET FOR ADD
-  document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {
-    document.getElementById("machine_id").value = "";
-    document.getElementById("machineModalTitle").innerText = "Add Machine Detail";
-    this.querySelector("form").reset();
-  });
+  /* ================= RESET TO ADD MODE ================= */
+  document.getElementById("machineModal")
+    .addEventListener("hidden.bs.modal", function () {
+
+      const form = this.querySelector("form");
+
+      form.reset();
+      document.getElementById("machine_work_id").value = "";
+      document.getElementById("id_work_type").value = "ONTIME";
+
+      // ✅ RESET FORM ACTION TO ADD
+      form.action = "{% url 'cnc_work_app:add_machine_work' order.id %}";
+    });
 
 });
 
@@ -528,48 +619,89 @@ function designAction(id, action) {
 
 
 </script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-
-      /* ================= INVENTORY VALIDATION ================= */
-
-      const inventorySelect = document.getElementById("inventory_id");
-      const availableStock = document.getElementById("available_stock");
-      const qtyInput = document.getElementById("consume_qty");
-      const alertBox = document.getElementById("stockAlert");
-      const saveBtn = document.getElementById("saveBtn");
-
-      let maxStock = 0;
-
-      if (inventorySelect) {
-
-        inventorySelect.addEventListener("change", function () {
-          const selected = this.options[this.selectedIndex];
-
-          maxStock = parseFloat(selected.dataset.stock || 0);
-          availableStock.value = maxStock;
-
-          qtyInput.value = "";
-          qtyInput.classList.remove("is-invalid", "is-valid");
-          alertBox.classList.add("d-none");
-          saveBtn.disabled = false;
+    
+        const searchInput = document.getElementById("inventorySearch");
+        const inventorySelect = document.getElementById("inventory_id");
+        const availableStock = document.getElementById("available_stock");
+        const qtyInput = document.getElementById("consume_qty");
+        const alertBox = document.getElementById("stockAlert");
+        const saveBtn = document.getElementById("saveBtn");
+    
+        let maxStock = 0;
+    
+        /* ================= SEARCH + AUTO OPEN ================= */
+        searchInput.addEventListener("input", function () {
+            const q = this.value.toLowerCase();
+            let firstMatch = null;
+    
+            Array.from(inventorySelect.options).forEach(opt => {
+                if (!opt.value) return;
+    
+                const match = opt.text.toLowerCase().includes(q);
+                opt.style.display = match ? "" : "none";
+    
+                if (match && !firstMatch) {
+                    firstMatch = opt;
+                }
+            });
+    
+            /* AUTO SELECT + FOCUS DROPDOWN */
+            if (firstMatch) {
+                inventorySelect.value = firstMatch.value;
+                inventorySelect.focus();
+    
+                /* 🔽 simulate arrow down to open dropdown */
+                inventorySelect.dispatchEvent(
+                    new KeyboardEvent("keydown", { key: "ArrowDown" })
+                );
+            }
         });
-
-        qtyInput.addEventListener("input", function () {
-          const qty = parseFloat(this.value || 0);
-
-          if (qty > maxStock) {
-            this.classList.add("is-invalid");
-            alertBox.classList.remove("d-none");
-            saveBtn.disabled = true;
-          } else {
-            this.classList.remove("is-invalid");
+    
+        /* ================= STOCK LOAD ================= */
+        inventorySelect.addEventListener("change", function () {
+            const selected = this.options[this.selectedIndex];
+            maxStock = parseFloat(selected.dataset.stock || 0);
+    
+            availableStock.value = maxStock;
+            qtyInput.value = "";
+            qtyInput.classList.remove("is-invalid");
             alertBox.classList.add("d-none");
             saveBtn.disabled = false;
-          }
         });
-      }
-
+    
+        /* ================= QTY VALIDATION ================= */
+        qtyInput.addEventListener("input", function () {
+            const qty = parseFloat(this.value || 0);
+    
+            if (qty > maxStock) {
+                this.classList.add("is-invalid");
+                alertBox.classList.remove("d-none");
+                saveBtn.disabled = true;
+            } else {
+                this.classList.remove("is-invalid");
+                alertBox.classList.add("d-none");
+                saveBtn.disabled = false;
+            }
+        });
+    
+        /* ================= RESET ON MODAL OPEN ================= */
+        document.getElementById("inventoryModal")
+            .addEventListener("show.bs.modal", function () {
+    
+            searchInput.value = "";
+            inventorySelect.value = "";
+            availableStock.value = "";
+            qtyInput.value = "";
+            alertBox.classList.add("d-none");
+            saveBtn.disabled = false;
+    
+            Array.from(inventorySelect.options)
+                .forEach(opt => opt.style.display = "");
+        });
+    
     });
 </script>
 

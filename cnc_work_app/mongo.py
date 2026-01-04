@@ -21,6 +21,9 @@ def users_collection():
 def get_inventory_master_collection():
     return _db["inventory_masters"]
 
+def get_inventory_ledger_collection():
+    return _db["inventory_ledger"]
+
 def category_collection():
     return _db["categories_masters"]
 

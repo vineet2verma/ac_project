@@ -65,8 +65,6 @@ def signup_view(request):
 
     return render(request, "accounts_app/signup.html")
 
-@mongo_login_required
-@mongo_role_required(["ADMIN"])
 def forgot_password(request):
     if request.method == "POST":
         messages.success(request,"If this user exists, the admin will reset the password.")
@@ -179,31 +177,29 @@ def update_user(request, user_id):
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
 def generate_temp_password(length=8):
+    print("Generate Temp Clicked")
     chars = string.ascii_letters + string.digits
     return "".join(random.choice(chars) for _ in range(length))
 
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
-def reset_password(request, user_id):
-    users_col = users_collection()
-    temp_password = generate_temp_password()
+def admin_reset_password(request, user_id):
 
-    result = users_col.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {
-            "password": make_password(temp_password),
-            "force_password_change": True
-        }}
-    )
+    if request.method == "POST":
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
 
-    if result.modified_count == 1:
-        messages.success(
-            request,
-            f"Password reset successful. Temporary password: {temp_password}"
+        if new_password != confirm_password:
+            messages.error(request, "Passwords do not match")
+            return redirect("accounts_app:user_master")  # ✅ FIXED
+
+        users_collection().update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"password": make_password(new_password)}}
         )
-    else:
-        messages.error(request, "User not found")
 
-    return redirect("accounts_app:user_master")
+        messages.success(request, "Password reset successfully")
+
+    return redirect("accounts_app:user_master")  # ✅ FIXED
 

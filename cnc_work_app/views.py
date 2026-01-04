@@ -17,6 +17,7 @@ from .mongo import (get_orders_collection,
                     get_inventory_master_collection,
                     get_order_inventory_collection,
                     get_quality_collection, get_dispatch_collection,
+                    get_inventory_ledger_collection,
                     category_collection,
                     )
 
@@ -409,11 +410,12 @@ def add_dispatch(request, order_id):
 
     return redirect("cnc_work_app:detail", pk=order_id)
 
-# Machine Session
-# Add Machine
+
+# Add Machine For Order Work
 def add_machine_work(request, order_id):
     if request.method == "POST":
         machine_id = request.POST.get("machine_id")
+        work_type = request.POST.get("work_type", "ONTIME")
         working_hour = float(request.POST.get("working_hour"))
         operator = request.POST.get("operator")
         remarks = request.POST.get("remarks")
@@ -426,6 +428,7 @@ def add_machine_work(request, order_id):
             "order_id": order_id,
             "machine_id": machine_id,
             "machine_name": machine["machine_name"],
+            "work_type": work_type,
             "work_date": date.today().isoformat(),   # ✅ default today
             "working_hour": working_hour,
             "operator": operator,
@@ -435,6 +438,7 @@ def add_machine_work(request, order_id):
 
     return redirect("cnc_work_app:detail", pk=order_id)
 
+
 # # Machine Master
 # ================= MACHINE MASTER LIST =================
 def machine_master(request):
@@ -443,7 +447,7 @@ def machine_master(request):
     # Mongo _id → string for template
     for m in machines: m["id"] = str(m["_id"])
     return render(request,"machine_mast/machine_master_add.html",{"machines": machines})
-# ================= ADD MACHINE =================
+
 @require_POST
 def machine_master_add(request):
     col = get_machine_master_collection()
@@ -459,8 +463,7 @@ def machine_master_add(request):
         "created_at": timezone.now()
     })
     return redirect("cnc_work_app:machine_master")
-
-# ================= TOGGLE ACTIVE / INACTIVE =================
+# ================= TOGGLE ACTIVE / INACTIVE IN MASTER=================
 @require_POST
 def machine_master_toggle(request, pk):
     col = get_machine_master_collection()
@@ -477,37 +480,9 @@ def machine_master_toggle(request, pk):
         )
 
     return redirect("cnc_work_app:machine_master")
-# Machine Detail in Order
-def add_machine_master(name, code=None):
-    col = get_machine_master_collection()
-    col.insert_one({
-        "machine_name": name,
-        "machine_code": code,
-        "is_active": True,
-        "created_at": datetime.utcnow()
-    })
-# Machine Order Delete
-def machine_delete(request, order_id, machine_work_id):
-    if request.method == "POST":
-        col = get_machine_work_collection()
-        col.delete_one({"_id": ObjectId(machine_work_id)})
-    return redirect("cnc_work_app:detail", pk=order_id)
-# Machine Order Edit
-def machine_edit(request, order_id, machine_work_id):
-    col = get_machine_work_collection()
 
-    if request.method == "POST":
-        col.update_one(
-            {"_id": ObjectId(machine_work_id)},
-            {"$set": {
-                "working_hour": float(request.POST.get("working_hour")),
-                "operator": request.POST.get("operator"),
-                "remarks": request.POST.get("remarks"),
-            }}
-        )
-
-    return redirect("cnc_work_app:detail", pk=order_id)
-# Active Machines
+# ================= ADD MACHINE =================
+# Active Machines For Dropdown in Detail Page
 def get_active_machines():
     col = get_machine_master_collection()
     machines = list(col.find({"is_active": True}))
@@ -515,8 +490,35 @@ def get_active_machines():
         m["id"] = str(m["_id"])
     return machines
 
+# Machine Delete From Order -----
+def machine_delete(request, order_id, machine_work_id):
+    if request.method == "POST":
+        col = get_machine_work_collection()
+        col.delete_one({"_id": ObjectId(machine_work_id)})
+    return redirect("cnc_work_app:detail", pk=order_id)
 
-# Inventory Session
+# Machine Edit In Order -----
+def machine_edit(request, order_id, machine_work_id):
+    col = get_machine_work_collection()
+
+    if request.method == "POST":
+        col.update_one(
+            {"_id": ObjectId(machine_work_id)},
+            {"$set": {
+                "machine_id": request.POST.get("machine_id"),   # ✅ optional but correct
+                "working_hour": float(request.POST.get("working_hour", 0)),
+                "work_type": request.POST.get("work_type", "ONTIME"),  # ✅ FIX
+                "operator": request.POST.get("operator"),
+                "remarks": request.POST.get("remarks"),
+            }}
+        )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+
+
+# Add Inventory In Order
+# Add Inventory In Order (ERP FINAL)
 def add_order_inventory(request, order_id):
 
     if request.method != "POST":
@@ -524,72 +526,146 @@ def add_order_inventory(request, order_id):
 
     inv_master_col = get_inventory_master_collection()
     order_inv_col = get_order_inventory_collection()
+    ledger_col = get_inventory_ledger_collection()
+    order_col = get_orders_collection()
 
     inventory_id = request.POST.get("inventory_id")
     qty = float(request.POST.get("qty", 0))
 
-    # 🔴 SAFETY CHECK 1
-    if not inventory_id: raise Http404("Inventory item not selected")
+    # 🔴 SAFETY CHECKS
+    if not inventory_id:
+        raise Http404("Inventory item not selected")
 
-    # 🔴 SAFETY CHECK 2
-    try: inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
-    except Exception: raise Http404("Invalid inventory id")
-
-    # 🔴 SAFETY CHECK 3
+    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
     if not inv:
         raise Http404("Inventory item not found")
 
     available_qty = float(inv.get("current_qty", 0))
-
-    # 🔴 SAFETY CHECK 4 (STOCK VALIDATION)
     if qty > available_qty:
         raise Http404("Qty exceeds available stock")
 
+    rate = float(inv.get("rate", 0))
+
+    # 🔹 FETCH ORDER DETAILS (FOR REMARKS)
+    order = order_col.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
+
+    order_title = order.get("title", "Order")
+    sales_person = order.get("sales_person", "-")
+    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
+
     # ================= SAVE ORDER INVENTORY =================
     order_inv_col.insert_one({
-        "order_id": order_id,
-        "inventory_id": inventory_id,
+        "order_id": order_id,                     # string
+        "inventory_id": inventory_id,             # string
         "item_name": inv["item_name"],
         "qty": qty,
-        "rate": inv.get("rate", 0),
-        "total": qty * float(inv.get("rate", 0)),
+        "rate": rate,
+        "total": qty * rate,
+        "created_at": datetime.now()
+    })
+
+    # ================= LEDGER ENTRY (OUT) =================
+    ledger_col.insert_one({
+        "item_id": inv["_id"],
+        "item_name": inv["item_name"],
+        "category": inv.get("category"),
+        "location": inv.get("location"),
+        "qty": qty,
+        "rate": rate,
+        "amount": qty * rate,
+        "txn_type": "OUT",
+        "source": "ORDER",
+        "ref_id": order_id,
+        "remarks": remarks_text,
+
+        # 🔐 USER AUDIT
+        "created_by_id": request.session.get("mongo_user_id"),
+        "created_by": request.session.get("mongo_username"),
+
         "created_at": datetime.now()
     })
 
     # ================= UPDATE MASTER STOCK =================
     inv_master_col.update_one(
-        {"_id": ObjectId(inventory_id)},
+        {"_id": inv["_id"]},
         {"$inc": {"current_qty": -qty}}
     )
 
     return redirect("cnc_work_app:detail", pk=order_id)
 
-# Delete Inventory From Order
+# Delete Inventory From Order (ERP FINAL)
 def delete_order_inventory(request, order_id, inv_id):
+
     order_inv_col = get_order_inventory_collection()
     inv_master_col = get_inventory_master_collection()
+    ledger_col = get_inventory_ledger_collection()
+    order_col = get_orders_collection()
 
-    if request.method == "POST":
-        # 🔹 Step 1: Get order inventory record
-        order_inv = order_inv_col.find_one({
-            "_id": ObjectId(inv_id),
-            "order_id": order_id   # string (as per your DB)
-        })
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
 
-        if not order_inv:
-            raise Http404("Inventory item not found")
+    # 🔹 1. Fetch order inventory record
+    order_inv = order_inv_col.find_one({
+        "_id": ObjectId(inv_id),
+        "order_id": order_id   # string
+    })
 
-        inventory_id = order_inv["inventory_id"]   # string
-        qty = float(order_inv.get("qty", 0))
+    if not order_inv:
+        raise Http404("Inventory item not found")
 
-        # 🔹 Step 2: Reverse stock (ADD BACK)
-        inv_master_col.update_one(
-            {"_id": ObjectId(inventory_id)},
-            {"$inc": {"current_qty": qty}}
-        )
+    inventory_id = order_inv["inventory_id"]   # string
+    qty = float(order_inv.get("qty", 0))
 
-        # 🔹 Step 3: Delete order inventory record
-        order_inv_col.delete_one({"_id": ObjectId(inv_id)})
+    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    if not inv:
+        raise Http404("Inventory master item not found")
+
+    rate = float(inv.get("rate", 0))
+
+    # 🔹 2. FETCH ORDER DETAILS (FOR REMARKS)
+    order = order_col.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
+
+    order_title = order.get("title", "Order")
+    sales_person = order.get("sales_person", "-")
+
+    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
+
+    # ================= LEDGER ENTRY (IN - REVERSAL) =================
+    ledger_col.insert_one({
+        "item_id": inv["_id"],
+        "item_name": inv["item_name"],
+        "category": inv.get("category"),
+        "location": inv.get("location"),
+        "qty": qty,
+        "rate": rate,
+        "amount": qty * rate,
+        "txn_type": "IN",
+        "source": "ORDER_REVERSE",
+        "ref_id": order_id,
+        "remarks": remarks_text,
+
+        # 🔐 USER AUDIT
+        "created_by_id": request.session.get("mongo_user_id"),
+        "created_by": request.session.get("mongo_username"),
+        "created_at": datetime.now()
+    })
+
+    # ================= UPDATE MASTER STOCK =================
+    inv_master_col.update_one(
+        {"_id": inv["_id"]},
+        {"$inc": {"current_qty": qty}}
+    )
+
+    # ================= DELETE ORDER INVENTORY =================
+    order_inv_col.delete_one({"_id": ObjectId(inv_id)})
 
     return redirect("cnc_work_app:detail", pk=order_id)
+
+
+
+
 

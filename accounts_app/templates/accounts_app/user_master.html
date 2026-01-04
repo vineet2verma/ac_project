@@ -2,13 +2,13 @@
 {% block content %}
 
 <div class="container-fluid py-3">
-    
+
     <!-- PAGE HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">User Master</h5>
         <span class="text-muted small">Admin Control Panel</span>
     </div>
-    
+
     <!-- USER TABLE -->
     <div class="card shadow-sm">
         <div class="table-responsive">
@@ -62,23 +62,23 @@
 
 <!-- ================= EDIT USER MODALS ================= -->
 {% for u in users %}
-<div class="modal fade" id="editUser{{ u.id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editUser{{ u.id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
+
         <form method="POST"
               action="{% url 'accounts_app:update_user' u.id %}"
               class="modal-content"
               onsubmit="return confirmRoleChange(this);">
+
             {% csrf_token %}
-            
-            <!-- MODAL HEADER -->
+
             <div class="modal-header">
                 <h6 class="modal-title">Edit User</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            
-            <!-- MODAL BODY -->
+
             <div class="modal-body">
-                
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Full Name</label>
@@ -86,51 +86,48 @@
                                value="{{ u.full_name }}"
                                class="form-control" required>
                     </div>
+
                     <div class="col-md-6">
-                        <label class="form-label">Date of Birth</label>
-                        <input type="date"
-                               name="dob"
+                        <label class="form-label">DOB</label>
+                        <input type="date" name="dob"
                                value="{{ u.dob }}"
                                class="form-control">
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label class="form-label">Mobile</label>
                         <input type="text" name="mobile"
                                value="{{ u.mobile }}"
                                class="form-control">
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label class="form-label">Department</label>
                         <input type="text" name="department"
                                value="{{ u.department }}"
                                class="form-control">
                     </div>
-                    
-                    <div class="col-md-12">
-    <label class="form-label fw-semibold">User Roles</label>
 
-    <div class="row g-2">
-        {% for role in ROLE_CHOICES %}
-        <div class="col-md-4">
-            <div class="form-check">
-                <input class="form-check-input role-checkbox"
-                       type="checkbox"
-                       name="roles"
-                       value="{{ role }}"
-                       id="role_{{ role }}_{{ u.id }}"
-                       {% if role in u.roles %}checked{% endif %}>
-                <label class="form-check-label"
-                       for="role_{{ role }}_{{ u.id }}">
-                    {{ role }}
-                </label>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-                    
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Roles</label>
+                        <div class="row g-2">
+                            {% for role in ROLE_CHOICES %}
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input role-checkbox"
+                                           type="checkbox"
+                                           name="roles"
+                                           value="{{ role }}"
+                                           {% if role in u.roles %}checked{% endif %}>
+                                    <label class="form-check-label">
+                                        {{ role }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select name="is_active" class="form-select">
@@ -139,35 +136,72 @@
                         </select>
                     </div>
                 </div>
-                
-                <hr class="my-3">
-                
-                <!-- RESET PASSWORD -->
+
+                <hr>
+
+                <!-- RESET PASSWORD BUTTON -->
                 <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small">
-                        Reset user password (admin action)
-                    </span>
-                    <a href="{% url 'accounts_app:reset_password' u.id %}"
-                       class="btn btn-outline-danger btn-sm"
-                       onclick="return confirm('Reset password for this user?');">
+                    <span class="text-muted small">Admin password reset</span>
+                    <button type="button"
+                            class="btn btn-warning btn-sm"
+                            onclick="openResetPassword('{{ u.id }}')">
                         Reset Password
-                    </a>
+                    </button>
                 </div>
-            
+
             </div>
-            
-            <!-- MODAL FOOTER -->
+
             <div class="modal-footer">
-                <button type="button"
-                        class="btn btn-secondary btn-sm"
-                        data-bs-dismiss="modal">
-                    Cancel
-                </button>
-                <button class="btn btn-primary btn-sm">
-                    Save Changes
+                <button class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary btn-sm">Save</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ================= RESET PASSWORD MODALS (SEPARATE) ================= -->
+{% for u in users %}
+<div class="modal fade" id="resetPasswordModal{{ u.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+
+        <form method="POST"
+              action="{% url 'accounts_app:admin_reset_password' u.id %}"
+              class="modal-content">
+
+            {% csrf_token %}
+
+            <div class="modal-header bg-warning">
+                <h6 class="modal-title fw-semibold">Reset Password</h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="small text-muted">
+                    Reset password for <strong>{{ u.username }}</strong>
+                </p>
+
+                <input type="password"
+                       name="new_password"
+                       class="form-control form-control-sm"
+                       placeholder="New Password"
+                       required>
+
+                <input type="password"
+                       name="confirm_password"
+                       class="form-control form-control-sm mt-2"
+                       placeholder="Confirm Password"
+                       required>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-warning btn-sm w-100">
+                    Reset Password
                 </button>
             </div>
-        
+
         </form>
     </div>
 </div>
@@ -175,13 +209,27 @@
 
 <!-- ================= JS ================= -->
 <script>
-    function confirmRoleChange(form) {
+function confirmRoleChange(form) {
     const checked = form.querySelectorAll(".role-checkbox:checked");
     if (checked.length === 0) {
-        alert("At least one role must be selected.");
+        alert("At least one role is required.");
         return false;
     }
     return confirm("You are updating user roles. Continue?");
+}
+
+function openResetPassword(userId) {
+
+    // Close edit modal
+    const editModalEl = document.getElementById("editUser" + userId);
+    const editModal = bootstrap.Modal.getInstance(editModalEl);
+    if (editModal) editModal.hide();
+
+    // Open reset modal
+    const resetModal = new bootstrap.Modal(
+        document.getElementById("resetPasswordModal" + userId)
+    );
+    resetModal.show();
 }
 </script>
 
