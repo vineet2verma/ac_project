@@ -1,76 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <title>System Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
-        body {
-            background: #f4f6f9;
-            font-family: Arial, sans-serif;
-        }
-        .login-box {
-            width: 360px;
-            margin: 100px auto;
-            background: #fff;
-            padding: 25px;
-            border-radius: 6px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h3 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
+        * {
             box-sizing: border-box;
         }
-        button {
-            width: 100%;
-            margin-top: 15px;
-            padding: 10px;
-            background: #0d6efd;
-            border: none;
-            color: #fff;
-            font-size: 15px;
-            cursor: pointer;
-        }
-        .error {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f4f6f9;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
         }
 
-        /* 👁️ Password toggle */
+        .login-box {
+            width: 100%;
+            max-width: 380px;
+            background: #fff;
+            padding: 25px 22px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+
+        h3 {
+            margin: 0 0 22px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            margin-top: 12px;
+            font-size: 15px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #0d6efd;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 12px;
+            background: #0d6efd;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        button:active {
+            opacity: 0.9;
+        }
+
+        /* Password toggle */
         .password-wrapper {
             position: relative;
         }
+
         .toggle-eye {
             position: absolute;
-            right: 10px;
-            top: 55%;
+            right: 12px;
+            top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
-            font-size: 14px;
-            color: #555;
+            font-size: 16px;
+            color: #666;
             user-select: none;
         }
 
         /* Links */
         .login-links {
-            margin-top: 15px;
+            margin-top: 18px;
             display: flex;
             justify-content: space-between;
             font-size: 13px;
         }
+
         .login-links a {
             text-decoration: none;
             color: #0d6efd;
         }
+
         .login-links a:hover {
             text-decoration: underline;
+        }
+
+        .error {
+            margin-top: 14px;
+            text-align: center;
+            color: #dc3545;
+            font-size: 14px;
+        }
+
+        /* Mobile fine tuning */
+        @media (max-width: 360px) {
+            .login-box {
+                padding: 20px 18px;
+            }
+            h3 {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -88,7 +133,6 @@
                placeholder="Username"
                required>
 
-        <!-- PASSWORD WITH TOGGLE -->
         <div class="password-wrapper">
             <input type="password"
                    name="password"
@@ -103,14 +147,9 @@
         <button type="submit">Login</button>
     </form>
 
-    <!-- Links -->
     <div class="login-links">
-        <a href="{% url 'accounts_app:signup' %}">
-            Create New User
-        </a>
-        <a href="{% url 'accounts_app:forgot_password' %}">
-            Forgot Password?
-        </a>
+        <a href="{% url 'accounts_app:signup' %}">Create User</a>
+        <a href="{% url 'accounts_app:forgot_password' %}">Forgot Password?</a>
     </div>
 
     {% if messages %}
