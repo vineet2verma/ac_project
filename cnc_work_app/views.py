@@ -25,17 +25,29 @@ from .mongo import (get_orders_collection,
 def cnc_order_list(request):
     order_collection = get_orders_collection()
 
+    # ================= QUICK STATUS FILTER =================
+    quick_status = request.GET.get("quick_status", "pending")
+
+    query = {}
+
+    if quick_status == "complete":
+        query["current_status"] = "Complete"
+    else:
+        # Pending = anything NOT Complete
+        query["current_status"] = {"$ne": "Complete"}
+
+    # ================= PAGINATION =================
     page = int(request.GET.get("page", 1))
     per_page = int(request.GET.get("per_page", 10))
     skip = (page - 1) * per_page
 
-    query = {}
-
+    # ================= SEARCH & FILTER =================
     q = request.GET.get("q")
     status = request.GET.get("status")
     from_date = request.GET.get("from_date")
     to_date = request.GET.get("to_date")
 
+    # 🔍 TEXT SEARCH
     if q:
         query["$or"] = [
             {"stone": {"$regex": q, "$options": "i"}},
@@ -45,18 +57,24 @@ def cnc_order_list(request):
             {"title": {"$regex": q, "$options": "i"}},
         ]
 
+    # 🔹 STATUS FILTER (from accordion)
     if status:
-        query["status"] = status
+        query["current_status"] = status
 
+    # 📅 DATE FILTER
     if from_date or to_date:
-        query["approval_date"] = {}
+        date_query = {}
         if from_date:
-            query["approval_date"]["$gte"] = datetime.strptime(from_date, "%Y-%m-%d")
+            date_query["$gte"] = datetime.strptime(from_date, "%Y-%m-%d")
         if to_date:
-            query["approval_date"]["$lte"] = datetime.strptime(to_date, "%Y-%m-%d")
+            date_query["$lte"] = datetime.strptime(to_date, "%Y-%m-%d")
 
+        query["approval_date"] = date_query
+
+    # ================= TOTAL COUNT =================
     total_count = order_collection.count_documents(query)
 
+    # ================= FETCH ORDERS =================
     orders = list(
         order_collection.find(query)
         .sort("created_at", -1)
@@ -67,6 +85,7 @@ def cnc_order_list(request):
     for o in orders:
         o["id"] = str(o["_id"])
 
+    # ================= PAGINATOR (UI ONLY) =================
     paginator = Paginator(range(total_count), per_page)
     page_obj = paginator.get_page(page)
 
@@ -74,7 +93,8 @@ def cnc_order_list(request):
         "images": orders,
         "page_obj": page_obj,
         "per_page": per_page,
-        "total": total_count
+        "total": total_count,
+        "quick_status": quick_status,   # for dropdown selection
     })
 
 # Order Session
@@ -263,7 +283,6 @@ def order_detail(request, pk):
 
     # ----------------- ORDER INVENTORY (TABLE) -----------------
     order_inventory = list(order_inv_col.find({"order_id": pk}))
-    print(f"order inv :  {order_inventory}")
     for oi in order_inventory:
         oi["id"] = str(oi["_id"])
 
@@ -290,7 +309,6 @@ def order_detail(request, pk):
     dispatches = list(dispatch_col.find({"order_id": pk}).sort("created_at", -1))
     for d in dispatches:
         d["id"] = str(d["_id"])
-
 
 
 
