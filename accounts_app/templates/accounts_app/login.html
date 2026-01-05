@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -21,6 +20,7 @@
             padding: 15px;
         }
 
+        /* ================= LOGIN BOX ================= */
         .login-box {
             width: 100%;
             max-width: 380px;
@@ -28,6 +28,8 @@
             padding: 25px 22px;
             border-radius: 8px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            position: relative;
+            z-index: 1;
         }
 
         h3 {
@@ -47,10 +49,6 @@
             outline: none;
         }
 
-        input:focus {
-            border-color: #0d6efd;
-        }
-
         button {
             width: 100%;
             margin-top: 18px;
@@ -64,11 +62,11 @@
             cursor: pointer;
         }
 
-        button:active {
-            opacity: 0.9;
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
 
-        /* Password toggle */
         .password-wrapper {
             position: relative;
         }
@@ -81,24 +79,13 @@
             cursor: pointer;
             font-size: 16px;
             color: #666;
-            user-select: none;
         }
 
-        /* Links */
         .login-links {
             margin-top: 18px;
             display: flex;
             justify-content: space-between;
             font-size: 13px;
-        }
-
-        .login-links a {
-            text-decoration: none;
-            color: #0d6efd;
-        }
-
-        .login-links a:hover {
-            text-decoration: underline;
         }
 
         .error {
@@ -108,43 +95,65 @@
             font-size: 14px;
         }
 
-        /* Mobile fine tuning */
-        @media (max-width: 360px) {
-            .login-box {
-                padding: 20px 18px;
-            }
-            h3 {
-                font-size: 18px;
-            }
+        /* ================= INLINE LOADER ================= */
+        .page-loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.8);
+            display: none;                 /* 🔥 HIDDEN BY DEFAULT */
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .page-loader.show {
+            display: flex;
+        }
+
+        .loader-box {
+            background: #fff;
+            padding: 22px 26px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            font-size: 14px;
+            color: #333;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #ddd;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 
 <body>
 
+<!-- ================= LOGIN ================= -->
 <div class="login-box">
     <h3>System Login</h3>
 
-    <form method="POST">
+    <form method="POST" id="loginForm">
         {% csrf_token %}
 
-        <input type="text"
-               name="username"
-               placeholder="Username"
-               required>
+        <input type="text" name="username" placeholder="Username" required>
 
         <div class="password-wrapper">
-            <input type="password"
-                   name="password"
-                   id="password"
-                   placeholder="Password"
-                   required>
-
-            <span class="toggle-eye"
-                  onclick="togglePassword()">👁️</span>
+            <input type="password" name="password" id="password"
+                   placeholder="Password" required>
+            <span class="toggle-eye" onclick="togglePassword()">👁️</span>
         </div>
 
-        <button type="submit">Login</button>
+        <button type="submit" id="loginBtn">Login</button>
     </form>
 
     <div class="login-links">
@@ -159,11 +168,36 @@
     {% endif %}
 </div>
 
+<!-- ================= PAGE LOADER ================= -->
+<div id="pageLoader" class="page-loader">
+    <div class="loader-box">
+        <div class="spinner"></div>
+        <div>Verifying credentials, please wait…</div>
+    </div>
+</div>
+
 <script>
     function togglePassword() {
         const pwd = document.getElementById("password");
         pwd.type = pwd.type === "password" ? "text" : "password";
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const form = document.getElementById("loginForm");
+        const loader = document.getElementById("pageLoader");
+        const btn = document.getElementById("loginBtn");
+
+        if (!form || !loader) return;
+
+        form.addEventListener("submit", function () {
+            // ✅ SHOW loader only on submit
+            loader.classList.add("show");
+
+            // prevent double submit
+            if (btn) btn.disabled = true;
+        });
+    });
 </script>
 
 </body>

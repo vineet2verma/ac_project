@@ -1,25 +1,34 @@
 function showLoader(text = "Processing… Please wait") {
-    document.getElementById("erpLoaderText").innerText = text;
-    document.getElementById("erpLoader").classList.remove("d-none");
+    const loader = document.getElementById("erpLoader");
+    const loaderText = document.getElementById("erpLoaderText");
+
+    if (loaderText) loaderText.innerText = text;
+    if (loader) loader.classList.add("show");
 }
 
 function hideLoader() {
-    document.getElementById("erpLoader").classList.add("d-none");
+    const loader = document.getElementById("erpLoader");
+    if (loader) loader.classList.remove("show");
 }
 
-/* 🔒 AUTO FORM SUBMIT HANDLER */
 document.addEventListener("DOMContentLoaded", function () {
 
-    document.querySelectorAll("form").forEach(form => {
+    const loader = document.getElementById("erpLoader");
+    const form = document.querySelector("form");
+    const btn = document.getElementById("loginBtn");
 
-        form.addEventListener("submit", function () {
+    // 🔥 FORCE HIDE ON PAGE LOAD
+    if (loader) loader.classList.remove("show");
 
-            const msg = form.dataset.loaderText || "Saving data… Please wait";
-            showLoader(msg);
+    if (!form || !loader) return;
 
-            // Prevent double submit
-            form.querySelectorAll("button[type='submit']")
-                .forEach(btn => btn.disabled = true);
-        });
+    // SHOW ONLY ON SUBMIT
+    form.addEventListener("submit", function () {
+        showLoader(
+            form.getAttribute("data-loader-text") ||
+            "Processing… Please wait"
+        );
+
+        if (btn) btn.disabled = true;
     });
 });

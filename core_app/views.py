@@ -28,7 +28,7 @@ def get_reorder_inventory_count():
         "is_active": True
     })
     return reorder_count
-#
+# order Status Count
 def get_order_status_counts():
     order_col = get_orders_collection()
     pipeline = [
@@ -73,7 +73,7 @@ def get_order_status_counts():
 
     return counts
 
-
+# Sales Person Report
 def get_sales_person_order_counts():
     order_col = get_orders_collection()
     pipeline = [
@@ -105,7 +105,7 @@ def get_sales_person_order_counts():
             sales_stats[person] = {"pending": 0, "complete": 0}
         sales_stats[person][status] = r["count"]
     return sales_stats
-
+# Machine Report
 def get_last_5_days_machine_summary():
     report_col = get_machine_work_collection()
     order_col = get_orders_collection()
@@ -190,88 +190,7 @@ def get_last_5_days_machine_summary():
         for r in result
     ]
 
-# 🔹 OVERALL SUMMARY
-def get_inventory_consumption_summary():
-    col = get_inventory_ledger_collection()
-
-    pipeline = [
-        {"$match": {"txn_type": "OUT", "source": "ORDER"}},
-        {
-            "$group": {
-                "_id": None,
-                "total_amount": {"$sum": "$amount"},
-                "total_qty": {"$sum": "$qty"},
-                "total_txn": {"$sum": 1}
-            }
-        }
-    ]
-
-    res = list(col.aggregate(pipeline))
-    return res[0] if res else {
-        "total_amount": 0,
-        "total_qty": 0,
-        "total_txn": 0
-    }
-
-
-# 🔹 CATEGORY WISE
-def get_inventory_category_consumption():
-    col = get_inventory_ledger_collection()
-
-    pipeline = [
-        {"$match": {"txn_type": "OUT", "source": "ORDER"}},
-        {
-            "$group": {
-                "_id": "$category",
-                "amount": {"$sum": "$amount"},
-                "qty": {"$sum": "$qty"}
-            }
-        },
-        {"$sort": {"amount": -1}}
-    ]
-
-    return list(col.aggregate(pipeline))
-
-
-# 🔹 TOP COSTLY ORDERS
-def get_top_costly_orders(limit=5):
-    col = get_inventory_ledger_collection()
-
-    pipeline = [
-        {"$match": {"txn_type": "OUT", "source": "ORDER"}},
-        {
-            "$group": {
-                "_id": "$ref_id",
-                "amount": {"$sum": "$amount"},
-                "remarks": {"$first": "$remarks"}
-            }
-        },
-        {"$sort": {"amount": -1}},
-        {"$limit": limit}
-    ]
-
-    return list(col.aggregate(pipeline))
-
-
-# 🔹 RECENT LEDGER
-def get_recent_inventory_out_ledger(limit=10):
-    col = get_inventory_ledger_collection()
-
-    return list(
-        col.find(
-            {"txn_type": "OUT", "source": "ORDER"},
-            {
-                "_id": 0,
-                "item_name": 1,
-                "category": 1,
-                "qty": 1,
-                "amount": 1,
-                "remarks": 1,
-                "created_at": 1
-            }
-        ).sort("created_at", -1).limit(limit)
-    )
-
+# 5 Days Inventory Summary - Ledger
 def get_last_5_days_inventory_in_out_summary():
     col = get_inventory_ledger_collection()
 
@@ -360,7 +279,7 @@ def get_last_5_days_inventory_in_out_summary():
         for r in result
     ]
 
-
+# Order Life Cycle Summary
 def get_pending_order_lifecycle_summary():
     order_col = get_orders_collection()
     machine_col = get_machine_work_collection()
@@ -433,42 +352,25 @@ def get_pending_order_lifecycle_summary():
 
     return report
 
-
-
-
-
-
-
-
 @mongo_login_required
 @mongo_role_required(["ADMIN", "MANAGER"])
 def dashboard(request):
-    order_stats = get_order_counts()
-    reorder_count = get_reorder_inventory_count()
-    status_counts = get_order_status_counts()
-    sales_person_stats = get_sales_person_order_counts()
-
-
     context = {
-        "order_status": order_stats,
-        "order_stage_status": status_counts,
-        "sales_person_stats": sales_person_stats,
-        "reorder_count": reorder_count,
+        # Order Count
+        "order_status": get_order_counts(),
+        # Reorder Count
+        "reorder_count": get_reorder_inventory_count(),
+        # Order Stage
+        "order_stage_status": get_order_status_counts(),
+        # Sales Person Reports
+        "sales_person_stats": get_sales_person_order_counts(),
+        # Machine Count
         "machine_reports": get_last_5_days_machine_summary(),
-        # 🔹 INVENTORY LEDGER
-        "inv_summary": get_inventory_consumption_summary(),
-        "inv_category": get_inventory_category_consumption(),
-        "top_orders": get_top_costly_orders(),
-        "inventory_out_ledger": get_recent_inventory_out_ledger(8),
         # 5 days ledger in / out
         "inv_5day_summary": get_last_5_days_inventory_in_out_summary(),
         #
         "order_lifecycle": get_pending_order_lifecycle_summary()
-
-
     }
-
-
     return render(request, "core_app/dashboard.html", context)
 
 

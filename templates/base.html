@@ -29,10 +29,16 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
+                
+                {% with roles=request.session.mongo_roles %}
+                
+                {% if "ADMIN" in roles or "MANAGER" in roles %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'core_app:dashboard' %}">Home</a></li>
+                {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'cnc_work_app:index' %}">CNC Work</a></li>
 
                 <!-- Inventory -->
+                 {% if "ADMIN" in roles or "INVENTORY" in roles %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                        data-bs-toggle="dropdown" aria-expanded="false">
@@ -40,13 +46,14 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                         <li><a class="dropdown-item" href="{% url 'inv_app:inventory_master' %}">Inventory List</a></li>
-<!--                        <li><a class="dropdown-item" href="#">Stock In</a></li>-->
-<!--                        <li><a class="dropdown-item" href="#">Stock Out</a></li>-->
-<!--                        <li><a class="dropdown-item" href="#">Stock Ledger</a></li>-->
+                        <li><a class="dropdown-item" href="{% url 'inv_app:inventory_ledger' %}">Stock Ledger</a></li>
+<!--                         <li><a class="dropdown-item" href="#">Purchase Requisition</a></li> -->
                     </ul>
                 </li>
+                {% endif %}
 
                 <!-- Master -->
+                {% if "ADMIN" in roles or "MANAGER" in roles %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                        data-bs-toggle="dropdown"
@@ -58,8 +65,10 @@
                         <li><a class="dropdown-item" href="{% url 'inv_app:category_master' %}">Category Mast</a></li>
                     </ul>
                 </li>
+                {% endif %}
 
                 <!-- Misc -->
+                {% if "ADMIN" in roles or "MANAGER" in roles %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                        data-bs-toggle="dropdown"
@@ -73,7 +82,9 @@
 <!--                        <li><a class="dropdown-item" href="#">Catalog-list</a></li>-->
                     </ul>
                 </li>
+                {% endif %}
             </ul>
+            {% endwith %}
             {% block navbtn1 %}{% endblock %}
 
             <a class="btn btn-outline-danger ms-2" href="{% url 'accounts_app:logout' %}">

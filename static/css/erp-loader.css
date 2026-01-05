@@ -1,22 +1,25 @@
+/* ================= LOADER DEFAULT: HIDDEN ================= */
+#erpLoader,
 .erp-loader {
-    position: fixed;
-    inset: 0;
-    background: rgba(255,255,255,0.7);
-    z-index: 99999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: none;          /* 🔥 default hidden */
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ================= LOADER WHEN ACTIVE ================= */
+#erpLoader.show,
+.erp-loader.show {
+    display: flex;          /* overlay visible */
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .erp-loader-box {
-    text-align: center;
     background: #fff;
-    padding: 25px 35px;
+    padding: 20px 26px;
     border-radius: 8px;
-    box-shadow: 0 8px 25px rgba(0,0,0,.15);
-}
-
-.erp-loader p {
-    margin-top: 10px;
-    font-size: 14px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
