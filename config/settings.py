@@ -9,6 +9,11 @@ import cloudinary_storage
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Load Env
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+# ---------------- SECURITY ----------------
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
 MONGO_URI = os.getenv("MONGO_URI")
 
 cloudinary.config(
@@ -24,10 +29,10 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-41w*3atu^bshu!o4=@i-fm-(&!aws8d1%snl(#$ercas0rg$9^'
+# SECRET_KEY = 'django-insecure-41w*3atu^bshu!o4=@i-fm-(&!aws8d1%snl(#$ercas0rg$9^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
@@ -39,11 +44,14 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     ".onrender.com",
     "*",
+    ".railway.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
+    "https://*.railway.app"
 ]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
@@ -142,8 +150,5 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [ BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-STATICFILES_DIRS = [
-    BASE_DIR / "static"
-]
