@@ -11,8 +11,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # ---------------- SECURITY ----------------
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-temp-key-change-this"
+)
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 MONGO_URI = os.getenv("MONGO_URI")
 
@@ -24,9 +27,6 @@ cloudinary.config(
 )
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECRET_KEY = 'django-insecure-41w*3atu^bshu!o4=@i-fm-(&!aws8d1%snl(#$ercas0rg$9^'
@@ -43,7 +43,6 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".onrender.com",
-    "*",
     ".railway.app",
 ]
 
@@ -67,6 +66,8 @@ INSTALLED_APPS = [
     'core_app',
     'inv_app',
     # 'todo_app'
+    'cloudinary',
+    'cloudinary_storage',   # 🔥 REQUIRED
 
 ]
 

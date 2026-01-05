@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Inventory Stock In{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Inventory Ledger</h5>
+        <button class="btn btn-success btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#stockInModal">
+            + Stock In
+        </button>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Location</th>
+                <th class="text-end">IN</th>
+                <th class="text-end">OUT</th>
+                <th>Source</th>
+                <th>Remarks</th>
+                <th>Created By</th>
+                <th style="width:60px">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for l in ledger %}
+            <tr class="{% if l.txn_type == 'OUT' %}table-warning{% endif %}">
+                <td>{{ l.created_at|date:"d-m-Y H:i" }}</td>
+                <td>{{ l.item_name }}</td>
+                <td>{{ l.location|default:"-" }}</td>
+                <td class="text-end">
+                    {% if l.txn_type == "IN" %}{{ l.qty }}{% endif %}
+                </td>
+                <td class="text-end">
+                    {% if l.txn_type == "OUT" %}{{ l.qty }}{% endif %}
+                </td>
+                <td>{{ l.source }}</td>
+                <td>{{ l.remarks|default:"-" }}</td>
+                <td>{{ l.created_by }}</td>
+                <!-- ✅ ACTION COLUMN (HERE ONLY) -->
+                <td class="text-center">
+            
+                    {% if l.txn_type == "IN" and l.source == "STOCK_IN" %}
+                    <form method="POST"
+                          action="{% url 'inv_app:delete_stock_in' l.id %}"
+                          onsubmit="return confirm('Reverse this stock-in entry?');"
+                          class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn btn-link text-danger p-0">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </form>
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+            
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted">No ledger records</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Model Stock In -->
+<div class="modal fade" id="stockInModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            {% csrf_token %}
+            
+            <div class="modal-header">
+                <h6 class="modal-title">Inventory Stock In</h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body">
+                
+                <!-- 🔍 SEARCHABLE ITEM -->
+                <label class="form-label">Item</label>
+                <input list="itemList"
+                       name="item_id"
+                       id="itemInput"
+                       class="form-control form-control-sm"
+                       placeholder="Type item name"
+                       required>
+                
+                <datalist id="itemList">
+                    {% for i in items %}
+                    <option value="{{ i.id }}">
+                        {{ i.item_name }} ({{ i.location }}) — Stock: {{ i.current_qty }}
+                    </option>
+                    {% endfor %}
+                </datalist>
+                
+                <!-- LOCATION -->
+                <div class="mt-2">
+                    <label class="form-label">Location</label>
+                    <input name="location"
+                           class="form-control form-control-sm"
+                           placeholder="Godown / Warehouse"
+                           required>
+                </div>
+                
+                <div class="row g-2 mt-2">
+                    <div class="col">
+                        <label class="form-label">Qty</label>
+                        <input type="number" step="0.01"
+                               name="qty"
+                               class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Rate</label>
+                        <input type="number" step="0.01"
+                               name="rate"
+                               class="form-control form-control-sm" required>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <label class="form-label">Remarks</label>
+                    <input name="remarks"
+                           class="form-control form-control-sm"
+                           placeholder="Purchase / Adjustment">
+                </div>
+            
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-success btn-sm w-100">
+                    Stock In
+                </button>
+            </div>
+        
+        </form>
+    </div>
+</div>
+
+{% endblock %}
