@@ -1,27 +1,25 @@
 
 from datetime import datetime, date
 from django.shortcuts import render, redirect
+from django.http import HttpResponseRedirect
 from django.core.paginator import Paginator
 from bson import ObjectId
 from cnc_work_app.mongo import todo_collection
 # Create your views here.
 
-
+# Task List
 def todo_list(request):
     col = todo_collection()
-
     username = request.session.get("mongo_username")
     roles = request.session.get("mongo_roles", [])
-
     q = request.GET.get("q", "")
     status = request.GET.get("status", "pending")
     limit = int(request.GET.get("limit", 10))
     page_number = request.GET.get("page", 1)
-
     query = {}
 
     # 🔐 ROLE BASED VISIBILITY
-    if "ADMIN" not in roles and "MANAGER" not in roles:
+    if "ADMIN" not in roles:
         query["created_by"] = username
 
     # 🔍 SEARCH
@@ -61,8 +59,6 @@ def todo_list(request):
     paginator = Paginator(todos, limit)
     page_obj = paginator.get_page(page_number)
 
-    print(f"page_obj: {page_obj}")
-
     return render(request, "todo_app/todo_list.html", {
         "page_obj": page_obj,
         "q": q,
@@ -73,6 +69,17 @@ def todo_list(request):
         "roles": roles
     })
 
+# Task Delete
+def todo_delete(request, todo_id):
+    todo_collection().delete_one({"_id": ObjectId(todo_id)})
+    # return redirect("todo_app:list")
+     # 🔥 Preserve filters
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/todo/"))
+
+
+
+
+# Task Created
 def todo_add(request):
     if request.method == "POST":
         todo_collection().insert_one({
@@ -87,6 +94,7 @@ def todo_add(request):
         })
     return redirect("todo_app:list")
 
+# Task Request Done
 def request_done(request, todo_id):
     todo_collection().update_one(
         {"_id": ObjectId(todo_id)},
@@ -94,6 +102,7 @@ def request_done(request, todo_id):
     )
     return redirect("todo_app:list")
 
+# Task Approval Done
 def approve_done(request, todo_id):
     todo_collection().update_one(
         {"_id": ObjectId(todo_id)},
@@ -105,6 +114,7 @@ def approve_done(request, todo_id):
     )
     return redirect("todo_app:list")
 
+# Task Edit
 def todo_edit(request, todo_id):
     col = todo_collection()
 
@@ -131,11 +141,8 @@ def todo_edit(request, todo_id):
         "todo": todo
     })
 
-def todo_delete(request, todo_id):
-    todo_collection().delete_one({"_id": ObjectId(todo_id)})
-    return redirect("todo_app:list")
 
-
+# Task Dashboard
 def todo_dashboard(request):
     col = todo_collection()
 

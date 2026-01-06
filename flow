@@ -1,0 +1,23 @@
+ORDER CREATED
+      |
+DESIGN START  ||  INVENTORY ADD
+      |              |
+DESIGN APPROVED      |
+                     |
+         INVENTORY CHECK
+             |
+   AVAILABLE        SHORTAGE
+      |                 |
+RESERVE STOCK     PURCHASE REQUISITION
+      |                 |
+      |          MATERIAL RECEIVED
+      |                 |
+      ------ INVENTORY READY ------
+                     |
+              MACHINE WORK
+                     |
+                    QC
+                     |
+                 DISPATCH
+                     |
+               ORDER CLOSED

@@ -48,7 +48,7 @@
                     </td>
                     <td class="text-center">
                         <form method="POST"
-                              action="{% url 'cnc_work_app:machine_master_toggle' m.id %}">
+                              action="{% url 'machine_app:machine_master_toggle' m.id %}">
                             {% csrf_token %}
                             <button class="btn btn-sm btn-outline-warning">
                                 Toggle
@@ -76,7 +76,7 @@
         <div class="modal-content">
 
             <form method="POST"
-                  action="{% url 'cnc_work_app:machine_master_add' %}">
+                  action="{% url 'machine_app:machine_master_add' %}">
                 {% csrf_token %}
 
                 <div class="modal-header">

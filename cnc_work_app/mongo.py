@@ -25,7 +25,6 @@ def get_inventory_ledger_collection():
     return _db["inventory_ledger"]
 
 
-
 def category_collection():
     return _db["categories_masters"]
 

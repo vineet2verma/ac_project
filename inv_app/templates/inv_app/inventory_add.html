@@ -2,7 +2,7 @@
   <div class="modal-dialog modal-dialog-centered modal-md">
 
     <form method="POST"
-          action="{% url 'cnc_work_app:order_inventory_add' order.id %}"
+          action="{% url 'inv_app:order_inventory_add' order.id %}"
           class="modal-content">
 
       {% csrf_token %}

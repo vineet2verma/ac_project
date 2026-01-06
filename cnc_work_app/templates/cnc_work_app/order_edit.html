@@ -85,10 +85,15 @@
 
                     <div class="col-md-4">
                         <label class="form-label">Sales Person</label>
-                        <input class="form-control"
-                               type="text"
-                               name="sales_person"
-                               value="{{ order.sales_person }}">
+                        <select class="form-select" name="sales_person" required>
+                                    <option value="">Select Sales Person</option>
+
+                                    {% for u in sales_users %}
+                                    <option value="{{ u.username }}">
+                                        {{ u.full_name|default:u.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                     </div>
 
                     <div class="col-6">

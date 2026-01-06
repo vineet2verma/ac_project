@@ -91,17 +91,17 @@
                 🔍 Search & Filter Orders
             </button>
         </h2>
-        
+
         <div id="collapseSearch"
              class="accordion-collapse collapse"
              aria-labelledby="headingSearch"
              data-bs-parent="#searchAccordion">
-            
+
             <div class="accordion-body">
-                
+
                 <form method="get">
                     <div class="row g-2 align-items-end">
-                        
+
                         <!-- SEARCH -->
                         <div class="col-md-4">
                             <label class="form-label small">Search</label>
@@ -111,19 +111,19 @@
                                    placeholder="Stone, Color, Party, Sales"
                                    value="{{ request.GET.q }}">
                         </div>
-                        
+
                         <!-- STATUS -->
                         <div class="col-md-2">
                             <label class="form-label small">Status</label>
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All</option>
-                                <option value="Complete" {% if request.GET.status == "Complete" %}selected{% endif                                %}>Complete</option>
-                                <option value="Dispatch Pending" {% if request.GET.status == "Dispatch Pending"                                %}selected{% endif %}>Dispatch Pending</option>
+                                <option value="Complete" {% if request.GET.status == "Complete" %}selected{% endif %}>Complete</option>
+                                <option value="Dispatch Pending" {% if request.GET.status == "Dispatch Pending" %}selected{% endif %}>Dispatch Pending</option>
                                 <option value="Inventory Pending" {% if request.GET.status == "Inventory Pending" %}selected{% endif %}>Inventory Pending</option>
-                                <option value="Design Pending" {% if request.GET.status == "Design Pending"                                %}selected{% endif %}>Design Pending</option>
+                                <option value="Design Pending" {% if request.GET.status == "Design Pending" %}selected{% endif %}>Design Pending</option>
                             </select>
                         </div>
-                        
+
                         <!-- FROM DATE -->
                         <div class="col-md-2">
                             <label class="form-label small">From Date</label>
@@ -132,7 +132,7 @@
                                    class="form-control form-control-sm"
                                    value="{{ request.GET.from_date }}">
                         </div>
-                        
+
                         <!-- TO DATE -->
                         <div class="col-md-2">
                             <label class="form-label small">To Date</label>
@@ -141,7 +141,7 @@
                                    class="form-control form-control-sm"
                                    value="{{ request.GET.to_date }}">
                         </div>
-                        
+
                         <!-- BUTTONS -->
                         <div class="col-md-2 d-flex gap-2">
                             <button class="btn btn-sm btn-primary w-100">
@@ -152,10 +152,10 @@
                                 Reset
                             </a>
                         </div>
-                    
+
                     </div>
                 </form>
-            
+
             </div>
         </div>
     </div>
@@ -169,52 +169,80 @@
         Showing {{ page_obj.start_index }} –
         {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
     </div>
-    
-    <div CLASS="d-flex justify-content-end align-items-center  " >
-        <!-- ================= STATUS QUICK FILTER ================= -->
-        <div class="d-flex justify-content-end mx-2 ">
+
+
+<div class="d-flex justify-content-end align-items-center">
+
+    <!-- ================= STATUS QUICK FILTER ================= -->
+    <div class="d-flex justify-content-end mx-2">
+        <form method="get" class="d-flex align-items-center gap-2">
+
+    {# preserve filters #}
+    {% for key, value in request.GET.items %}
+        {% if key not in "sales_person quick_status page" %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endif %}
+    {% endfor %}
+
+    {% if request.session.mongo_role in "ADMIN MANAGER" %}
+        <label class="small text-muted">Sales:</label>
+        <select name="sales_person"
+                class="form-select form-select-sm"
+                style="width:160px"
+                onchange="this.form.submit()">
+            <option value="">All Sales</option>
+            {% for u in sales_users %}
+                <option value="{{ u.username }}"
+                        {% if request.GET.sales_person == u.username %}selected{% endif %}>
+                    {{ u.full_name|default:u.username }}
+                </option>
+            {% endfor %}
+        </select>
+    {% endif %}
+
+    <label class="small text-muted">Show:</label>
+    <select name="quick_status"
+            class="form-select form-select-sm"
+            style="width:180px"
+            onchange="this.form.submit()">
+
+        {% if request.session.mongo_role == "SALES" %}
+            <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                My Pending Orders
+            </option>
+            <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                My Completed Orders
+            </option>
+        {% else %}
+            <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                Pending Orders
+            </option>
+            <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                Completed Orders
+            </option>
+        {% endif %}
+    </select>
+
+</form>
+
+
+    </div>
+
+    <!-- ================= PAGINATION DROPDOWN ================= -->
     <form method="get" class="d-flex align-items-center gap-2">
 
-        {# preserve other filters #}
         {% for key, value in request.GET.items %}
-            {% if key != 'quick_status' and key != 'page' %}
+            {% if key != 'page' and key != 'per_page' %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
 
-        <label class="small text-muted">Show:</label>
-
-        <select name="quick_status"
-                class="form-select form-select-sm"
-                style="width:160px"
-                onchange="this.form.submit()">
-
-            <option value="pending"
-                {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
-                Pending Orders
-            </option>
-
-            <option value="complete"
-                {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
-                Completed Orders
-            </option>
-
-        </select>
-    </form>
-</div>
-        <!-- ================= PAGINATION DROPDOWN  ================= -->
-        <form method="get" class="d-flex align-items-center gap-2">
-        {% for key, value in request.GET.items %}
-        {% if key != 'page' and key != 'per_page' %}
-        <input type="hidden" name="{{ key }}" value="{{ value }}">
-        {% endif %}
-        {% endfor %}
-        
         <label class="small">Rows:</label>
         <select name="per_page"
                 class="form-select form-select-sm"
                 style="width:90px"
                 onchange="this.form.submit()">
+
             <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
             <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
             <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
@@ -222,9 +250,10 @@
             <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
         </select>
     </form>
-    </div>
-    
-    
+
+</div>
+
+
 </div>
 
 <!-- ================= ORDER LIST ================= -->
@@ -232,7 +261,7 @@
     {% for img in images %}
     <div class="erp-card p-2">
         <div class="row g-2">
-            
+
             <!-- IMAGE -->
             <div class="col-md-2 text-center">
                 <div class="image-preview-container">
@@ -243,7 +272,7 @@
                     {% endif %}
                 </div>
             </div>
-            
+
             <!-- DETAILS 1 -->
             <div class="col-md-3">
                 <table class="table table-sm erp-table mb-0">
@@ -265,7 +294,7 @@
                     </tr>
                 </table>
             </div>
-            
+
             <!-- DETAILS 2 -->
             <div class="col-md-3">
                 <table class="table table-sm erp-table mb-0">
@@ -287,7 +316,7 @@
                     </tr>
                 </table>
             </div>
-            
+
             <!-- ACTIONS -->
             <div class="col-md-4">
                 <table class="table table-sm erp-table mb-1">
@@ -312,20 +341,20 @@
                         </td>
                     </tr>
                 </table>
-                
+
                 <div class="d-flex gap-3">
                     <a href="{% url 'cnc_work_app:order_delete' img.id %}"
                        class="btn btn-outline-danger btn-sm w-25">
                         <i class="bi bi-trash"></i> Delete
                     </a>
-                    
+
                     <a href="{% url 'cnc_work_app:detail' img.id %}"
                        class="btn btn-outline-success btn-sm w-75">
                         <i class="bi bi-eye-fill"></i> View Details
                     </a>
                 </div>
             </div>
-        
+
         </div>
     </div>
     {% empty %}
@@ -336,23 +365,23 @@
 <!-- ================= PAGINATION ================= -->
 <nav class="mt-3">
     <ul class="pagination pagination-sm justify-content-center">
-        
+
         {% if page_obj.has_previous %}
         <li class="page-item">
             <a class="page-link" href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}">‹ Prev</a>
         </li>
         {% endif %}
-        
+
         <li class="page-item active">
             <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         </li>
-        
+
         {% if page_obj.has_next %}
         <li class="page-item">
             <a class="page-link" href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}">Next ›</a>
         </li>
         {% endif %}
-    
+
     </ul>
 </nav>
 

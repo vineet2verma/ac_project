@@ -61,7 +61,7 @@
                         Masters
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="{% url 'cnc_work_app:machine_master' %}">Machine Mast</a></li>
+                        <li><a class="dropdown-item" href="{% url 'machine_app:machine_master_view' %}">Machine Mast</a></li>
                         <li><a class="dropdown-item" href="{% url 'inv_app:category_master' %}">Category Mast</a></li>
                     </ul>
                 </li>
@@ -78,7 +78,7 @@
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                        <li><a class="dropdown-item" href="{% url 'accounts_app:user_master' %}">User
                            Master</a></li>
-<!--                        <li><a class="dropdown-item" href="#">Customer</a></li>-->
+                        <li><a class="dropdown-item" href="{% url 'todo_app:list' %}">Todo's</a></li>
 <!--                        <li><a class="dropdown-item" href="#">Catalog-list</a></li>-->
                     </ul>
                 </li>

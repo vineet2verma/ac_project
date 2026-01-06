@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from cnc_work_app.mongo import (
     get_inventory_master_collection,
     get_inventory_ledger_collection,
-    category_collection,
+    category_collection,get_order_inventory_collection,get_orders_collection
 )
 from django.http import Http404
 
@@ -283,6 +283,157 @@ def delete_stock_in(request, ledger_id):
 
     return redirect("inv_app:inventory_ledger")
 
+
+# Add Inventory In Order
+def add_order_inventory(request, order_id):
+    inv_master_col = get_inventory_master_collection()
+    order_inv_col = get_order_inventory_collection()
+    ledger_col = get_inventory_ledger_collection()
+    order_col = get_orders_collection()
+
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    inventory_id = request.POST.get("inventory_id")
+    qty = float(request.POST.get("qty", 0))
+
+    # 🔴 SAFETY CHECKS
+    if not inventory_id:
+        raise Http404("Inventory item not selected")
+
+    # 🔹 Fetch order from MongoDB
+    order = order_col.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
+    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    if not inv:
+        raise Http404("Inventory item not found")
+
+    available_qty = float(inv.get("current_qty", 0))
+    if qty > available_qty:
+        raise Http404("Qty exceeds available stock")
+    rate = float(inv.get("rate", 0))
+
+    order_title = order.get("title", "Order")
+    sales_person = order.get("sales_person", "-")
+    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
+
+    # ================= SAVE ORDER INVENTORY =================
+    order_inv_col.insert_one({
+        "order_id": order_id,  # string
+        "inventory_id": inventory_id,  # string
+        "item_name": inv["item_name"],
+        "qty": qty,
+        "rate": rate,
+        "total": qty * rate,
+        "created_at": datetime.now()
+    })
+
+    # ================= LEDGER ENTRY (OUT) =================
+    ledger_col.insert_one({
+        "item_id": inv["_id"],
+        "item_name": inv["item_name"],
+        "category": inv.get("category"),
+        "location": inv.get("location"),
+        "qty": qty,
+        "rate": rate,
+        "amount": qty * rate,
+        "txn_type": "OUT",
+        "source": "ORDER",
+        "ref_id": order_id,
+        "remarks": remarks_text,
+
+        # 🔐 USER AUDIT
+        "created_by_id": request.session.get("mongo_user_id"),
+        "created_by": request.session.get("mongo_username"),
+
+        "created_at": datetime.now()
+    })
+
+    # ================= UPDATE MASTER STOCK =================
+    inv_master_col.update_one(
+        {"_id": inv["_id"]},
+        {"$inc": {"current_qty": -qty}}
+    )
+    # 🔹 Update order status
+    order_col.update_one(
+        {"_id": ObjectId(order_id)},
+        {"$set": {
+            "current_status": "QC Pending",
+            "dispatched_at": datetime.now()
+        }}
+    )
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+# Delete Inventory From Order (ERP FINAL)
+def delete_order_inventory(request, order_id, inv_id):
+    order_inv_col = get_order_inventory_collection()
+    inv_master_col = get_inventory_master_collection()
+    ledger_col = get_inventory_ledger_collection()
+    order_col = get_orders_collection()
+
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    # 🔹 1. Fetch order inventory record
+    order_inv = order_inv_col.find_one({
+        "_id": ObjectId(inv_id),
+        "order_id": order_id  # string
+    })
+
+    if not order_inv:
+        raise Http404("Inventory item not found")
+
+    inventory_id = order_inv["inventory_id"]  # string
+    qty = float(order_inv.get("qty", 0))
+
+    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    if not inv:
+        raise Http404("Inventory master item not found")
+
+    rate = float(inv.get("rate", 0))
+
+    # 🔹 2. FETCH ORDER DETAILS (FOR REMARKS)
+    order = order_col.find_one({"_id": ObjectId(order_id)})
+    if not order:
+        raise Http404("Order not found")
+
+    order_title = order.get("title", "Order")
+    sales_person = order.get("sales_person", "-")
+
+    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
+
+    # ================= LEDGER ENTRY (IN - REVERSAL) =================
+    ledger_col.insert_one({
+        "item_id": inv["_id"],
+        "item_name": inv["item_name"],
+        "category": inv.get("category"),
+        "location": inv.get("location"),
+        "qty": qty,
+        "rate": rate,
+        "amount": qty * rate,
+        "txn_type": "IN",
+        "source": "ORDER_REVERSE",
+        "ref_id": order_id,
+        "remarks": remarks_text,
+
+        # 🔐 USER AUDIT
+        "created_by_id": request.session.get("mongo_user_id"),
+        "created_by": request.session.get("mongo_username"),
+        "created_at": datetime.now()
+    })
+
+    # ================= UPDATE MASTER STOCK =================
+    inv_master_col.update_one(
+        {"_id": inv["_id"]},
+        {"$inc": {"current_qty": qty}}
+    )
+
+    # ================= DELETE ORDER INVENTORY =================
+    order_inv_col.delete_one({"_id": ObjectId(inv_id)})
+
+    return redirect("cnc_work_app:detail", pk=order_id)
 
 
 

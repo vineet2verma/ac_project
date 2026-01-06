@@ -18,6 +18,7 @@ def get_order_counts():
         "pending_orders": pending_orders,
         "complete_orders": complete_orders,
     }
+
 # Inventory Reorder
 def get_reorder_inventory_count():
     inv_col = get_inventory_master_collection()
@@ -28,14 +29,15 @@ def get_reorder_inventory_count():
         "is_active": True
     })
     return reorder_count
-# order Status Count
+
+# Order Status Count
 def get_order_status_counts():
     order_col = get_orders_collection()
     pipeline = [
         {
             "$match": {
                 "current_status": {
-                    "$in": ["Design Pending", "Machine", "Inventory", "QC", "Dispatch"]
+                    "$in": ["Design Pending", "Machine", "Inventory Pending", "QC", "Dispatch"]
                 }
             }
         },
@@ -53,7 +55,7 @@ def get_order_status_counts():
     status_map = {
         "Design Pending": "design",
         "Machine": "machine",
-        "Inventory": "inventory",
+        "Inventory Pending": "inventory",
         "QC": "qc",
         "Dispatch": "dispatch",
     }
@@ -105,6 +107,7 @@ def get_sales_person_order_counts():
             sales_stats[person] = {"pending": 0, "complete": 0}
         sales_stats[person][status] = r["count"]
     return sales_stats
+
 # Machine Report
 def get_last_5_days_machine_summary():
     report_col = get_machine_work_collection()

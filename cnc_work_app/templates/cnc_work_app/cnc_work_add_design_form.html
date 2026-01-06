@@ -1,4 +1,3 @@
-
 <div class="modal fade" id="orderModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -44,12 +43,20 @@
                             <input class="form-control" type="text" name="packing_instruction">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Sales Person</label>
-                            <input class="form-control" type="text" name="sales_person">
-                        </div>
+                                <label class="form-label">Sales Person</label>
+                                <select class="form-select" name="sales_person" required>
+                                    <option value="">Select Sales Person</option>
+
+                                    {% for u in sales_users %}
+                                    <option value="{{ u.username }}">
+                                        {{ u.full_name|default:u.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         <div class="col-6">
                             <label class="form-label">Remarks</label>
-                            <input class="form-control" type="text" name="remarks">
+                            <input class="form-control" type="text" name="remarks" placeholder="Mention Height & Weight / Remarks" >
                         </div>
                         <div class="col-6">
                             <label class="form-label">Upload Image</label>

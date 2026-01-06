@@ -1,6 +1,6 @@
 <div class="modal fade" id="designModal" tabindex="-1">
     <div class="modal-dialog">
-        <form method="post" action="{% url 'cnc_work_app:add_design_file' order.id %}" enctype="multipart/form-data" class="modal-content">
+        <form method="post" action="{% url 'design_app:add_design_file' order.id %}" enctype="multipart/form-data" class="modal-content">
             {% csrf_token %}
 
             <div class="modal-header bg-primary text-white">

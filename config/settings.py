@@ -64,10 +64,12 @@ INSTALLED_APPS = [
     'cnc_work_app',
     'accounts_app',
     'core_app',
+    'design_app',
     'inv_app',
+    'machine_app',
     'todo_app',
     'cloudinary',
-    'cloudinary_storage',   # 🔥 REQUIRED
+    'cloudinary_storage',
 
 ]
 

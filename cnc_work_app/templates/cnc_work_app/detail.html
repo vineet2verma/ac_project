@@ -250,7 +250,7 @@
                             
                             <!-- DELETE -->
                             <form method="POST"
-                                  action="{% url 'cnc_work_app:design_delete' order.id file.id %}">
+                                  action="{% url 'design_app:design_delete' order.id file.id %}">
                                 {% csrf_token %}
                                 <button type="submit"
                                         class="btn btn-danger btn-sm"
@@ -274,101 +274,7 @@
             </table>
         </div>
     </div>
-    
-    <!-- ================= MACHINE DETAILS ================= -->
-    <div class="mb-4">
-        <div
-                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
-        >
-            <h5 class="mb-0">Machine Details</h5>
-            
-            <button
-                    class="btn btn-info btn-sm rounded-pill"
-                    data-bs-toggle="modal"
-                    data-bs-target="#machineModal"
-            >
-                + Add Machine
-            </button>
-        </div>
-        
-        <div class="table-responsive mt-2">
-            <table class="table table-sm table-bordered">
-                <thead class="table-light">
-                <tr>
-                    <th>Date</th>
-                    <th>Machine</th>
-                    <th>Type</th>
-                    <th>Hours</th>
-                    <th>Operator</th>
-                    <th>Remarks</th>
-                    <th style="width: 90px">Action</th>
-                </tr>
-                </thead>
-                
-                <tbody>
-                {% for m in machines %}
-                <tr>
-                    <td>{{ m.work_date }}</td>
-                    <td>{{ m.machine_name }}</td>
-                    <td>
-                      <span class="badge {% if m.work_type == 'DOWNTIME' %}bg-danger{% else %}bg-success{% endif %}">
-                        {{ m.work_type|title }}
-                      </span>
-                    </td>
-                    <td>{{ m.working_hour }}</td>
-                    <td>{{ m.operator|default:"-" }}</td>
-                    <td>{{ m.remarks|default:"-" }}</td>
-                    <td class="text-center">
-                        <!-- EDIT -->
-                        <button
-                                type="button"
-                                class="btn btn-link p-0 text-primary edit-machine-btn"
-                                data-id="{{ m.id }}"
-                                data-machine-id="{{ m.machine_id }}"
-                                data-hours="{{ m.working_hour }}"
-                                data-operator="{{ m.operator }}"
-                                data-remarks="{{ m.remarks }}"
-                                data-type="{{ m.work_type }}"
-                                data-bs-toggle="modal"
-                                data-bs-target="#machineModal">
-                            <i class="bi bi-pencil-square"></i>
-                        </button>
-                        
-                        
-                        <!-- DELETE -->
-                        <form
-                                method="POST"
-                                action="{% url 'cnc_work_app:machine_delete' order.id m.id %}"
-                                style="display: inline"
-                        >
-                            {% csrf_token %}
-                            <button
-                                    type="submit"
-                                    class="btn btn-link p-0 text-danger"
-                                    onclick="return confirm('Delete this machine entry?')"
-                            >
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">
-                        No machine details added
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- TOTAL HOURS -->
-        <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
-        </div>
-    </div>
-    
-    
+
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -420,7 +326,99 @@
             </table>
         </div>
     </div>
-    
+
+    <!-- ================= MACHINE DETAILS ================= -->
+    <div class="mb-4">
+        <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
+            <h5 class="mb-0">Machine Details</h5>
+
+            <button
+                    class="btn btn-info btn-sm rounded-pill"
+                    data-bs-toggle="modal"
+                    data-bs-target="#machineModal"
+            >
+                + Add Machine
+            </button>
+        </div>
+
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Machine</th>
+                    <th>Type</th>
+                    <th>Hours</th>
+                    <th>Operator</th>
+                    <th>Remarks</th>
+                    <th style="width: 90px">Action</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for m in machines %}
+                <tr>
+                    <td>{{ m.work_date }}</td>
+                    <td>{{ m.machine_name }}</td>
+                    <td>
+                      <span class="badge {% if m.work_type == 'DOWNTIME' %}bg-danger{% else %}bg-success{% endif %}">
+                        {{ m.work_type|title }}
+                      </span>
+                    </td>
+                    <td>{{ m.working_hour }}</td>
+                    <td>{{ m.operator|default:"-" }}</td>
+                    <td>{{ m.remarks|default:"-" }}</td>
+                    <td class="text-center">
+                        <!-- EDIT -->
+                        <button
+                                type="button"
+                                class="btn btn-link p-0 text-primary edit-machine-btn"
+                                data-id="{{ m.id }}"
+                                data-machine-id="{{ m.machine_id }}"
+                                data-hours="{{ m.working_hour }}"
+                                data-operator="{{ m.operator }}"
+                                data-remarks="{{ m.remarks }}"
+                                data-type="{{ m.work_type }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#machineModal">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+
+
+                        <!-- DELETE -->
+                        <form
+                                method="POST"
+                                action="{% url 'machine_app:machine_delete' order.id m.id %}"
+                                style="display: inline"
+                        >
+                            {% csrf_token %}
+                            <button
+                                    type="submit"
+                                    class="btn btn-link p-0 text-danger"
+                                    onclick="return confirm('Delete this machine entry?')"
+                            >
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No machine details added
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TOTAL HOURS -->
+        <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
+        </div>
+    </div>
     
     <!-- ================= QUALITY CHECK ================= -->
     <div class="mb-4">
@@ -529,10 +527,12 @@
 
 <!-- MODALS -->
 {% include 'cnc_work_app/order_edit.html' %}
-{% include 'cnc_work_app/design_add.html' %}
-{% include 'cnc_work_app/m_add_edit.html' %}
 
-{% include 'cnc_work_app/inventory_add.html' %}
+{% include 'design_app/design_add.html' %}
+{% include 'inv_app/inventory_add.html' %}
+
+{% include 'machine_app/m_add_edit.html' %}
+
 
 
 <script>
@@ -598,7 +598,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("id_work_type").value = "ONTIME";
 
       // ✅ RESET FORM ACTION TO ADD
-      form.action = "{% url 'cnc_work_app:add_machine_work' order.id %}";
+      form.action = "{% url 'machine_app:add_machine_work' order.id %}";
     });
 
 });
