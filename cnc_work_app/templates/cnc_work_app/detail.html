@@ -274,58 +274,127 @@
             </table>
         </div>
     </div>
-
+    
+    
     <!-- ================= INVENTORY ================= -->
     <div class="mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0">Inventory</h5>
-            <button
-                    class="btn btn-success btn-sm rounded-pill px-4"
-                    data-bs-toggle="modal"
-                    data-bs-target="#inventoryModal"
-            >
-                + Add
-            </button>
-        </div>
-        
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered mt-2">
-                <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Rate</th>
-                    <th>Total</th>
-                    <th style="width:80px;">Action</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for inv in order_inventory %}
-                <tr>
-                    <td>{{ inv.item_name }}</td>
-                    <td>{{ inv.qty }}</td>
-                    <td>{{ inv.rate }}</td>
-                    <td>{{ inv.total }}</td>
-                    <td class="text-center">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0">Inventory</h5>
+        <button class="btn btn-success btn-sm rounded-pill px-4"
+                data-bs-toggle="modal"
+                data-bs-target="#inventoryModal">
+            <i class="bi bi-plus-circle"></i> Add
+        </button>
+    </div>
+    <!-- 🔽 PUT QUICK ACTIONS HERE -->
+    <div class="d-flex gap-2 flex-wrap mt-2">
+        <a href="{% url 'inv_app:check' order.id %}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-search"></i> Inventory Check
+        </a>
+
+        <a href="{% url 'inv_app:pr_list' order.id %}"
+           class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-file-earmark-text"></i> PR List
+        </a>
+
+    <!-- TABLE -->
+    <div class="table-responsive mt-2">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>Item</th>
+                <th class="text-end">Required</th>
+                <th class="text-end">Reserved</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Total</th>
+                <th>Status</th>
+                <th class="text-center" style="width:140px;">Action</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for inv in order_inventory %}
+            <tr>
+
+                <!-- ITEM -->
+                <td>{{ inv.item_name }}</td>
+
+                <!-- QTY -->
+                <td class="text-end">{{ inv.required_qty }}</td>
+                <td class="text-end">{{ inv.reserved_qty|default:"-" }}</td>
+
+                <!-- COST -->
+                <td class="text-end">{{ inv.rate }}</td>
+                <td class="text-end">{{ inv.required_qty|floatformat:2|add:""|floatformat:2 }}</td>
+
+                <!-- STATUS -->
+                <td>
+                    {% if inv.status == "PENDING" %}
+                        <span class="badge bg-secondary">Pending</span>
+                    {% elif inv.status == "AVAILABLE" %}
+                        <span class="badge bg-success">Available</span>
+                    {% elif inv.status == "RESERVED" %}
+                        <span class="badge bg-primary">Reserved</span>
+                    {% elif inv.status == "SHORTAGE" %}
+                        <span class="badge bg-danger">Shortage</span>
+                    {% elif inv.status == "PR_CREATED" %}
+                        <span class="badge bg-warning text-dark">PR Created</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ inv.status }}</span>
+                    {% endif %}
+                </td>
+
+                <!-- ACTIONS -->
+                <td class="text-center">
+
+                    <!-- AVAILABLE → RESERVE -->
+                    {% if inv.status == "AVAILABLE" %}
+                        <a href="{% url 'inv_app:reserve_inventory' inv.id %}"
+                           class="btn btn-outline-primary btn-sm">
+                            Reserve
+                        </a>
+
+                    <!-- SHORTAGE → PR -->
+                    {% elif inv.status == "SHORTAGE" %}
+                        <a href="{% url 'inv_app:create_pr' inv.id %}"
+                           class="btn btn-outline-warning btn-sm">
+                            Create PR
+                        </a>
+
+                    <!-- PENDING → DELETE -->
+                    {% elif inv.status == "PENDING" %}
                         <form method="POST"
-                              action="{% url 'cnc_work_app:delete_inventory' order_id=order.id inv_id=inv.id %}"
-                              onsubmit="return confirm('Delete this inventory item?');">
+                              action="{% url 'inv_app:delete_inventory' order_id=order.id inv_id=inv.id %}"
+                              onsubmit="return confirm('Delete this inventory item?');"
+                              class="d-inline">
                             {% csrf_token %}
-                            <button class="btn btn-danger btn-sm">
+                            <button class="btn btn-outline-danger btn-sm">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">No inventory added</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+
+                    <!-- LOCKED -->
+                    {% else %}
+                        <span class="text-muted small">Locked</span>
+                    {% endif %}
+
+                </td>
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-3">
+                    No inventory added
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 
     <!-- ================= MACHINE DETAILS ================= -->
     <div class="mb-4">
@@ -529,7 +598,7 @@
 {% include 'cnc_work_app/order_edit.html' %}
 
 {% include 'design_app/design_add.html' %}
-{% include 'inv_app/inventory_add.html' %}
+{% include 'inv_app/inventory_add_in_order.html' %}
 
 {% include 'machine_app/m_add_edit.html' %}
 
@@ -621,88 +690,36 @@ function designAction(id, action) {
 </script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-    
-        const searchInput = document.getElementById("inventorySearch");
-        const inventorySelect = document.getElementById("inventory_id");
-        const availableStock = document.getElementById("available_stock");
-        const qtyInput = document.getElementById("consume_qty");
-        const alertBox = document.getElementById("stockAlert");
-        const saveBtn = document.getElementById("saveBtn");
-    
-        let maxStock = 0;
-    
-        /* ================= SEARCH + AUTO OPEN ================= */
-        searchInput.addEventListener("input", function () {
-            const q = this.value.toLowerCase();
-            let firstMatch = null;
-    
-            Array.from(inventorySelect.options).forEach(opt => {
-                if (!opt.value) return;
-    
-                const match = opt.text.toLowerCase().includes(q);
-                opt.style.display = match ? "" : "none";
-    
-                if (match && !firstMatch) {
-                    firstMatch = opt;
-                }
-            });
-    
-            /* AUTO SELECT + FOCUS DROPDOWN */
-            if (firstMatch) {
-                inventorySelect.value = firstMatch.value;
-                inventorySelect.focus();
-    
-                /* 🔽 simulate arrow down to open dropdown */
-                inventorySelect.dispatchEvent(
-                    new KeyboardEvent("keydown", { key: "ArrowDown" })
-                );
-            }
-        });
-    
-        /* ================= STOCK LOAD ================= */
-        inventorySelect.addEventListener("change", function () {
-            const selected = this.options[this.selectedIndex];
-            maxStock = parseFloat(selected.dataset.stock || 0);
-    
-            availableStock.value = maxStock;
-            qtyInput.value = "";
-            qtyInput.classList.remove("is-invalid");
-            alertBox.classList.add("d-none");
-            saveBtn.disabled = false;
-        });
-    
-        /* ================= QTY VALIDATION ================= */
-        qtyInput.addEventListener("input", function () {
-            const qty = parseFloat(this.value || 0);
-    
-            if (qty > maxStock) {
-                this.classList.add("is-invalid");
-                alertBox.classList.remove("d-none");
-                saveBtn.disabled = true;
-            } else {
-                this.classList.remove("is-invalid");
-                alertBox.classList.add("d-none");
-                saveBtn.disabled = false;
-            }
-        });
-    
-        /* ================= RESET ON MODAL OPEN ================= */
-        document.getElementById("inventoryModal")
-            .addEventListener("show.bs.modal", function () {
-    
-            searchInput.value = "";
-            inventorySelect.value = "";
-            availableStock.value = "";
-            qtyInput.value = "";
-            alertBox.classList.add("d-none");
-            saveBtn.disabled = false;
-    
-            Array.from(inventorySelect.options)
-                .forEach(opt => opt.style.display = "");
-        });
-    
+document.addEventListener("DOMContentLoaded", function () {
+    const inventorySelect = document.getElementById("inventory_id");
+    const availableStockInput = document.getElementById("available_stock");
+    const qtyInput = document.getElementById("consume_qty");
+    const alertBox = document.getElementById("stockAlert");
+    const saveBtn = document.getElementById("saveBtn");
+
+    let availableStock = 0;
+
+    inventorySelect.addEventListener("change", function () {
+        const selected = this.options[this.selectedIndex];
+        availableStock = parseFloat(selected.getAttribute("data-stock")) || 0;
+        availableStockInput.value = availableStock;
+        validateQty();
     });
+
+    qtyInput.addEventListener("input", validateQty);
+
+    function validateQty() {
+        const qty = parseFloat(qtyInput.value) || 0;
+
+        if (availableStock > 0 && qty > availableStock) {
+            alertBox.classList.remove("d-none");
+            saveBtn.disabled = true;
+        } else {
+            alertBox.classList.add("d-none");
+            saveBtn.disabled = false;
+        }
+    }
+});
 </script>
 
 

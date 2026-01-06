@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid py-3">
+
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 class="mb-0">
+            <i class="bi bi-clipboard-check"></i> Inventory Check
+        </h5>
+
+        <a href="{% url 'cnc_work_app:detail' order_id %}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Order
+        </a>
+    </div>
+
+    <!-- INVENTORY TABLE -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+
+                <thead class="table-light">
+                <tr>
+                    <th>Item</th>
+                    <th class="text-end">Required Qty</th>
+                    <th class="text-end">Available Qty</th>
+                    <th class="text-end">Shortage Qty</th>
+                    <th>Status</th>
+                    <th class="text-center" style="width:190px;">Action</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for r in records %}
+                <tr>
+
+                    <!-- ITEM -->
+                    <td>{{ r.item_name|default:"-" }}</td>
+
+                    <!-- QUANTITIES -->
+                    <td class="text-end">{{ r.required_qty }}</td>
+                    <td class="text-end">{{ r.available_qty }}</td>
+                    <td class="text-end">
+                        {% if r.shortage_qty > 0 %}
+                            {{ r.shortage_qty }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <!-- STATUS -->
+                    <td>
+                        {% if r.status_calc == "AVAILABLE" %}
+                            <span class="badge bg-success">Available</span>
+                        {% elif r.status_calc == "SHORTAGE" %}
+                            <span class="badge bg-danger">Shortage</span>
+                        {% elif r.status_calc == "INVALID" %}
+                            <span class="badge bg-dark">Invalid Item</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ r.status_calc }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- ACTIONS -->
+                    <td class="text-center">
+
+                        <!-- AVAILABLE → RESERVE -->
+                        {% if r.status_calc == "AVAILABLE" %}
+                        <form method="POST"
+                              action="{% url 'inv_app:inventory_reserve' r.id %}"
+                              class="d-inline"
+                              onsubmit="return confirm('Reserve stock for this order?');">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-lock-fill"></i> Reserve
+                            </button>
+                        </form>
+
+                        <!-- SHORTAGE → PR -->
+                        {% elif r.status_calc == "SHORTAGE" %}
+                        <form method="POST"
+                              action="{% url 'inv_app:create_pr' r.id %}"
+                              class="d-inline"
+                              onsubmit="return confirm('Create Purchase Requisition for shortage quantity?');">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-cart-plus"></i> Create PR
+                            </button>
+                        </form>
+
+                        <!-- LOCKED / INVALID -->
+                        {% else %}
+                        <span class="text-muted small">N/A</span>
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No inventory records found for this order
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

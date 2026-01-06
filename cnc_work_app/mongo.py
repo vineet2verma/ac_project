@@ -39,6 +39,11 @@ def get_orders_collection():
 def get_order_inventory_collection():
     return _db["order_inventory"]
 
+def get_purchase_requisition_collection():
+    return _db["purchase_requisition"]
+
+
+
 # Order Design
 def get_design_files_collection():
     return _db["design_files"]
