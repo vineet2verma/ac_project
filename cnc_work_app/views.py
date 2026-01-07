@@ -308,9 +308,11 @@ def order_detail(request, pk):
         i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
 
     # ----------------- ORDER INVENTORY (TABLE) -----------------
-    order_inventory = list(order_inv_col.find({"order_id": pk}))
+    order_inventory = list(
+        order_inv_col.find({"order_id": ObjectId(pk)})
+    )
     for oi in order_inventory:
-        oi["id"] = str(oi["_id"])
+        oi["id"] = str(oi["_id"])  # ✅ THIS WAS MISSING
 
     # ---------------- MACHINE MASTER (Dropdown) ----------------
     machines_mast = list(machine_master_col.find({"is_active": True}))
@@ -343,6 +345,8 @@ def order_detail(request, pk):
         {"roles": "SALES", "is_active": True},
         {"username": 1, "full_name": 1}
     ))
+
+    # print(f"Order Inventory: {(inventory_items)}")
 
     context = {
         "order": order,

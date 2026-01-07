@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Purchase Requisition{% endblock %}
+{% block content %}
+
+<div class="container-fluid py-3">
+
+    <!-- ================= HEADER ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Purchase Requisition</h5>
+
+        <!-- BACK TO ORDER -->
+        <a href="{% url 'cnc_work_app:detail' order_id %}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Order
+        </a>
+    </div>
+
+    <!-- ================= TABLE ================= -->
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>Item</th>
+                <th class="text-end">Required Qty</th>
+                <th>Status</th>
+                <th class="text-center" style="width:200px;">Action</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for pr in prs %}
+            <tr>
+
+                <!-- ITEM -->
+                <td>{{ pr.item_name }}</td>
+
+                <!-- QTY -->
+                <td class="text-end">{{ pr.required_qty }}</td>
+
+                <!-- STATUS -->
+                <td>
+                    {% if pr.status == "PR_CREATED" %}
+                        <span class="badge bg-warning text-dark">PR Created</span>
+                    {% elif pr.status == "RECEIVED" %}
+                        <span class="badge bg-success">Received</span>
+                    {% elif pr.status == "CANCELLED" %}
+                        <span class="badge bg-secondary">Cancelled</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ pr.status }}</span>
+                    {% endif %}
+                </td>
+
+                <!-- ACTIONS -->
+                <td class="text-center">
+
+                    {% if pr.status == "PR_CREATED" %}
+
+                        <!-- RECEIVE MATERIAL (MODAL TRIGGER) -->
+                        <button class="btn btn-outline-success btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#receiveModal{{ pr.id }}">
+                            <i class="bi bi-box-arrow-in-down"></i> Receive
+                        </button>
+
+                        <!-- CANCEL PR -->
+                        <form method="POST"
+                              action="{% url 'inv_app:cancel_pr' pr.id %}"
+                              class="d-inline"
+                              onsubmit="return confirm('Cancel this PR?');">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+
+                    {% else %}
+                        <span class="text-muted small">No Action</span>
+                    {% endif %}
+
+                </td>
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted py-3">
+                    No Purchase Requisitions found
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ================= RECEIVE MODALS ================= -->
+{% for pr in prs %}
+{% if pr.status == "PR_CREATED" %}
+<div class="modal fade" id="receiveModal{{ pr.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+
+        <form method="POST"
+              action="{% url 'inv_app:material_received' pr.id %}"
+              class="modal-content">
+
+            {% csrf_token %}
+
+            <div class="modal-header">
+                <h6 class="modal-title">Receive Material</h6>
+                <button class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-2">
+                    <label class="form-label">Received Quantity</label>
+                    <input type="number"
+                           step="0.01"
+                           name="received_qty"
+                           class="form-control form-control-sm"
+                           required>
+                </div>
+
+                <small class="text-muted">
+                    Required Qty: {{ pr.required_qty }}
+                </small>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-success btn-sm w-100">
+                    Confirm Receive
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}

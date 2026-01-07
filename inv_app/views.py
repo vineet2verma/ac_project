@@ -1,14 +1,11 @@
 from datetime import datetime, date
 from bson import ObjectId
+from django.contrib import messages
 import openpyxl
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from cnc_work_app.mongo import (
-    get_inventory_master_collection,
-    get_inventory_ledger_collection,
-    category_collection,get_order_inventory_collection,get_orders_collection
-)
+from cnc_work_app.mongo import *
 from django.http import Http404
 
 
@@ -228,6 +225,56 @@ def inventory_ledger_view(request):
         "ledger": ledger
     })
 
+# ✅ Add Inventory Requirement to Order (ERP Correct)
+def add_order_inventory(request, order_id):
+    inv_master_col = get_inventory_master_collection()
+    order_inv_col = get_order_inventory_collection()
+
+    if request.method != "POST":
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    inventory_id = request.POST.get("inventory_id")
+    qty = float(request.POST.get("qty", 0))
+
+    if not inventory_id or qty <= 0:
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
+    if not inv:
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    # ✅ INSERT ERP-CORRECT RECORD
+    order_inv_col.insert_one({
+        "order_id": ObjectId(order_id),
+        "inventory_id": ObjectId(inventory_id),
+        "item_name": inv["item_name"],
+        "required_qty": qty,          # ✅ CORRECT FIELD
+        "reserved_qty": 0,
+        "status": "PENDING",
+        "rate": float(inv.get("rate", 0)),
+        "created_by": request.session.get("mongo_username"),
+        "created_at": datetime.now()
+    })
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+
+# Delete Inventory From Order (ERP FINAL)
+def delete_order_inventory(request, order_id, inv_id):
+    order_inv_col = get_order_inventory_collection()
+
+    inv = order_inv_col.find_one({"_id": ObjectId(inv_id)})
+    if not inv:
+        raise Http404("Inventory record not found")
+
+    if inv.get("status") != "PENDING":
+        raise Http404("Cannot delete once inventory is processed")
+
+    order_inv_col.delete_one({"_id": ObjectId(inv_id)})
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+
 # Inventory Stock In Reverse Entry
 def delete_stock_in(request, ledger_id):
     inv_col = get_inventory_master_collection()
@@ -284,158 +331,234 @@ def delete_stock_in(request, ledger_id):
     return redirect("inv_app:inventory_ledger")
 
 
-# Add Inventory In Order
-def add_order_inventory(request, order_id):
-    inv_master_col = get_inventory_master_collection()
+def inventory_check(request, order_id):
     order_inv_col = get_order_inventory_collection()
+    inv_master_col = get_inventory_master_collection()
+
+    records = list(order_inv_col.find({
+        "order_id": ObjectId(order_id)
+    }))
+
+    for r in records:
+        item = inv_master_col.find_one({
+            "_id": ObjectId(r["inventory_id"])
+        })
+
+        if not item:
+            r["status_calc"] = "INVALID"
+            r["available_qty"] = 0
+            r["shortage_qty"] = r["required_qty"]
+        else:
+            available = float(item.get("current_qty", 0))
+            required = float(r.get("required_qty", 0))
+
+            if available >= required:
+                r["status_calc"] = "AVAILABLE"
+                r["shortage_qty"] = 0
+            else:
+                r["status_calc"] = "SHORTAGE"
+                r["shortage_qty"] = required - available
+
+            r["available_qty"] = available
+            r["item_name"] = item.get("item_name")
+
+        r["id"] = str(r["_id"])
+
+    return render(request, "inv_app/inventory_check.html", {
+        "records": records,
+        "order_id": order_id
+    })
+
+
+def inventory_reserve(request, inv_id):
+    order_inv_col = get_order_inventory_collection()
+    inv_master_col = get_inventory_master_collection()
     ledger_col = get_inventory_ledger_collection()
-    order_col = get_orders_collection()
 
-    if request.method != "POST":
-        return redirect("cnc_work_app:detail", pk=order_id)
+    rec = order_inv_col.find_one({"_id": ObjectId(inv_id)})
+    if not rec:
+        raise Http404("Order inventory record not found")
 
-    inventory_id = request.POST.get("inventory_id")
-    qty = float(request.POST.get("qty", 0))
+    if rec.get("status") == "RESERVED":
+        raise Http404("Inventory already reserved")
 
-    # 🔴 SAFETY CHECKS
-    if not inventory_id:
-        raise Http404("Inventory item not selected")
-
-    # 🔹 Fetch order from MongoDB
-    order = order_col.find_one({"_id": ObjectId(order_id)})
-    if not order:
-        raise Http404("Order not found")
-    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
-    if not inv:
+    item = inv_master_col.find_one({
+        "_id": ObjectId(rec["inventory_id"])
+    })
+    if not item:
         raise Http404("Inventory item not found")
 
-    available_qty = float(inv.get("current_qty", 0))
-    if qty > available_qty:
-        raise Http404("Qty exceeds available stock")
-    rate = float(inv.get("rate", 0))
+    available = float(item.get("current_qty", 0))
+    required = float(rec.get("required_qty", 0))
 
-    order_title = order.get("title", "Order")
-    sales_person = order.get("sales_person", "-")
-    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
+    if available < required:
+        raise Http404("Stock insufficient")
 
-    # ================= SAVE ORDER INVENTORY =================
-    order_inv_col.insert_one({
-        "order_id": order_id,  # string
-        "inventory_id": inventory_id,  # string
-        "item_name": inv["item_name"],
-        "qty": qty,
-        "rate": rate,
-        "total": qty * rate,
-        "created_at": datetime.now()
-    })
-
-    # ================= LEDGER ENTRY (OUT) =================
-    ledger_col.insert_one({
-        "item_id": inv["_id"],
-        "item_name": inv["item_name"],
-        "category": inv.get("category"),
-        "location": inv.get("location"),
-        "qty": qty,
-        "rate": rate,
-        "amount": qty * rate,
-        "txn_type": "OUT",
-        "source": "ORDER",
-        "ref_id": order_id,
-        "remarks": remarks_text,
-
-        # 🔐 USER AUDIT
-        "created_by_id": request.session.get("mongo_user_id"),
-        "created_by": request.session.get("mongo_username"),
-
-        "created_at": datetime.now()
-    })
-
-    # ================= UPDATE MASTER STOCK =================
+    # 🔒 LOCK STOCK
     inv_master_col.update_one(
-        {"_id": inv["_id"]},
-        {"$inc": {"current_qty": -qty}}
+        {"_id": item["_id"]},
+        {"$inc": {"current_qty": -required}}
     )
-    # 🔹 Update order status
-    order_col.update_one(
-        {"_id": ObjectId(order_id)},
+
+    order_inv_col.update_one(
+        {"_id": rec["_id"]},
         {"$set": {
-            "current_status": "QC Pending",
-            "dispatched_at": datetime.now()
+            "reserved_qty": required,
+            "status": "RESERVED",
+            "reserved_at": datetime.now()
         }}
     )
 
-    return redirect("cnc_work_app:detail", pk=order_id)
-
-# Delete Inventory From Order (ERP FINAL)
-def delete_order_inventory(request, order_id, inv_id):
-    order_inv_col = get_order_inventory_collection()
-    inv_master_col = get_inventory_master_collection()
-    ledger_col = get_inventory_ledger_collection()
-    order_col = get_orders_collection()
-
-    if request.method != "POST":
-        return redirect("cnc_work_app:detail", pk=order_id)
-
-    # 🔹 1. Fetch order inventory record
-    order_inv = order_inv_col.find_one({
-        "_id": ObjectId(inv_id),
-        "order_id": order_id  # string
-    })
-
-    if not order_inv:
-        raise Http404("Inventory item not found")
-
-    inventory_id = order_inv["inventory_id"]  # string
-    qty = float(order_inv.get("qty", 0))
-
-    inv = inv_master_col.find_one({"_id": ObjectId(inventory_id)})
-    if not inv:
-        raise Http404("Inventory master item not found")
-
-    rate = float(inv.get("rate", 0))
-
-    # 🔹 2. FETCH ORDER DETAILS (FOR REMARKS)
-    order = order_col.find_one({"_id": ObjectId(order_id)})
-    if not order:
-        raise Http404("Order not found")
-
-    order_title = order.get("title", "Order")
-    sales_person = order.get("sales_person", "-")
-
-    remarks_text = f"Order: {order_title} | Sales: {sales_person}"
-
-    # ================= LEDGER ENTRY (IN - REVERSAL) =================
     ledger_col.insert_one({
-        "item_id": inv["_id"],
-        "item_name": inv["item_name"],
-        "category": inv.get("category"),
-        "location": inv.get("location"),
-        "qty": qty,
-        "rate": rate,
-        "amount": qty * rate,
-        "txn_type": "IN",
-        "source": "ORDER_REVERSE",
-        "ref_id": order_id,
-        "remarks": remarks_text,
-
-        # 🔐 USER AUDIT
-        "created_by_id": request.session.get("mongo_user_id"),
-        "created_by": request.session.get("mongo_username"),
+        "item_id": item["_id"],
+        "item_name": item["item_name"],
+        "order_id": rec["order_id"],
+        "qty": required,
+        "txn_type": "RESERVE",
+        "source": "ORDER",
+        "ref_id": rec["_id"],
         "created_at": datetime.now()
     })
 
-    # ================= UPDATE MASTER STOCK =================
-    inv_master_col.update_one(
+    return redirect(request.META.get("HTTP_REFERER"))
+
+
+
+def create_purchase_requisition(request, inv_id):
+    inv_col = get_order_inventory_collection()
+    pr_col = get_purchase_requisition_collection()
+
+    inv = inv_col.find_one({"_id": ObjectId(inv_id)})
+    if not inv:
+        raise Http404("Order inventory not found")
+
+    # 🔴 Prevent duplicate PR
+    exists = pr_col.find_one({
+        "order_inventory_id": inv["_id"],
+        "status": {"$ne": "CANCELLED"}
+    })
+    if exists:
+        raise Http404("PR already created")
+
+    pr_col.insert_one({
+        "order_id": inv["order_id"],
+        "order_inventory_id": inv["_id"],
+        "item_id": ObjectId(inv["inventory_id"]),   # ✅ FIX
+        "item_name": inv["item_name"],               # ✅ OPTIONAL BUT GOOD
+        "required_qty": inv["required_qty"],
+        "status": "PR_CREATED",
+        "created_at": datetime.now()
+    })
+
+    inv_col.update_one(
         {"_id": inv["_id"]},
-        {"$inc": {"current_qty": qty}}
+        {"$set": {"status": "PR_CREATED"}}
     )
 
-    # ================= DELETE ORDER INVENTORY =================
-    order_inv_col.delete_one({"_id": ObjectId(inv_id)})
-
-    return redirect("cnc_work_app:detail", pk=order_id)
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+def pr_list(request, order_id):
+    pr_col = get_purchase_requisition_collection()
+
+
+    prs = list(
+        pr_col.find({"order_id": ObjectId(order_id)})
+        .sort("created_at", -1)
+    )
+
+    for pr in prs:
+        pr["id"] = str(pr["_id"])
+
+    return render(request, "inv_app/pr_list.html", {
+        "prs": prs,
+        "order_id": order_id
+    })
+
+
+def material_received(request, pr_id):
+    if request.method != "POST":
+        raise Http404("Invalid request")
+
+    pr_col = get_purchase_requisition_collection()
+    inv_col = get_inventory_master_collection()
+    order_inv_col = get_order_inventory_collection()
+    ledger_col = get_inventory_ledger_collection()
+
+    pr = pr_col.find_one({"_id": ObjectId(pr_id)})
+    if not pr or pr["status"] != "PR_CREATED":
+        raise Http404("Invalid PR")
+
+    received_qty = float(request.POST.get("received_qty", 0))
+    if received_qty <= 0:
+        raise Http404("Invalid received quantity")
+
+    # 🔹 UPDATE INVENTORY MASTER (FULL QTY)
+    inv_col.update_one(
+        {"_id": pr["item_id"]},
+        {"$inc": {"current_qty": received_qty}}
+    )
+
+    # 🔹 LEDGER ENTRY
+    ledger_col.insert_one({
+        "item_id": pr["item_id"],
+        "qty": received_qty,
+        "txn_type": "IN",
+        "source": "PURCHASE",
+        "ref_id": pr["_id"],
+        "created_at": datetime.now()
+    })
+
+    # 🔹 UPDATE PR
+    pr_col.update_one(
+        {"_id": pr["_id"]},
+        {"$set": {
+            "status": "RECEIVED",
+            "received_qty": received_qty,
+            "received_at": datetime.now()
+        }}
+    )
+
+    # 🔹 UPDATE ORDER INVENTORY STATUS
+    order_inv_col.update_one(
+        {"_id": pr["order_inventory_id"]},
+        {"$set": {"status": "AVAILABLE"}}
+    )
+
+    return redirect("inv_app:pr_list", order_id=str(pr["order_id"]))
+
+
+def cancel_pr(request, pr_id):
+
+    pr_col = get_purchase_requisition_collection()
+    order_inv_col = get_order_inventory_collection()
+
+    pr = pr_col.find_one({"_id": ObjectId(pr_id)})
+    if not pr:
+        raise Http404("Purchase Requisition not found")
+
+    # 🔒 SAFETY CHECK
+    if pr.get("status") != "PR_CREATED":
+        raise Http404("Only pending PR can be cancelled")
+
+    # 🔁 UPDATE PR STATUS
+    pr_col.update_one(
+        {"_id": pr["_id"]},
+        {"$set": {
+            "status": "CANCELLED",
+            "cancelled_at": datetime.now()
+        }}
+    )
+
+    # 🔁 RESET ORDER INVENTORY
+    order_inv_col.update_one(
+        {"_id": pr["order_inventory_id"]},
+        {"$set": {
+            "status": "SHORTAGE"
+        }}
+    )
+
+    return redirect(request.META.get("HTTP_REFERER"))
 
 
 # Inventory Category Master
