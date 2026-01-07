@@ -1,0 +1,56 @@
+<table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+    <tr>
+        <th>PR No</th>
+        <th>Item</th>
+        <th>Required Qty</th>
+        <th>Status</th>
+        <th class="text-center" style="width:180px;">Action</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    {% for pr in prs %}
+    <tr>
+
+        <td>PR-{{ forloop.counter }}</td>
+        <td>{{ pr.item_name }}</td>
+        <td class="text-end">{{ pr.required_qty }}</td>
+
+        <td>
+            {% if pr.status == "PR_CREATED" %}
+                <span class="badge bg-warning text-dark">Pending</span>
+            {% elif pr.status == "RECEIVED" %}
+                <span class="badge bg-success">Received</span>
+            {% endif %}
+        </td>
+
+        <!-- 👇 THIS IS THE CORRECT PLACE -->
+        <td class="text-center">
+
+            {% if pr.status == "PR_CREATED" %}
+            <form method="POST"
+                  action="{% url 'inv_app:material_received' pr.id %}"
+                  class="d-inline"
+                  onsubmit="return confirm('Confirm material received?');">
+                {% csrf_token %}
+                <button class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-box-arrow-in-down"></i> Material Received
+                </button>
+            </form>
+            {% else %}
+                <span class="text-muted small">Completed</span>
+            {% endif %}
+
+        </td>
+
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5" class="text-center text-muted">
+            No purchase requisitions found
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
