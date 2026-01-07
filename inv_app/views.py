@@ -15,46 +15,59 @@ def inventory_master_view(request):
     inv_col = get_inventory_master_collection()
     cat_col = category_collection()
 
-    # ADD / UPDATE
+    # ================= ADD / UPDATE =================
     if request.method == "POST":
         item_id = request.POST.get("item_id")
 
-        data = {
-            "item_name": request.POST.get("item_name"),
-            "category": request.POST.get("category"),
+        # ---------- SAFE FLOAT PARSING ----------
+        def to_float(val):
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return 0.0
+
+        opening_qty = to_float(request.POST.get("opening_qty"))
+        rate = to_float(request.POST.get("rate"))
+        reorder_level = to_float(request.POST.get("reorder_level"))
+
+        # ---------- COMMON DATA ----------
+        base_data = {
+            "item_name": request.POST.get("item_name", "").strip(),
+            "category": request.POST.get("category") or None,
             "location": request.POST.get("location"),
             "unit": request.POST.get("unit"),
-            "current_qty": float(request.POST.get("opening_qty", 0)),
-            "rate": float(request.POST.get("rate")),
-            "reorder_level": float(request.POST.get("reorder_level")),
+            "rate": rate,
+            "reorder_level": reorder_level,
             "is_active": True,
-            "created_at": datetime.now()
         }
 
-        if item_id:  # UPDATE
+        # ================= UPDATE =================
+        if item_id:
             inv_col.update_one(
                 {"_id": ObjectId(item_id)},
-                {"$set": data}
+                {"$set": base_data}
             )
-        else:  # ADD
-            opening_qty = float(request.POST.get("opening_qty"))
 
-            data.update({
+        # ================= ADD =================
+        else:
+            base_data.update({
                 "opening_qty": opening_qty,
-                "current_qty": opening_qty,
+                "current_qty": opening_qty,   # opening stock only once
                 "created_at": datetime.now()
             })
-            inv_col.insert_one(data)
+            inv_col.insert_one(base_data)
 
         return redirect("inv_app:inventory_master")
 
-    # Inventory List
+    # ================= INVENTORY LIST =================
     items = list(inv_col.find({"is_active": True}).sort("created_at", -1))
-    for i in items: i["id"] = str(i["_id"])
+    for i in items:
+        i["id"] = str(i["_id"])
 
-    # 🔹 CATEGORY LIST (for dropdown)
+    # ================= CATEGORY LIST =================
     categories = list(cat_col.find({"is_active": True}))
-    for c in categories: c["id"] = str(c["_id"])
+    for c in categories:
+        c["id"] = str(c["_id"])
 
     return render(request, "inv_app/inventory_master.html", {
         "items": items,
@@ -62,72 +75,75 @@ def inventory_master_view(request):
     })
 
 def inventory_bulk_upload(request):
-    if request.method == "POST":
-        excel_file = request.FILES.get("excel_file")
-
-        if not excel_file:
-            return redirect("inv_app:inventory_master")
-
-        wb = openpyxl.load_workbook(excel_file)
-        sheet = wb.active
-
-        inv_col = get_inventory_master_collection()
-        rows_added = 0
-        rows_skipped = 0
-
-        for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            try:
-                item_name, category, location, unit, opening_qty, rate, reorder_level = row
-
-                # 🔴 Skip empty item name
-                if not item_name:
-                    rows_skipped += 1
-                    continue
-
-                item_name = item_name.strip()
-                opening_qty = float(opening_qty or 0)
-
-                # ✅ DUPLICATE CHECK (HERE 👇)
-                exists = inv_col.find_one({
-                    "item_name": item_name,
-                    "category": category,
-                    "is_active": True
-                })
-
-                if exists:
-                    rows_skipped += 1
-                    continue  # ⛔ DO NOT INSERT DUPLICATE
-
-                # ✅ INSERT NEW INVENTORY
-                inv_col.insert_one({
-                    "item_name": item_name,
-                    "category": category,
-                    "location": location,
-                    "unit": unit,
-                    "opening_qty": opening_qty,
-                    "current_qty": opening_qty,
-                    "rate": float(rate or 0),
-                    "reorder_level": float(reorder_level or 0),
-                    "is_active": True,
-                    "created_at": datetime.now()
-                })
-
-                rows_added += 1
-
-            except Exception as e:
-                print(f"Row {idx} error:", e)
-                rows_skipped += 1
-
-        print("Added:", rows_added, "Skipped:", rows_skipped)
+    if request.method != "POST":
         return redirect("inv_app:inventory_master")
+
+    excel_file = request.FILES.get("excel_file")
+    if not excel_file:
+        return redirect("inv_app:inventory_master")
+
+    wb = openpyxl.load_workbook(excel_file)
+    sheet = wb.active
+
+    inv_col = get_inventory_master_collection()
+    added, skipped = 0, 0
+
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        try:
+            (
+                item_name,
+                category,
+                location,
+                unit,
+                opening_qty,
+                rate,
+                reorder_level
+            ) = row
+
+            if not item_name:
+                skipped += 1
+                continue
+
+            # 🔴 DUPLICATE CHECK
+            exists = inv_col.find_one({
+                "item_name": item_name.strip(),
+                "category": category,
+                "is_active": True
+            })
+            if exists:
+                skipped += 1
+                continue
+
+            opening_qty = float(opening_qty or 0)
+
+            inv_col.insert_one({
+                "item_name": item_name.strip(),
+                "category": category,
+                "location": location,
+                "unit": unit,
+                "opening_qty": opening_qty,
+                "current_qty": opening_qty,
+                "rate": float(rate or 0),
+                "reorder_level": float(reorder_level or 0),
+                "is_active": True,
+                "created_at": datetime.now()
+            })
+
+            added += 1
+
+        except Exception as e:
+            skipped += 1
+            print("Bulk upload error:", e)
+
+    # print(f"Inventory Bulk Upload → Added:{added}, Skipped:{skipped}")
+    return redirect("inv_app:inventory_master")
 
 def inventory_template_download(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Inventory Template"
 
-    # ✅ HEADER ROW
-    headers = [
+    ws.append([
         "item_name",
         "category",
         "location",
@@ -135,21 +151,19 @@ def inventory_template_download(request):
         "opening_qty",
         "rate",
         "reorder_level"
-    ]
-    ws.append(headers)
-
-    # ✅ SAMPLE ROW (optional but helpful)
-    ws.append([
-        "Marble White",
-        "Tiles",
-        "Godown-1",
-        "SqFt",
-        500,
-        45,
-        100
     ])
 
-    # ✅ RESPONSE
+    # Sample row
+    ws.append([
+        "Blade 10 mm",
+        "Cutting",
+        "Godown-1",
+        "PCS",
+        100,
+        25,
+        20
+    ])
+
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -160,11 +174,160 @@ def inventory_template_download(request):
     wb.save(response)
     return response
 
+# Low Stock Alert
+def low_stock_alert(request):
+    inv_col = get_inventory_master_collection()
+
+    # 🔔 LOW STOCK CONDITION
+    items = list(inv_col.find({
+        "is_active": True,
+        "$expr": {"$lte": ["$current_qty", "$reorder_level"]}
+    }).sort("current_qty", 1))
+
+    for i in items:
+        i["id"] = str(i["_id"])
+
+    return render(request, "inv_app/low_stock.html", {
+        "items": items
+    })
+
+def auto_pr_from_low_stock(request):
+    if request.method != "POST":
+        return redirect("inv_app:low_stock")
+
+    # 🔒 Checkbox check
+    if not request.POST.get("auto_pr"):
+        return redirect("inv_app:low_stock")
+
+    inv_col = get_inventory_master_collection()
+    pr_col = get_purchase_requisition_collection()
+
+    low_items = list(inv_col.find({
+        "is_active": True,
+        "$expr": {"$lte": ["$current_qty", "$reorder_level"]}
+    }))
+
+    created = 0
+
+    for item in low_items:
+
+        # 🔴 Prevent duplicate PR
+        exists = pr_col.find_one({
+            "item_id": item["_id"],
+            "status": {"$in": ["PR_CREATED"]}
+        })
+        if exists:
+            continue
+
+        required_qty = item["reorder_level"] - item["current_qty"]
+        if required_qty <= 0:
+            continue
+
+        pr_col.insert_one({
+            "item_id": item["_id"],
+            "item_name": item["item_name"],
+            "required_qty": required_qty,
+            "status": "PR_CREATED",
+            "source": "LOW_STOCK",
+            "created_at": datetime.now()
+        })
+
+        created += 1
+
+    print(f"Auto PR created: {created}")
+    return redirect("inv_app:low_stock")
+
+def create_pr_selected(request):
+    if request.method != "POST":
+        return redirect("inv_app:low_stock")
+
+    item_ids = request.POST.getlist("item_ids")
+    if not item_ids:
+        return redirect("inv_app:low_stock")
+
+    inv_col = get_inventory_master_collection()
+    pr_col = get_purchase_requisition_collection()
+
+    for item_id in item_ids:
+        item = inv_col.find_one({"_id": ObjectId(item_id)})
+        if not item:
+            continue
+
+        required_qty = item["reorder_level"] - item["current_qty"]
+        if required_qty <= 0:
+            continue
+
+        # 🔴 Prevent duplicate PR
+        exists = pr_col.find_one({
+            "item_id": item["_id"],
+            "status": "PR_CREATED"
+        })
+        if exists:
+            continue
+
+        pr_col.insert_one({
+            "item_id": item["_id"],
+            "item_name": item["item_name"],
+            "required_qty": required_qty,
+            "status": "PR_CREATED",
+            "source": "LOW_STOCK",
+            "created_at": datetime.now()
+        })
+
+    return redirect("inv_app:low_stock")
+
+def download_low_stock_excel(request):
+    if request.method != "POST":
+        return redirect("inv_app:low_stock")
+
+    item_ids = request.POST.getlist("item_ids")
+    if not item_ids:
+        return redirect("inv_app:low_stock")
+
+    inv_col = get_inventory_master_collection()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Low Stock Items"
+
+    ws.append([
+        "Item Name",
+        "Unit",
+        "Current Stock",
+        "Reorder Level",
+        "Required Qty"
+    ])
+
+    for item_id in item_ids:
+        item = inv_col.find_one({"_id": ObjectId(item_id)})
+        if not item:
+            continue
+
+        required_qty = item["reorder_level"] - item["current_qty"]
+
+        ws.append([
+            item["item_name"],
+            item.get("unit"),
+            item["current_qty"],
+            item["reorder_level"],
+            required_qty
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="low_stock_selected.xlsx"'
+    )
+
+    wb.save(response)
+    return response
+
 # Inventory Delete From Master
 def inventory_master_delete(request, pk):
     col = get_inventory_master_collection()
     col.delete_one({"_id": ObjectId(pk)})
-    print("inventory delete ...")
+    # print("inventory delete ...")
     return redirect("inv_app:inventory_master")
 
 # Inventory Stock In

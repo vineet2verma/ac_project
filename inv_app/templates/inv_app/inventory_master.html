@@ -4,77 +4,254 @@
 
 <div class="container-fluid py-3">
 
-    <h5 class="mb-3">Inventory Master</h5>
+    <!-- ================= HEADER ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Inventory Master</h5>
 
-    <!-- ADD / UPDATE FORM -->
-    <form method="POST" class="card p-3 mb-3">
-        {% csrf_token %}
-        <div class="row g-2">
-            <div class="col-md-3">
-                <input name="item_name" class="form-control" placeholder="Item Name" required>
-            </div>
-            <div class="col-md-2">
-                <select name="category" class="form-control">
-                    {% for c in categories %}
-                        <option value="{{ c.category_name }}">{{ c.category_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <input name="location" class="form-control" placeholder="Location">
-            </div>
-            <div class="col-md-1">
-                <input name="unit" class="form-control" placeholder="Unit">
-            </div>
-            <div class="col-md-1">
-                <input name="opening_qty" class="form-control" placeholder="Qty">
-            </div>
-            <div class="col-md-1">
-                <input name="rate" class="form-control" placeholder="Rate">
-            </div>
-            <div class="col-md-1">
-                <input name="reorder_level" class="form-control" placeholder="Reorder">
-            </div>
-            <div class="col-md-1">
-                <button class="btn btn-success w-100">Save</button>
-            </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'inv_app:low_stock' %}"
+               class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-exclamation-triangle"></i> Low Stock
+            </a>
+
+
+            <!-- TEMPLATE DOWNLOAD -->
+            <a href="{% url 'inv_app:inventory_template' %}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download"></i> Template
+            </a>
+
+            <!-- BULK UPLOAD -->
+            <button class="btn btn-outline-primary btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#bulkUploadModal">
+                <i class="bi bi-upload"></i> Bulk Upload
+            </button>
+
+            <!-- ADD ITEM -->
+            <button class="btn btn-success btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#inventoryModal">
+                <i class="bi bi-plus-circle"></i> Add Item
+            </button>
+
         </div>
-    </form>
+    </div>
 
-    <!-- LIST -->
-    <table class="table table-sm table-bordered">
-        <thead class="table-light">
-        <tr>
-            <th>Item</th>
-            <th>Stock</th>
-            <th>Rate</th>
-            <th width="90">Action</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for i in items %}
-        <tr>
-            <td>{{ i.item_name }}</td>
-            <td>{{ i.current_qty }}</td>
-            <td>{{ i.rate }}</td>
-            <td class="text-center">
-                <form method="POST"
-                      action="{% url 'inv_app:inventory_master_delete' i.id %}"
-                      onsubmit="return confirm('Delete this item?');">
-                    {% csrf_token %}
-                    <button class="btn btn-danger btn-sm">
-                        <i class="bi bi-trash"></i>
+    <!-- ================= INVENTORY TABLE ================= -->
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Unit</th>
+                <th class="text-end">Stock</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Reorder</th>
+                <th class="text-center" style="width:120px;">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            {% for i in items %}
+            <tr>
+                <td>{{ i.item_name }}</td>
+                <td>{{ i.category }}</td>
+                <td>{{ i.location }}</td>
+                <td>{{ i.unit }}</td>
+                <td class="text-end">{{ i.current_qty }}</td>
+                <td class="text-end">{{ i.rate }}</td>
+                <td class="text-end">{{ i.reorder_level }}</td>
+
+                <td class="text-center">
+
+                    <!-- EDIT -->
+                    <button class="btn btn-link p-0 text-primary edit-btn"
+                            data-id="{{ i.id }}"
+                            data-name="{{ i.item_name }}"
+                            data-category="{{ i.category }}"
+                            data-location="{{ i.location }}"
+                            data-unit="{{ i.unit }}"
+                            data-rate="{{ i.rate }}"
+                            data-reorder="{{ i.reorder_level }}"
+                            data-bs-toggle="modal"
+                            data-bs-target="#inventoryModal">
+                        <i class="bi bi-pencil-square"></i>
                     </button>
-                </form>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="4" class="text-center text-muted">No items</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+
+                    <!-- DELETE -->
+                    <form method="POST"
+                          action="{% url 'inv_app:inventory_master_delete' i.id %}"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete this item?');">
+                        {% csrf_token %}
+                        <button class="btn btn-link p-0 text-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted py-3">
+                    No inventory items found
+                </td>
+            </tr>
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
 
 </div>
+
+<!-- ================= ADD / EDIT INVENTORY MODAL ================= -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+
+        <form method="POST"
+              action="{% url 'inv_app:inventory_master' %}"
+              class="modal-content">
+
+            {% csrf_token %}
+            <input type="hidden" name="item_id" id="item_id">
+
+            <div class="modal-header">
+                <h6 class="modal-title">Inventory Item</h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row g-2">
+
+                    <div class="col-md-6">
+                        <label class="form-label">Item Name</label>
+                        <input type="text" name="item_name" id="item_name"
+                               class="form-control form-control-sm" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Category</label>
+                        <select name="category" id="category"
+                                class="form-select form-select-sm" required>
+
+                            <option value="">-- Select Category --</option>
+
+                            {% for c in categories %}
+                            <option value="{{ c.category_name }}">{{ c.category_name }}</option>
+                            {% endfor %}
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location" id="location"
+                               class="form-control form-control-sm">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Unit</label>
+                        <select name="unit" id="unit"
+                                class="form-select form-select-sm" required>
+                            <option value="">-- Select Unit --</option>
+                            <option value="SqFt">SqFt</option>
+                            <option value="PCS">PCS</option>
+                            <option value="QTY">QTY</option>
+                            <option value="BOX">BOX</option>
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Opening Qty</label>
+                        <input type="number" step="0.01" name="opening_qty"
+                               class="form-control form-control-sm">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Rate</label>
+                        <input type="number" step="0.01" name="rate" id="rate"
+                               class="form-control form-control-sm" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Reorder Level</label>
+                        <input type="number" step="0.01" name="reorder_level" id="reorder_level"
+                               class="form-control form-control-sm">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-success btn-sm w-100">
+                    Save
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- ================= BULK UPLOAD MODAL ================= -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+
+        <form method="POST"
+              action="{% url 'inv_app:inventory_bulk_upload' %}"
+              enctype="multipart/form-data"
+              class="modal-content">
+
+            {% csrf_token %}
+
+            <div class="modal-header">
+                <h6 class="modal-title">Bulk Upload Inventory</h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="file"
+                       name="excel_file"
+                       class="form-control form-control-sm"
+                       accept=".xlsx"
+                       required>
+
+                <small class="text-muted d-block mt-2">
+                    Upload Excel using the downloaded template only.
+                </small>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-sm w-100">
+                    Upload
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- ================= JS FOR EDIT ================= -->
+<script>
+document.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+
+        document.getElementById("item_id").value = this.dataset.id;
+        document.getElementById("item_name").value = this.dataset.name;
+        document.getElementById("category").value = this.dataset.category || "";
+        document.getElementById("location").value = this.dataset.location || "";
+        document.getElementById("unit").value = this.dataset.unit || "";
+        document.getElementById("rate").value = this.dataset.rate;
+        document.getElementById("reorder_level").value = this.dataset.reorder;
+    });
+});
+</script>
 {% endblock %}
