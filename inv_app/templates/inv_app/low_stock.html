@@ -20,7 +20,8 @@
         </button>
 
         <button formaction="{% url 'inv_app:download_low_stock_excel' %}"
-                class="btn btn-outline-primary btn-sm">
+                class="btn btn-outline-primary btn-sm"
+                onclick="return ensureSelection();">
             Download Excel
         </button>
 
@@ -60,7 +61,7 @@
     <td class="text-end fw-bold">{{ i.current_qty }}</td>
     <td class="text-end">{{ i.reorder_level }}</td>
     <td class="text-end fw-bold">
-        {{ i.reorder_level|floatformat:2|add:""|floatformat:2 }}
+        {{ i.required_qty|floatformat:2 }}
     </td>
 </tr>
 {% empty %}
@@ -83,6 +84,17 @@ document.getElementById("selectAll").addEventListener("change", function () {
         cb.checked = this.checked;
     });
 });
+</script>
+
+<script>
+function ensureSelection() {
+    const checked = document.querySelectorAll(".row-check:checked").length;
+    if (!checked) {
+        alert("Please select at least one item.");
+        return false;
+    }
+    return true;
+}
 </script>
 
 {% endblock %}

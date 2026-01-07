@@ -139,7 +139,7 @@
     </div>
     
     <!-- ================= DESIGN FILES ================= -->
-<!--    {% if "ADMIN" in roles or "MANAGER" in roles or "DESIGNER" in roles %}-->
+    {% if can_qc %}
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">Design Files</h5>
@@ -234,7 +234,7 @@
 
 
     <!-- ================= INVENTORY ================= -->
-    {% if "ADMIN" in roles or "MANAGER" in roles or "INVENTORY" in roles %}
+    {% if can_qc %}
     <div class="mb-4">
 
       <!-- HEADER -->
@@ -352,7 +352,7 @@
 </div>
 
     <!-- ================= MACHINE DETAILS ================= -->
-    {% if "ADMIN" in roles or "MANAGER" in roles or "PRODUCTION" in roles %}
+    {% if can_production %}
     <div class="mb-4">
         <div
                 class="d-flex justify-content-between align-items-center flex-wrap gap-2"
@@ -447,7 +447,7 @@
     {% endif %}
     
     <!-- ================= QUALITY CHECK ================= -->
-    {% if "ADMIN" in roles or "MANAGER" in roles or "DISPATCH" in roles %}
+    {% if can_qc %}
     <div class="mb-4">
         <h5 class="mb-2">QC Check</h5>
         
@@ -502,7 +502,7 @@
     {% endif %}
     
     <!-- ================= DISPATCH ================= -->
-    {% if "ADMIN" in roles or "MANAGER" in roles or "DISPATCH" in roles %}
+    {% if can_dispatch %}
     <div class="mb-4">
         <h5 class="mb-2">Dispatch</h5>
         

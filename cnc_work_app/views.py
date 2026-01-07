@@ -13,7 +13,8 @@ from bson import ObjectId
 from accounts_app.views import mongo_login_required, mongo_role_required
 # Mongo db
 from .mongo import  *
-
+# Permission
+from utils.permissions import get_user_permissions
 
 # CNC Order List
 def cnc_order_list(request):
@@ -275,6 +276,7 @@ def order_delete(request, pk):
 # Order detail page
 @mongo_login_required
 def order_detail(request, pk):
+
     order_col = get_orders_collection()
     design_col = get_design_files_collection()
     machine_master_col = get_machine_master_collection()
@@ -296,16 +298,12 @@ def order_detail(request, pk):
         f["id"] = str(f["_id"])
 
     # ----------------- INVENTORY MASTER (Dropdown) -----------------
-
     inventory_items = list(inv_master_col.find({"is_active": True}))
-
     for i in inventory_items:
         i["id"] = str(i["_id"])  # 🔥 VERY IMPORTANT
 
     # ----------------- ORDER INVENTORY (TABLE) -----------------
-    order_inventory = list(
-        order_inv_col.find({"order_id": ObjectId(pk)})
-    )
+    order_inventory = list(order_inv_col.find({"order_id": ObjectId(pk)}))
     for oi in order_inventory:
         oi["id"] = str(oi["_id"])  # ✅ THIS WAS MISSING
 
@@ -341,7 +339,9 @@ def order_detail(request, pk):
         {"username": 1, "full_name": 1}
     ))
 
-    # print(f"Order Inventory: {(inventory_items)}")
+    permissions = get_user_permissions(request)
+
+
 
     context = {
         "order": order,
@@ -358,12 +358,19 @@ def order_detail(request, pk):
         "dispatches": dispatches,
         # Sales Person
         "sales_users": sales_users,
-
-
+        # Permission
+        "can_qc": permissions["qc"],
+        "can_dispatch": permissions["dispatch"],
+        "can_inventory": permissions["inventory"],
+        "can_sales": permissions["sales"],
+        "can_production": permissions["production"],
+        "is_admin": permissions["override"],
     }
 
     # ---------------- RENDER ----------------
     return render(request, "cnc_work_app/detail.html", context )
+
+
 
 
 # Quality & Dispatch Session

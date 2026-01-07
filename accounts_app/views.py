@@ -74,18 +74,15 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-
         user = users_collection().find_one({
             "username": username,
             "is_active": True
         })
 
         if user and check_password(password, user["password"]):
-            # 🔐 manual session
             request.session["mongo_user_id"] = str(user["_id"])
             request.session["mongo_username"] = user["username"]
             request.session["mongo_roles"] = user.get("roles", [])
-
             roles = user.get("roles", [])
 
             print(f"Username: {user['username']} | Roles: {roles}")
@@ -93,20 +90,10 @@ def login_view(request):
             # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
             if "ADMIN" in roles:
                 return redirect("core_app:dashboard")
-            elif "SALES" in roles:
-                return redirect("cnc_work_app:index")
-            elif "DESIGNER" in roles:
-                return redirect("cnc_work_app:index")
-            elif "PRODUCTION" in roles:
-                return redirect("cnc_work_app:index")
-            elif "INVENTORY" in roles:
-                return redirect("cnc_work_app:index")
-            elif "QC" in roles:
+            else:
                 return redirect("cnc_work_app:index")
 
-            else:
-                messages.error(request, "No valid role assigned.")
-                return redirect("accounts_app:login")
+        messages.error(request, "No valid role assigned.")
     return render(request, "accounts_app/login.html")
 
 def logout_view(request):

@@ -9,71 +9,44 @@ from cnc_work_app.mongo import *
 from django.http import Http404
 
 
+# Inventory Templates
+def inventory_template_download(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventory Template"
 
-# Inventory Master
-def inventory_master_view(request):
-    inv_col = get_inventory_master_collection()
-    cat_col = category_collection()
+    ws.append([
+        "item_name",
+        "category",
+        "location",
+        "unit",
+        "opening_qty",
+        "rate",
+        "reorder_level"
+    ])
 
-    # ================= ADD / UPDATE =================
-    if request.method == "POST":
-        item_id = request.POST.get("item_id")
+    # Sample row
+    ws.append([
+        "Blade 10 mm",
+        "Cutting",
+        "Godown-1",
+        "PCS",
+        100,
+        25,
+        20
+    ])
 
-        # ---------- SAFE FLOAT PARSING ----------
-        def to_float(val):
-            try:
-                return float(val)
-            except (TypeError, ValueError):
-                return 0.0
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="inventory_bulk_template.xlsx"'
+    )
 
-        opening_qty = to_float(request.POST.get("opening_qty"))
-        rate = to_float(request.POST.get("rate"))
-        reorder_level = to_float(request.POST.get("reorder_level"))
+    wb.save(response)
+    return response
 
-        # ---------- COMMON DATA ----------
-        base_data = {
-            "item_name": request.POST.get("item_name", "").strip(),
-            "category": request.POST.get("category") or None,
-            "location": request.POST.get("location"),
-            "unit": request.POST.get("unit"),
-            "rate": rate,
-            "reorder_level": reorder_level,
-            "is_active": True,
-        }
-
-        # ================= UPDATE =================
-        if item_id:
-            inv_col.update_one(
-                {"_id": ObjectId(item_id)},
-                {"$set": base_data}
-            )
-
-        # ================= ADD =================
-        else:
-            base_data.update({
-                "opening_qty": opening_qty,
-                "current_qty": opening_qty,   # opening stock only once
-                "created_at": datetime.now()
-            })
-            inv_col.insert_one(base_data)
-
-        return redirect("inv_app:inventory_master")
-
-    # ================= INVENTORY LIST =================
-    items = list(inv_col.find({"is_active": True}).sort("created_at", -1))
-    for i in items:
-        i["id"] = str(i["_id"])
-
-    # ================= CATEGORY LIST =================
-    categories = list(cat_col.find({"is_active": True}))
-    for c in categories:
-        c["id"] = str(c["_id"])
-
-    return render(request, "inv_app/inventory_master.html", {
-        "items": items,
-        "categories": categories,
-    })
-
+# Inventory Bulk Upload
 def inventory_bulk_upload(request):
     if request.method != "POST":
         return redirect("inv_app:inventory_master")
@@ -138,41 +111,77 @@ def inventory_bulk_upload(request):
     # print(f"Inventory Bulk Upload → Added:{added}, Skipped:{skipped}")
     return redirect("inv_app:inventory_master")
 
-def inventory_template_download(request):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Inventory Template"
+# ================= INVENTORY MASTER =================
+def inventory_master_view(request):
+    inv_col = get_inventory_master_collection()
+    cat_col = category_collection()
 
-    ws.append([
-        "item_name",
-        "category",
-        "location",
-        "unit",
-        "opening_qty",
-        "rate",
-        "reorder_level"
-    ])
+    # ================= SAFE FLOAT =================
+    def to_float(val):
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return 0.0
 
-    # Sample row
-    ws.append([
-        "Blade 10 mm",
-        "Cutting",
-        "Godown-1",
-        "PCS",
-        100,
-        25,
-        20
-    ])
+    # ================= ADD / UPDATE =================
+    if request.method == "POST":
+        item_id = request.POST.get("item_id")
 
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = (
-        'attachment; filename="inventory_bulk_template.xlsx"'
-    )
+        opening_qty = to_float(request.POST.get("opening_qty"))
+        rate = to_float(request.POST.get("rate"))
+        reorder_level = to_float(request.POST.get("reorder_level"))
 
-    wb.save(response)
-    return response
+        # ---------- COMMON DATA ----------
+        base_data = {
+            "item_name": request.POST.get("item_name", "").strip(),
+            "category": request.POST.get("category") or None,
+            "location": request.POST.get("location", "").strip(),
+            "unit": request.POST.get("unit"),
+            "rate": rate,
+            "reorder_level": reorder_level,
+            "is_active": True,
+            "updated_at": datetime.now()
+        }
+
+        # ================= UPDATE =================
+        if item_id:
+            inv_col.update_one(
+                {"_id": ObjectId(item_id)},
+                {"$set": base_data}
+            )
+
+        # ================= ADD =================
+        else:
+            base_data.update({
+                "opening_qty": opening_qty,
+                "current_qty": opening_qty,   # stock initialized only once
+                "created_at": datetime.now()
+            })
+            inv_col.insert_one(base_data)
+
+        return redirect("inv_app:inventory_master")
+
+    # ================= INVENTORY LIST =================
+    items = list(inv_col.find(
+        {"is_active": True}
+    ).sort("created_at", -1))
+
+    for i in items:
+        i["id"] = str(i["_id"])
+        i.setdefault("current_qty", 0)
+        i.setdefault("rate", 0)
+        i.setdefault("reorder_level", 0)
+
+    # ================= CATEGORY LIST =================
+    categories = list(cat_col.find({"is_active": True}))
+    for c in categories:
+        c["id"] = str(c["_id"])
+
+    return render(request, "inv_app/inventory_master.html", {
+        "items": items,
+        "categories": categories,
+    })
+
 
 # Low Stock Alert
 def low_stock_alert(request):
@@ -299,17 +308,23 @@ def download_low_stock_excel(request):
     ])
 
     for item_id in item_ids:
-        item = inv_col.find_one({"_id": ObjectId(item_id)})
+        try:
+            item = inv_col.find_one({"_id": ObjectId(item_id)})
+        except Exception:
+            continue
+
         if not item:
             continue
 
-        required_qty = item["reorder_level"] - item["current_qty"]
+        current = float(item.get("current_qty", 0))
+        reorder = float(item.get("reorder_level", 0))
+        required_qty = max(reorder - current, 0)
 
         ws.append([
-            item["item_name"],
-            item.get("unit"),
-            item["current_qty"],
-            item["reorder_level"],
+            item.get("item_name", ""),
+            item.get("unit", ""),
+            current,
+            reorder,
             required_qty
         ])
 
@@ -752,58 +767,3 @@ def category_delete(request, pk):
     col = category_collection()
     col.delete_one({"_id": ObjectId(pk)})
     return redirect("inv_app:category_master")
-
-
-
-# already done in cnc order consume
-# def add_order_inventory(request, order_id):
-#     inv_col = get_inventory_master_collection()
-#     ledger_col = get_inventory_ledger_collection()
-#     order_inv_col = get_order_inventory_collection()
-#
-#     if request.method == "POST":
-#         item_id = request.POST.get("item_id")
-#         qty = float(request.POST.get("qty"))
-#
-#         item = inv_col.find_one({"_id": ObjectId(item_id)})
-#         if not item:
-#             raise Exception("Item not found")
-#
-#         if item["current_qty"] < qty:
-#             raise Exception("Insufficient stock")
-#
-#         # 🔹 1. SAVE ORDER INVENTORY
-#         order_inv_col.insert_one({
-#             "order_id": ObjectId(order_id),
-#             "item_id": item["_id"],
-#             "item_name": item["item_name"],
-#             "qty": qty,
-#             "rate": item["rate"],
-#             "total": qty * item["rate"],
-#             "created_at": datetime.now()
-#         })
-#
-#         # 🔹 2. LEDGER ENTRY (OUT)
-#         ledger_col.insert_one({
-#             "item_id": item["_id"],
-#             "item_name": item["item_name"],
-#             "location": item["location"],
-#             "qty": qty,
-#             "rate": item["rate"],
-#             "amount": qty * item["rate"],
-#             "txn_type": "OUT",
-#             "source": "ORDER",
-#             "ref_id": ObjectId(order_id),
-#             "created_at": datetime.now()
-#         })
-#
-#         # 🔹 3. UPDATE INVENTORY MASTER
-#         inv_col.update_one(
-#             {"_id": item["_id"]},
-#             {"$inc": {"current_qty": -qty}}
-#         )
-#
-#         return redirect("cnc_work_app:detail", pk=order_id)
-
-
-
