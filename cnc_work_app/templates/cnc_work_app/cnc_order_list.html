@@ -342,12 +342,14 @@
                     </tr>
                 </table>
 
+
                 <div class="d-flex gap-3">
+                {% if "ADMIN" in roles or "MANAGER" in roles %}
                     <a href="{% url 'cnc_work_app:order_delete' img.id %}"
                        class="btn btn-outline-danger btn-sm w-25">
                         <i class="bi bi-trash"></i> Delete
                     </a>
-
+                {% endif %}
                     <a href="{% url 'cnc_work_app:detail' img.id %}"
                        class="btn btn-outline-success btn-sm w-75">
                         <i class="bi bi-eye-fill"></i> View Details

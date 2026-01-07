@@ -1,7 +1,7 @@
 # Create your views here.
-from datetime import datetime, date
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from datetime import datetime, date
 from django.contrib import messages
 from django.core.paginator import Paginator
 # Create your views here.
@@ -10,17 +10,9 @@ from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http40
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 from bson import ObjectId
+from accounts_app.views import mongo_login_required, mongo_role_required
 # Mongo db
-from .mongo import (get_orders_collection,
-                    get_design_files_collection,
-                    get_order_inventory_collection,
-                    get_machine_master_collection, get_machine_work_collection,
-                    get_inventory_master_collection,
-                    get_inventory_ledger_collection,
-                    get_quality_collection, get_dispatch_collection,
-                    users_collection,
-                    )
-
+from .mongo import  *
 
 
 # CNC Order List
@@ -167,6 +159,7 @@ def add_order(request):
 
 
 # Edit Order
+@mongo_login_required
 def order_edit(request, pk):
     order_collection = get_orders_collection()
 
@@ -243,6 +236,7 @@ def order_edit(request, pk):
 
 
 # Delete Order
+@mongo_login_required
 def order_delete(request, pk):
     order_collection = get_orders_collection()
 
@@ -279,6 +273,7 @@ def order_delete(request, pk):
 
 
 # Order detail page
+@mongo_login_required
 def order_detail(request, pk):
     order_col = get_orders_collection()
     design_col = get_design_files_collection()
@@ -372,7 +367,7 @@ def order_detail(request, pk):
 
 
 # Quality & Dispatch Session
-# Order Quality Check
+@mongo_login_required
 def add_quality_check(request, order_id):
     if request.method == "POST":
         qc_collection = get_quality_collection()
@@ -397,6 +392,7 @@ def add_quality_check(request, order_id):
 
 
 # Order Dispatches
+@mongo_login_required
 def add_dispatch(request, order_id):
     order_collection = get_orders_collection()
     dispatch_collection = get_dispatch_collection()  # 👈 aapko ye function banana hoga
