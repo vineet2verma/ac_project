@@ -2,14 +2,11 @@
 from datetime import datetime, date
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, redirect
 from cnc_work_app.mongo import *
 from bson import ObjectId
-from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
-
 
 # Create your views here.
-
 # # Machine Master
 # ================= MACHINE MASTER LIST =================
 def machine_master_view(request):

@@ -17,6 +17,7 @@ from .mongo import  *
 from utils.permissions import get_user_permissions
 
 # CNC Order List
+@mongo_login_required
 def cnc_order_list(request):
     order_collection = get_orders_collection()
 
@@ -98,6 +99,9 @@ def cnc_order_list(request):
     paginator = Paginator(range(total_count), per_page)
     page_obj = paginator.get_page(page)
 
+    # ================= PERMISSION =================
+    permissions = get_user_permissions(request)
+
     context = {
         "images": orders,
         "page_obj": page_obj,
@@ -105,6 +109,14 @@ def cnc_order_list(request):
         "total": total_count,
         "sales_users": sales_users,
         "quick_status": quick_status,  # for dropdown selection
+        # Permission
+        "can_qc": permissions["qc"],
+        "can_dispatch": permissions["dispatch"],
+        "can_inventory": permissions["inventory"],
+        "can_sales": permissions["sales"],
+        "can_production": permissions["production"],
+        "is_admin": permissions["override"],
+
     }
 
 
