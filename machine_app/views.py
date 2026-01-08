@@ -101,22 +101,58 @@ def add_machine_work(request, order_id):
 
 @require_POST
 def machine_work_start(request, order_id, work_id):
+
     work_col = get_machine_work_collection()
     order_inv_col = get_order_inventory_collection()
+    inv_master_col = get_inventory_master_collection()
     ledger_col = get_inventory_ledger_collection()
-    design_col = get_design_files_collection()
 
+    # 1️⃣ FETCH MACHINE WORK
     work = work_col.find_one({"_id": ObjectId(work_id)})
-    if not work or work.get("status") != "PENDING":
+    if not work:
         return redirect("cnc_work_app:detail", pk=order_id)
 
-    # ===== CONSUME INVENTORY =====
+    # 🔒 Prevent double start
+    if work.get("status") in ["IN_PROGRESS", "COMPLETED"]:
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    # 2️⃣ CHECK IF ANY RESERVED MATERIAL EXISTS
     reserved_items = list(order_inv_col.find({
-        "order_id": order_id,
+        "order_id": ObjectId(order_id),
         "status": "RESERVED"
     }))
 
+    if not reserved_items:
+        # ❌ No material reserved → do not start machine
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    # 3️⃣ CONSUME RESERVED MATERIAL (ONLY ONCE)
     for r in reserved_items:
+
+        item = inv_master_col.find_one({
+            "_id": ObjectId(r["inventory_id"])
+        })
+        if not item:
+            continue
+
+        qty = float(r.get("reserved_qty", 0))
+        rate = float(item.get("rate", 0))
+
+        # 🔥 CONSUME LEDGER ENTRY
+        ledger_col.insert_one({
+            "item_id": item["_id"],
+            "item_name": item["item_name"],
+            "order_id": ObjectId(order_id),
+            "qty": qty,
+            "unit_cost": rate,
+            "total_cost": qty * rate,
+            "txn_type": "CONSUME",
+            "source": "MACHINE_START",
+            "ref_id": ObjectId(work_id),
+            "created_at": datetime.now()
+        })
+
+        # 🔁 MARK INVENTORY AS CONSUMED
         order_inv_col.update_one(
             {"_id": r["_id"]},
             {"$set": {
@@ -125,24 +161,7 @@ def machine_work_start(request, order_id, work_id):
             }}
         )
 
-        ledger_col.insert_one({
-            "item_id": r["inventory_id"],
-            "item_name": r["item_name"],
-            "order_id": order_id,
-            "qty": r["reserved_qty"],
-            "txn_type": "CONSUME",
-            "source": "MACHINE_START",
-            "ref_id": ObjectId(work_id),   # ✅ FIXED
-            "created_at": datetime.now()
-        })
-
-    # ===== LOCK DESIGN =====
-    design_col.update_many(
-        {"order_id": order_id, "status": "APPROVED"},
-        {"$set": {"status": "USED", "used_at": datetime.now()}}
-    )
-
-    # ===== START MACHINE =====
+    # 4️⃣ START MACHINE WORK
     work_col.update_one(
         {"_id": ObjectId(work_id)},
         {"$set": {

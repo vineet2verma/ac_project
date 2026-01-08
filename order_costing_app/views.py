@@ -4,6 +4,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect
 from cnc_work_app.mongo import *
 from bson import ObjectId
+from collections import defaultdict
 
 
 # Create your views here.
@@ -19,6 +20,7 @@ def order_costing_view(request, order_id):
     dispatch_col = get_dispatch_collection()
 
     # ---------- ORDER ----------
+    order_oid = ObjectId(order_id)
     order = order_col.find_one({"_id": ObjectId(order_id)})
     order["id"] = str(order["_id"])
 
@@ -26,7 +28,7 @@ def order_costing_view(request, order_id):
     material_cost = sum(
         l.get("total_cost", 0)
         for l in ledger_col.find({
-            "order_id": order_id,
+            "order_id": order_oid,
             "txn_type": "CONSUME"
         })
     )
@@ -34,7 +36,7 @@ def order_costing_view(request, order_id):
     # ---------- MACHINE COST ----------
     machine_cost = 0
     for m in machine_col.find({
-        "order_id": order_id,
+        "order_id": order_oid,
         "status": "COMPLETED"
     }):
         mach = machine_master.find_one(
@@ -48,7 +50,7 @@ def order_costing_view(request, order_id):
     design_cost = sum(
         d.get("hours", 0) * d.get("rate_per_hour", 0)
         for d in design_col.find({
-            "order_id": order_id,
+            "order_id": order_oid,
             "status": {"$in": ["APPROVED", "USED"]}
         })
     )
@@ -57,14 +59,14 @@ def order_costing_view(request, order_id):
     qc_cost = sum(
         q.get("qc_cost", 0)
         for q in qc_col.find({
-            "order_id": order_id,
+            "order_id": order_oid,
             "status": "PASSED"
         })
     )
 
     # ---------- DISPATCH COST ----------
     dispatch = dispatch_col.find_one({
-        "order_id": order_id,
+        "order_id": order_oid,
         "status": "DISPATCHED"
     }) or {}
 
@@ -81,12 +83,35 @@ def order_costing_view(request, order_id):
         + dispatch_cost
     )
 
+    # ---------- MATERIAL BREAKDOWN ----------
+    material_rows = []
+    material_map = defaultdict(lambda: {
+        "item_name": "",
+        "qty": 0,
+        "unit_cost": 0,
+        "total_cost": 0
+    })
+
+    for l in ledger_col.find({
+        "order_id": order_oid,
+        "txn_type": "CONSUME"
+    }):
+        key = str(l["item_id"])
+
+        material_map[key]["item_name"] = l.get("item_name", "-")
+        material_map[key]["qty"] += float(l.get("qty", 0))
+        material_map[key]["unit_cost"] = float(l.get("unit_cost", 0))
+        material_map[key]["total_cost"] += float(l.get("total_cost", 0))
+
+    material_rows = list(material_map.values())
+
     return render(
         request,
         "order_costing/order_costing.html",
         {
             "order": order,
-            "order_id": str(order["id"]),  # ✅ SAFE
+            "order_id": str(order["id"]),
+            "material_rows": material_rows,  # ✅ NEW
             "material_cost": material_cost,
             "machine_cost": machine_cost,
             "design_cost": design_cost,

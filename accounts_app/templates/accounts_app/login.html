@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>System Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    
     <style>
         * { box-sizing: border-box; }
 
@@ -141,30 +141,35 @@
 <!-- ================= LOGIN ================= -->
 <div class="login-box">
     <h3>System Login</h3>
-
+    
     <form method="POST" id="loginForm">
         {% csrf_token %}
-
+        
         <input type="text" name="username" placeholder="Username" required>
-
+        
         <div class="password-wrapper">
             <input type="password" name="password" id="password"
                    placeholder="Password" required>
             <span class="toggle-eye" onclick="togglePassword()">👁️</span>
         </div>
-
+        
         <button type="submit" id="loginBtn">Login</button>
     </form>
-
+    
     <div class="login-links">
         <a href="{% url 'accounts_app:signup' %}">Create User</a>
         <a href="{% url 'accounts_app:forgot_password' %}">Forgot Password?</a>
     </div>
-
+    
     {% if messages %}
-        {% for msg in messages %}
-            <div class="error">{{ msg }}</div>
-        {% endfor %}
+    {% for message in messages %}
+    <div class="alert
+      {% if message.tags == 'success' %}alert-success
+      {% elif message.tags == 'error' %}alert-danger
+      {% else %}alert-info{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
     {% endif %}
 </div>
 

@@ -518,29 +518,46 @@ def inventory_check(request, order_id):
     }))
 
     for r in records:
+        r["id"] = str(r["_id"])
+        r["required_qty"] = float(r.get("required_qty", 0))
+        r["reserved_qty"] = float(r.get("reserved_qty", 0))
+
         item = inv_master_col.find_one({
             "_id": ObjectId(r["inventory_id"])
         })
 
+        r["item_name"] = item.get("item_name") if item else "-"
+
+        # 🔒 1. LOCKED STATES FIRST (MOST IMPORTANT)
+        if r.get("status") == "RESERVED":
+            r["status_calc"] = "RESERVED"
+            r["available_qty"] = "-"
+            r["shortage_qty"] = "-"
+            continue
+
+        if r.get("status") == "CONSUMED":
+            r["status_calc"] = "CONSUMED"
+            r["available_qty"] = "-"
+            r["shortage_qty"] = "-"
+            continue
+
+        # ❌ 2. INVALID ITEM
         if not item:
             r["status_calc"] = "INVALID"
             r["available_qty"] = 0
             r["shortage_qty"] = r["required_qty"]
+            continue
+
+        # 📦 3. CHECK STOCK ONLY FOR PENDING
+        available = float(item.get("current_qty", 0))
+        r["available_qty"] = available
+
+        if available >= r["required_qty"]:
+            r["status_calc"] = "AVAILABLE"
+            r["shortage_qty"] = "-"
         else:
-            available = float(item.get("current_qty", 0))
-            required = float(r.get("required_qty", 0))
-
-            if available >= required:
-                r["status_calc"] = "AVAILABLE"
-                r["shortage_qty"] = 0
-            else:
-                r["status_calc"] = "SHORTAGE"
-                r["shortage_qty"] = required - available
-
-            r["available_qty"] = available
-            r["item_name"] = item.get("item_name")
-
-        r["id"] = str(r["_id"])
+            r["status_calc"] = "SHORTAGE"
+            r["shortage_qty"] = r["required_qty"] - available
 
     return render(request, "inv_app/inventory_check.html", {
         "records": records,
@@ -549,30 +566,33 @@ def inventory_check(request, order_id):
 
 
 def inventory_reserve(request, inv_id):
+
     order_inv_col = get_order_inventory_collection()
     inv_master_col = get_inventory_master_collection()
     ledger_col = get_inventory_ledger_collection()
 
     rec = order_inv_col.find_one({"_id": ObjectId(inv_id)})
     if not rec:
-        raise Http404("Order inventory record not found")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    if rec.get("status") == "RESERVED":
-        raise Http404("Inventory already reserved")
+    # 🔒 Already reserved or consumed → do nothing
+    if rec.get("status") in ["RESERVED", "CONSUMED"]:
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     item = inv_master_col.find_one({
         "_id": ObjectId(rec["inventory_id"])
     })
     if not item:
-        raise Http404("Inventory item not found")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     available = float(item.get("current_qty", 0))
     required = float(rec.get("required_qty", 0))
 
+    # ❌ Not enough stock → do nothing
     if available < required:
-        raise Http404("Stock insufficient")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # 🔒 LOCK STOCK
+    # ================= LOCK STOCK =================
     inv_master_col.update_one(
         {"_id": item["_id"]},
         {"$inc": {"current_qty": -required}}
@@ -598,8 +618,7 @@ def inventory_reserve(request, inv_id):
         "created_at": datetime.now()
     })
 
-    return redirect(request.META.get("HTTP_REFERER"))
-
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 def create_purchase_requisition(request, inv_id):

@@ -85,8 +85,6 @@ def login_view(request):
             request.session["mongo_roles"] = user.get("roles", [])
             roles = user.get("roles", [])
 
-            print(f"Username: {user['username']} | Roles: {roles}")
-
             # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
             if "ADMIN" in roles:
                 return redirect("core_app:dashboard")
