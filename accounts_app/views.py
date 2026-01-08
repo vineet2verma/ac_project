@@ -96,6 +96,7 @@ def login_view(request):
         messages.error(request, "No valid role assigned.")
     return render(request, "accounts_app/login.html")
 
+@mongo_login_required
 def logout_view(request):
     request.session.flush()
     return redirect("accounts_app:login")

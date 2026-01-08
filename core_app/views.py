@@ -78,12 +78,36 @@ def get_order_status_counts():
 # Sales Person Report
 def get_sales_person_order_counts():
     order_col = get_orders_collection()
+    users_col = users_collection()  # your users collection
+
     pipeline = [
+        # 1️⃣ Join with users collection
+        {
+            "$lookup": {
+                "from": users_col.name,   # IMPORTANT
+                "localField": "sales_person",
+                "foreignField": "username",
+                "as": "user"
+            }
+        },
+
+        # 2️⃣ Unwind joined user
+        {"$unwind": "$user"},
+
+        # 3️⃣ Filter only SALES role users
+        {
+            "$match": {
+                "user.roles": "SALES",
+                "user.is_active": True
+            }
+        },
+
+        # 4️⃣ Group by sales person + status
         {
             "$group": {
                 "_id": {
                     "sales_person": "$sales_person",
-                    "is_complete": {
+                    "status": {
                         "$cond": [
                             {"$eq": ["$current_status", "Complete"]},
                             "complete",
@@ -95,17 +119,19 @@ def get_sales_person_order_counts():
             }
         }
     ]
+
     result = order_col.aggregate(pipeline)
+
     sales_stats = {}
     for r in result:
         person = r["_id"]["sales_person"]
-        status = r["_id"]["is_complete"]
+        status = r["_id"]["status"]
 
-        if not person:
-            continue
         if person not in sales_stats:
             sales_stats[person] = {"pending": 0, "complete": 0}
+
         sales_stats[person][status] = r["count"]
+
     return sales_stats
 
 # Machine Report
@@ -370,9 +396,9 @@ def dashboard(request):
         # Machine Count
         "machine_reports": get_last_5_days_machine_summary(),
         # 5 days ledger in / out
-        "inv_5day_summary": get_last_5_days_inventory_in_out_summary(),
+        # "inv_5day_summary": get_last_5_days_inventory_in_out_summary(),
         #
-        "order_lifecycle": get_pending_order_lifecycle_summary()
+        # "order_lifecycle": get_pending_order_lifecycle_summary()
     }
     return render(request, "core_app/dashboard.html", context)
 

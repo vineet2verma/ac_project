@@ -28,9 +28,6 @@ cloudinary.config(
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-41w*3atu^bshu!o4=@i-fm-(&!aws8d1%snl(#$ercas0rg$9^'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
