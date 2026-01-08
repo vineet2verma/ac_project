@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Order Costing{% endblock %}
+
+{% block navbartitle %}
+<span class="fw-bold text-primary">Order Costing</span>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    <!-- ================= HEADER ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+        <h5 class="fw-semibold mb-0">
+            Order Costing Sheet
+        </h5>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <a href="{% url 'cnc_work_app:detail' order.id %}"
+               class="btn btn-outline-secondary btn-sm">
+                ← Back to Order
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= ORDER INFO ================= -->
+    <div class="row mb-4">
+
+        <!-- IMAGE -->
+        <div class="col-md-4 text-center">
+            {% if order.image %}
+                <img src="{{ order.image }}"
+                     class="img-fluid rounded border mb-2"
+                     style="max-height:260px;"
+                     alt="{{ order.title }}">
+            {% else %}
+                <p class="text-muted">No Image</p>
+            {% endif %}
+        </div>
+
+        <!-- ORDER DETAILS -->
+        <div class="col-md-8">
+            <table class="table table-sm table-bordered">
+                <tbody>
+                    <tr>
+                        <th style="width:30%">Design Title</th>
+                        <td>{{ order.title }}</td>
+                    </tr>
+                    <tr>
+                        <th>Stone</th>
+                        <td>{{ order.stone }}</td>
+                    </tr>
+                    <tr>
+                        <th>Color</th>
+                        <td>{{ order.color }}</td>
+                    </tr>
+                    <tr>
+                        <th>Coverage Area</th>
+                        <td>{{ order.coverage_area }}</td>
+                    </tr>
+                    <tr>
+                        <th>Party Name</th>
+                        <td>{{ order.party_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sales Person</th>
+                        <td>{{ order.sales_person }}</td>
+                    </tr>
+                    <tr>
+                        <th>Packing</th>
+                        <td>{{ order.packing_instruction }}</td>
+                    </tr>
+                    <tr>
+                        <th>Remarks</th>
+                        <td>{{ order.remarks|default:"-" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- ================= COSTING SUMMARY ================= -->
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Production Cost Summary</h6>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width:40%">Material Cost</th>
+                        <td class="text-end">₹ {{ material_cost }}</td>
+                    </tr>
+                    <tr>
+                        <th>Machine Cost</th>
+                        <td class="text-end">₹ {{ machine_cost }}</td>
+                    </tr>
+                    <tr>
+                        <th>Design Cost</th>
+                        <td class="text-end">₹ {{ design_cost }}</td>
+                    </tr>
+                    <tr>
+                        <th>QC Cost</th>
+                        <td class="text-end">₹ {{ qc_cost }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dispatch Cost</th>
+                        <td class="text-end">₹ {{ dispatch_cost }}</td>
+                    </tr>
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <th>Total Order Cost</th>
+                        <th class="text-end">₹ {{ total_cost }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+@media print {
+    .btn, .navbar, .no-print {
+        display: none !important;
+    }
+    table {
+        font-size: 12px;
+    }
+}
+</style>
+
+{% endblock %}

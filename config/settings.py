@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'todo_app',
     'cloudinary',
     'cloudinary_storage',
+    'order_costing_app',
 
 ]
 

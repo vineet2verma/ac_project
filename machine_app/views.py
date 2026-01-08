@@ -12,9 +12,11 @@ from bson import ObjectId
 def machine_master_view(request):
     col = get_machine_master_collection()
     machines = list(col.find().sort("created_at", -1))
-    # Mongo _id → string for template
-    for m in machines: m["id"] = str(m["_id"])
-    return render(request,"machine_app/machine_master_add.html",{"machines": machines})
+    for m in machines:
+        m["id"] = str(m["_id"])
+    return render(request, "machine_app/machine_master_add.html", {
+        "machines": machines
+    })
 
 @require_POST
 def machine_master_add(request):
@@ -31,6 +33,7 @@ def machine_master_add(request):
         "created_at": timezone.now()
     })
     return redirect("machine_app:machine_master_view")
+
 
 # ================= TOGGLE ACTIVE / INACTIVE IN MASTER=================
 @require_POST
@@ -54,36 +57,127 @@ def machine_master_toggle(request, pk):
 # Add Machine For Order Work
 def add_machine_work(request, order_id):
     if request.method == "POST":
-        machine_id = request.POST.get("machine_id")
-        work_type = request.POST.get("work_type", "ONTIME")
-        working_hour = float(request.POST.get("working_hour"))
-        operator = request.POST.get("operator")
-        remarks = request.POST.get("remarks")
-
-        master_col = get_machine_master_collection()
-        machine = master_col.find_one({"_id": ObjectId(machine_id)})
-
         work_col = get_machine_work_collection()
-        work_col.insert_one({
+        work_id = request.POST.get("machine_work_id")
+
+        data = {
+            "machine_id": request.POST["machine_id"],
+            "work_type": request.POST.get("work_type", "ONTIME"),
+            "working_hour": float(request.POST.get("working_hour", 0)),
+            "operator": request.POST.get("operator"),
+            "remarks": request.POST.get("remarks"),
+        }
+
+        # -------- EDIT (only if PENDING) --------
+        if work_id:
+            work = work_col.find_one({"_id": ObjectId(work_id)})
+            if work and work["status"] == "PENDING":
+                work_col.update_one(
+                    {"_id": work["_id"]},
+                    {"$set": data}
+                )
+
+        # -------- ADD --------
+        else:
+            machine = get_machine_master_collection().find_one(
+                {"_id": ObjectId(request.POST["machine_id"])}
+            )
+
+            work_col.insert_one({
+                "order_id": order_id,
+                "machine_id": request.POST["machine_id"],
+                "machine_name": machine["machine_name"],
+                "work_type": data["work_type"],
+                "work_date": date.today().isoformat(),
+                "working_hour": data["working_hour"],
+                "operator": data["operator"],
+                "remarks": data["remarks"],
+                "status": "PENDING",
+                "created_at": datetime.now()
+            })
+
+    return redirect("cnc_work_app:detail", pk=order_id)
+
+
+@require_POST
+def machine_work_start(request, order_id, work_id):
+    work_col = get_machine_work_collection()
+    order_inv_col = get_order_inventory_collection()
+    ledger_col = get_inventory_ledger_collection()
+    design_col = get_design_files_collection()
+
+    work = work_col.find_one({"_id": ObjectId(work_id)})
+    if not work or work.get("status") != "PENDING":
+        return redirect("cnc_work_app:detail", pk=order_id)
+
+    # ===== CONSUME INVENTORY =====
+    reserved_items = list(order_inv_col.find({
+        "order_id": order_id,
+        "status": "RESERVED"
+    }))
+
+    for r in reserved_items:
+        order_inv_col.update_one(
+            {"_id": r["_id"]},
+            {"$set": {
+                "status": "CONSUMED",
+                "consumed_at": datetime.now()
+            }}
+        )
+
+        ledger_col.insert_one({
+            "item_id": r["inventory_id"],
+            "item_name": r["item_name"],
             "order_id": order_id,
-            "machine_id": machine_id,
-            "machine_name": machine["machine_name"],
-            "work_type": work_type,
-            "work_date": date.today().isoformat(),   # ✅ default today
-            "working_hour": working_hour,
-            "operator": operator,
-            "remarks": remarks,
-            "created_at": datetime.utcnow()
+            "qty": r["reserved_qty"],
+            "txn_type": "CONSUME",
+            "source": "MACHINE_START",
+            "ref_id": ObjectId(work_id),   # ✅ FIXED
+            "created_at": datetime.now()
         })
 
+    # ===== LOCK DESIGN =====
+    design_col.update_many(
+        {"order_id": order_id, "status": "APPROVED"},
+        {"$set": {"status": "USED", "used_at": datetime.now()}}
+    )
+
+    # ===== START MACHINE =====
+    work_col.update_one(
+        {"_id": ObjectId(work_id)},
+        {"$set": {
+            "status": "IN_PROGRESS",
+            "started_at": datetime.now()
+        }}
+    )
+
     return redirect("cnc_work_app:detail", pk=order_id)
 
-# Machine Delete From Order -----
-def machine_delete(request, order_id, machine_work_id):
-    if request.method == "POST":
-        col = get_machine_work_collection()
-        col.delete_one({"_id": ObjectId(machine_work_id)})
+
+@require_POST
+def machine_work_complete(request, order_id, work_id):
+    work_col = get_machine_work_collection()
+
+    work_col.update_one(
+        {"_id": ObjectId(work_id), "status": "IN_PROGRESS"},
+        {"$set": {
+            "status": "COMPLETED",
+            "completed_at": datetime.now()
+        }}
+    )
+
     return redirect("cnc_work_app:detail", pk=order_id)
+
+
+# Machine Delete Only if Pending From Order -----
+@require_POST
+def machine_delete(request, order_id, work_id):
+    col = get_machine_work_collection()
+    m = col.find_one({"_id": ObjectId(work_id)})
+    if m and m["status"] == "PENDING":
+        col.delete_one({"_id": m["_id"]})
+    return redirect("cnc_work_app:detail", pk=order_id)
+
 
 # Machine Edit In Order -----
 def machine_edit(request, order_id, machine_work_id):

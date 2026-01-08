@@ -59,7 +59,7 @@
     <!-- ================= ERP HEADER ================= -->
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom erp-header">
   <div class="d-flex align-items-center gap-3">
-    <a href="{% url 'cnc_work_app:index' %}"
+      <a href="{% url 'cnc_work_app:index' %}"
        class="btn btn-outline-secondary btn-sm rounded-circle">
       <i class="bi bi-arrow-return-left"></i>
     </a>
@@ -69,7 +69,14 @@
   </div>
 
   <div class="erp-header-right d-flex gap-2 align-items-center">
-    <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
+     <!-- 💰 ORDER COSTING -->
+      {% if is_admin %}
+    <a href="{% url 'order_costing_app:order_costing' order.id %}"
+       class="btn btn-outline-primary btn-sm">
+        💰 Order Costing
+    </a>
+      {% endif %}
+      <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
       <i class="bi bi-printer"></i> Print
     </button>
     <span class="badge bg-info py-1 fs-5 text-dark ">{{ order.current_status }}</span>
@@ -353,96 +360,79 @@
     <!-- ================= MACHINE DETAILS ================= -->
     {% if can_production %}
     <div class="mb-4">
-        <div
-                class="d-flex justify-content-between align-items-center flex-wrap gap-2"
-        >
-            <h5 class="mb-0">Machine Details</h5>
+      <div class="d-flex justify-content-between">
+        <h5>Machine Details</h5>
+        <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#machineModal">
+          + Add Machine
+        </button>
+      </div>
 
-            <button
-                    class="btn btn-info btn-sm rounded-pill"
-                    data-bs-toggle="modal"
-                    data-bs-target="#machineModal"
-            >
-                + Add Machine
-            </button>
-        </div>
+      <table class="table table-sm table-bordered mt-2">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Machine</th>
+            <th>Type</th>
+            <th>Hours</th>
+            <th>Operator</th>
+            <th>Status</th>
+            <th width="160">Action</th>
+          </tr>
+        </thead>
 
-        <div class="table-responsive mt-2">
-            <table class="table table-sm table-bordered">
-                <thead class="table-light">
-                <tr>
-                    <th>Date</th>
-                    <th>Machine</th>
-                    <th>Type</th>
-                    <th>Hours</th>
-                    <th>Operator</th>
-                    <th>Remarks</th>
-                    <th style="width: 90px">Action</th>
-                </tr>
-                </thead>
+        <tbody>
+        {% for m in machines %}
+          <tr>
+            <td>{{ m.work_date }}</td>
+            <td>{{ m.machine_name }}</td>
+            <td>
+              <span class="badge {% if m.work_type == 'DOWNTIME' %}bg-danger{% else %}bg-success{% endif %}">
+                {{ m.work_type }}
+              </span>
+            </td>
+            <td>{{ m.working_hour }}</td>
+            <td>{{ m.operator|default:"-" }}</td>
+            <td>
+              {% if m.status == "PENDING" %}
+                <span class="badge bg-secondary">Pending</span>
+              {% elif m.status == "IN_PROGRESS" %}
+                <span class="badge bg-warning text-dark">In Progress</span>
+              {% else %}
+                <span class="badge bg-success">Completed</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
 
-                <tbody>
-                {% for m in machines %}
-                <tr>
-                    <td>{{ m.work_date }}</td>
-                    <td>{{ m.machine_name }}</td>
-                    <td>
-                      <span class="badge {% if m.work_type == 'DOWNTIME' %}bg-danger{% else %}bg-success{% endif %}">
-                        {{ m.work_type|title }}
-                      </span>
-                    </td>
-                    <td>{{ m.working_hour }}</td>
-                    <td>{{ m.operator|default:"-" }}</td>
-                    <td>{{ m.remarks|default:"-" }}</td>
-                    <td class="text-center">
-                        <!-- EDIT -->
-                        <button
-                                type="button"
-                                class="btn btn-link p-0 text-primary edit-machine-btn"
-                                data-id="{{ m.id }}"
-                                data-machine-id="{{ m.machine_id }}"
-                                data-hours="{{ m.working_hour }}"
-                                data-operator="{{ m.operator }}"
-                                data-remarks="{{ m.remarks }}"
-                                data-type="{{ m.work_type }}"
-                                data-bs-toggle="modal"
-                                data-bs-target="#machineModal">
-                            <i class="bi bi-pencil-square"></i>
-                        </button>
+              {% if m.status == "PENDING" %}
+                <form method="post" action="{% url 'machine_app:machine_work_start' order.id m.id %}" style="display:inline">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-success">Start</button>
+                </form>
 
+                <form method="post" action="{% url 'machine_app:machine_delete' order.id m.id %}" style="display:inline">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-danger"
+                          onclick="return confirm('Delete this entry?')">Delete</button>
+                </form>
 
-                        <!-- DELETE -->
-                        <form
-                                method="POST"
-                                action="{% url 'machine_app:machine_delete' order.id m.id %}"
-                                style="display: inline"
-                        >
-                            {% csrf_token %}
-                            <button
-                                    type="submit"
-                                    class="btn btn-link p-0 text-danger"
-                                    onclick="return confirm('Delete this machine entry?')"
-                            >
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">
-                        No machine details added
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+              {% elif m.status == "IN_PROGRESS" %}
+                <form method="post" action="{% url 'machine_app:machine_work_complete' order.id m.id %}">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-primary">Complete</button>
+                </form>
+              {% else %}
+                —
+              {% endif %}
 
-        <!-- TOTAL HOURS -->
-        <div class="text-start mt-2"> Total Working Hours:<strong> {{ total_hours }} hrs</strong>
-        </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-center text-muted">No machine work</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
+
     {% endif %}
     
     <!-- ================= QUALITY CHECK ================= -->
@@ -583,55 +573,32 @@
     }
 </script>
 
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.querySelectorAll(".edit-machine-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
 
-  document.querySelectorAll(".edit-machine-btn").forEach(btn => {
-    btn.addEventListener("click", function () {
+    document.getElementById("machineModalTitle").innerText = "✏️ Edit Machine Work";
 
-      // hidden id
-      document.getElementById("machine_work_id").value = this.dataset.id;
+    document.getElementById("machine_work_id").value = this.dataset.id;
+    document.getElementById("machine_id").value = this.dataset.machineId;
+    document.getElementById("id_working_hour").value = this.dataset.hours;
+    document.getElementById("id_operator").value = this.dataset.operator || "";
+    document.getElementById("id_remarks").value = this.dataset.remarks || "";
+    document.getElementById("id_work_type").value = this.dataset.type;
 
-      // ✅ SET MACHINE DROPDOWN (MAIN FIX)
-      document.getElementById("machine_id").value =
-        this.dataset.machineId;
-
-      // other fields
-      document.getElementById("id_working_hour").value =
-        this.dataset.hours;
-
-      document.getElementById("id_operator").value =
-        this.dataset.operator || "";
-
-      document.getElementById("id_remarks").value =
-        this.dataset.remarks || "";
-
-      document.getElementById("id_work_type").value =
-        this.dataset.type || "ONTIME";
-
-      // ✅ CHANGE FORM ACTION TO EDIT
-      document.querySelector("#machineModal form").action =
-        `/order/{{ order.id }}/machine/${this.dataset.id}/edit/`;
-    });
   });
-
-  /* ================= RESET TO ADD MODE ================= */
-  document.getElementById("machineModal")
-    .addEventListener("hidden.bs.modal", function () {
-
-      const form = this.querySelector("form");
-
-      form.reset();
-      document.getElementById("machine_work_id").value = "";
-      document.getElementById("id_work_type").value = "ONTIME";
-
-      // ✅ RESET FORM ACTION TO ADD
-      form.action = "{% url 'machine_app:add_machine_work' order.id %}";
-    });
-
 });
 
+// Reset modal when adding new
+document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {
+  document.getElementById("machineModalTitle").innerText = "🛠️ Add Machine Work";
+  document.getElementById("machineWorkForm").reset();
+  document.getElementById("machine_work_id").value = "";
+});
+</script>
+
+
+<script>
 // DESIGN FILE ACTION
 function getCSRF() {
   return document.querySelector("[name=csrfmiddlewaretoken]").value;
