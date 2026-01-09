@@ -1,6 +1,7 @@
 import random
 import string
 
+from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
@@ -70,29 +71,55 @@ def forgot_password(request):
         messages.success(request,"If this user exists, the admin will reset the password.")
     return render(request,"accounts_app/forgot_password.html")
 
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.hashers import check_password
+
+
 def login_view(request):
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
+
         user = users_collection().find_one({
             "username": username,
             "is_active": True
         })
 
-        if user and check_password(password, user["password"]):
-            request.session["mongo_user_id"] = str(user["_id"])
-            request.session["mongo_username"] = user["username"]
-            request.session["mongo_roles"] = user.get("roles", [])
-            roles = user.get("roles", [])
+        print(f"user: {user} password: {password}")
 
-            # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
-            if "ADMIN" in roles:
-                return redirect("core_app:dashboard")
-            else:
-                return redirect("cnc_work_app:index")
+        # ❌ Invalid username or password
+        if not user or not check_password(password, user.get("password")):
+            messages.error(request, "Invalid username or password.")
+            return render(request, "accounts_app/login.html")
 
-        messages.error(request, "No valid role assigned.")
+        # ✅ Login success – set session
+        roles = user.get("roles", [])
+
+        request.session["mongo_user_id"] = str(user["_id"])
+        request.session["mongo_username"] = user["username"]
+        request.session["mongo_roles"] = roles
+
+        # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
+        if not roles:
+            messages.error(
+                request,
+                "Your role is not defined. Please contact the administrator."
+            )
+            return redirect("accounts_app:role_not_defined")
+
+        if "ADMIN" in roles:
+            return redirect("core_app:dashboard")
+
+        return redirect("cnc_work_app:index")
+
     return render(request, "accounts_app/login.html")
+
+
+
+def role_not_defined(request):
+    return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
+
 
 @mongo_login_required
 def logout_view(request):

@@ -1,19 +1,18 @@
 from django.urls import path
-from .views import login_view, logout_view, signup_view, forgot_password, admin_reset_password
-from .views import user_master, update_user
+from . import views
 
 app_name = "accounts_app"
 
 urlpatterns = [
-    path("", login_view, name="login"),
-    path("login/", login_view, name="login"),
-    path("logout/", logout_view, name="logout"),
-    path("signup/", signup_view, name="signup"),
-    path("forgot-password/", forgot_password, name="forgot_password"),
-    # path("users/reset-password/<str:user_id>/", admin_reset_password, name="admin_reset_password"),
-    path("users/<str:user_id>/reset-password/",admin_reset_password,name="admin_reset_password"),
+    path("", views.login_view, name="login"),
+    path("login/", views.login_view, name="login"),
+    path("logout/", views.logout_view, name="logout"),
+    path("signup/", views.signup_view, name="signup"),
+    path("forgot-password/", views.forgot_password, name="forgot_password"),
+    path("role-not-defined/", views.role_not_defined, name="role_not_defined"),
+    path("users/<str:user_id>/reset-password/",views.admin_reset_password,name="admin_reset_password"),
     # User
-    path("users/", user_master, name="user_master"),
-    path("users/update/<str:user_id>/", update_user, name="update_user"),
+    path("users/", views.user_master, name="user_master"),
+    path("users/update/<str:user_id>/", views.update_user, name="update_user"),
 
 ]

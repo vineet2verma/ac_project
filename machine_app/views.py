@@ -7,7 +7,6 @@ from cnc_work_app.mongo import *
 from bson import ObjectId
 
 # Create your views here.
-# # Machine Master
 # ================= MACHINE MASTER LIST =================
 def machine_master_view(request):
     col = get_machine_master_collection()
@@ -60,13 +59,19 @@ def add_machine_work(request, order_id):
         work_col = get_machine_work_collection()
         work_id = request.POST.get("machine_work_id")
 
+        work_type = request.POST.get("work_type", "ONTIME")
+
         data = {
             "machine_id": request.POST["machine_id"],
-            "work_type": request.POST.get("work_type", "ONTIME"),
+            "work_type": work_type,
             "working_hour": float(request.POST.get("working_hour", 0)),
             "operator": request.POST.get("operator"),
             "remarks": request.POST.get("remarks"),
         }
+
+        # ✅ AUTO STATUS LOGIC
+        status = "Completed" if work_type == "DOWNTIME" else "Pending"
+
 
         # -------- EDIT (only if PENDING) --------
         if work_id:
@@ -83,6 +88,7 @@ def add_machine_work(request, order_id):
                 {"_id": ObjectId(request.POST["machine_id"])}
             )
 
+
             work_col.insert_one({
                 "order_id": order_id,
                 "machine_id": request.POST["machine_id"],
@@ -92,7 +98,7 @@ def add_machine_work(request, order_id):
                 "working_hour": data["working_hour"],
                 "operator": data["operator"],
                 "remarks": data["remarks"],
-                "status": "PENDING",
+                "status": status,
                 "created_at": datetime.now()
             })
 

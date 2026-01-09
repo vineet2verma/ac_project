@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Access Restricted</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .card {
+            background: #ffffff;
+            width: 420px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 52px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin: 10px 0;
+            color: #333;
+        }
+
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .info {
+            background: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: #2c3e50;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #1a252f;
+        }
+
+        .footer {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="icon">🚫</div>
+    <h2>Access Restricted</h2>
+
+    <p>
+        Your user account does not have any role assigned.
+        Because of this, you are not allowed to access the system.
+    </p>
+
+    <div class="info">
+        <strong>What should you do?</strong><br>
+        Please contact the system administrator and request role
+        assignment for your account.
+    </div>
+
+    <a href="{% url 'accounts_app:logout' %}" class="btn">Logout</a>
+
+    <div class="footer">
+        © {{ year }} Your Company Name
+    </div>
+</div>
+
+</body>
+</html>
