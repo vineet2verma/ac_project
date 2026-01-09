@@ -33,17 +33,22 @@ def get_reorder_inventory_count():
 # Order Status Count
 def get_order_status_counts():
     order_col = get_orders_collection()
+
     pipeline = [
+        # 1️⃣ Break order_status array
+        {"$unwind": "$order_status"},
+
+        # 2️⃣ Only pending statuses
         {
             "$match": {
-                "current_status": {
-                    "$in": ["Design Pending", "Machine", "Inventory Pending", "QC", "Dispatch"]
-                }
+                "order_status.status": "PENDING"
             }
         },
+
+        # 3️⃣ Group by stage
         {
             "$group": {
-                "_id": "$current_status",
+                "_id": "$order_status.stage",
                 "count": {"$sum": 1}
             }
         }
@@ -51,29 +56,31 @@ def get_order_status_counts():
 
     result = order_col.aggregate(pipeline)
 
-    # 🔹 STATUS → KEY MAPPING
-    status_map = {
-        "Design Pending": "design",
-        "Machine": "machine",
-        "Inventory Pending": "inventory",
+    # 🔹 STAGE → KEY MAPPING
+    stage_map = {
+        "DESIGN": "design",
+        "INVENTORY": "inventory",
+        "MACHINE": "machine",
         "QC": "qc",
-        "Dispatch": "dispatch",
+        "DISPATCH": "dispatch",
     }
 
+    # Default response
     counts = {
         "design": 0,
-        "machine": 0,
         "inventory": 0,
+        "machine": 0,
         "qc": 0,
         "dispatch": 0,
     }
 
     for r in result:
-        key = status_map.get(r["_id"])
+        key = stage_map.get(r["_id"])
         if key:
             counts[key] = r["count"]
 
     return counts
+
 
 # Sales Person Report
 def get_sales_person_order_counts():

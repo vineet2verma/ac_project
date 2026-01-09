@@ -151,6 +151,20 @@ def add_order(request):
             if exp_delivery_date else None
         )
 
+        # ---------- INITIAL ORDER STATUS ARRAY ----------
+        order_status = [
+            {
+                "stage": "DESIGN",
+                "status": "PENDING",
+                "updated_at": datetime.now()
+            },
+            {
+                "stage": "INVENTORY",
+                "status": "PENDING",
+                "updated_at": datetime.now()
+            }
+        ]
+
         data = {
             'title': request.POST.get('title'),
             'image': image_url,
@@ -165,6 +179,7 @@ def add_order(request):
             'approval_date': approval_date_obj,
             'exp_delivery_date': exp_delivery_date_obj,
             'current_status': "Design Pending",
+            "order_status": order_status,
         }
         order_collection.insert_one(data)
 
@@ -176,8 +191,9 @@ def add_order(request):
 def order_edit(request, pk):
     order_collection = get_orders_collection()
 
-    # 🔹 Fetch existing order from MongoDB
+    # 🔹 Fetch existing order
     order = order_collection.find_one({"_id": ObjectId(pk)})
+    order["id"] = str(order["_id"])
 
     if not order:
         return redirect("cnc_work_app:index")
@@ -199,18 +215,16 @@ def order_edit(request, pk):
         )
 
         # ---------- IMAGE UPDATE ----------
-        image_url = order.get("image")  # existing image
+        image_url = order.get("image")
         old_public_id = None
 
         if request.FILES.get("image"):
-            # extract public_id from old image URL
             if image_url:
                 try:
                     old_public_id = image_url.split("/")[-1].split(".")[0]
                 except Exception:
                     old_public_id = None
 
-            # upload new image
             result = upload(
                 request.FILES["image"],
                 folder="orders"
@@ -238,14 +252,21 @@ def order_edit(request, pk):
             {"$set": update_data}
         )
 
-        # ---------- DELETE OLD IMAGE (SAFE) ----------
+        # ---------- DELETE OLD IMAGE ----------
         if old_public_id:
             try:
                 destroy(f"orders/{old_public_id}")
             except Exception:
                 pass
 
-    return redirect("cnc_work_app:detail", pk=str(pk))
+        return redirect("cnc_work_app:detail", pk=str(pk))
+
+    # ✅ IMPORTANT: RENDER EDIT PAGE ON GET
+    return render(
+        request,
+        "cnc_work_app/order_edit.html",
+        {"order": order}
+    )
 
 
 # Delete Order
@@ -381,8 +402,6 @@ def order_detail(request, pk):
 
     # ---------------- RENDER ----------------
     return render(request, "cnc_work_app/detail.html", context )
-
-
 
 
 # Quality & Dispatch Session

@@ -75,13 +75,13 @@
                 </div>
 
                 <div class="col">
-                    <small>Machine</small>
-                    <h4 class="text-warning">{{ order_stage_status.machine }}</h4>
+                    <small>Inventory</small>
+                    <h4 class="text-waring">{{ order_stage_status.inventory }}</h4>
                 </div>
 
                 <div class="col">
-                    <small>Inventory</small>
-                    <h4 class="text-info">{{ order_stage_status.inventory }}</h4>
+                    <small>Machine</small>
+                    <h4 class="text-info">{{ order_stage_status.machine }}</h4>
                 </div>
 
                 <div class="col">
@@ -250,7 +250,7 @@
     </div>
 
     <!-- ================= ORDER LIFECYCLE SUMMARY ================= -->
-    <div class="card shadow-sm mt-4">
+    <div class="card shadow-sm mt-4 mb-4">
         <div class="card-header">
             <strong>Pending Order – Complete Lifecycle Summary</strong>
         </div>
@@ -331,6 +331,8 @@
 
         </div>
     </div>
+
+
 
 </div>
 {% endblock %}

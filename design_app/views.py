@@ -44,19 +44,73 @@ def add_design_file(request, pk):
     return redirect("cnc_work_app:detail", pk=pk)
 
 # Add Design Action
-def design_action(request, design_id, action):
-    collection = get_design_files_collection()
+from bson import ObjectId
+from datetime import datetime
 
-    if action in ["approve", "cancel"]:
-        collection.update_one(
+
+def design_action(request, design_id, action):
+    design_col = get_design_files_collection()
+    order_col = get_orders_collection()
+
+    design = design_col.find_one({"_id": ObjectId(design_id)})
+
+    if not design:
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    order_id = design.get("order_id")
+
+    if action == "approve" and order_id:
+
+        # 1️⃣ Update design file
+        design_col.update_one(
             {"_id": ObjectId(design_id)},
-            {"$set": {
-                "status": "approved" if action == "approve" else "cancelled",
-                "approved_at": datetime.utcnow()
-            }}
+            {
+                "$set": {
+                    "status": "approved",
+                    "approved_at": datetime.utcnow()
+                }
+            }
+        )
+
+        # 2️⃣ COMPLETE DESIGN
+        order_col.update_one(
+            {
+                "_id": ObjectId(order_id),
+                "order_status.stage": "DESIGN",
+                "order_status.status": "PENDING"
+            },
+            {
+                "$set": {
+                    "order_status.$.status": "COMPLETE",
+                    "order_status.$.updated_at": datetime.utcnow(),
+                    "current_status": "Machine Pending"
+                }
+            }
+        )
+
+        # 3️⃣ ADD MACHINE (ONLY IF NOT EXISTS)
+        order_col.update_one(
+            {
+                "_id": ObjectId(order_id),
+                "order_status": {
+                    "$not": {
+                        "$elemMatch": {"stage": "MACHINE"}
+                    }
+                }
+            },
+            {
+                "$push": {
+                    "order_status": {
+                        "stage": "MACHINE",
+                        "status": "PENDING",
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            }
         )
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 # Design Delete
 def design_delete(request, order_id, design_id):

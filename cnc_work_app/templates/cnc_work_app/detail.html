@@ -58,31 +58,45 @@
 <div class="container-fluid py-3">
     <!-- ================= ERP HEADER ================= -->
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom erp-header">
-  <div class="d-flex align-items-center gap-3">
-      <a href="{% url 'cnc_work_app:index' %}"
-       class="btn btn-outline-secondary btn-sm rounded-circle">
-      <i class="bi bi-arrow-return-left"></i>
-    </a>
-    <h5 class="fw-semibold text-primary m-0">
-      Title : {{ order.title }} || {{ order.sales_person }}
-    </h5>
-  </div>
 
-  <div class="erp-header-right d-flex gap-2 align-items-center">
-     <!-- 💰 ORDER COSTING -->
-      {% if is_admin %}
-    <a href="{% url 'order_costing_app:order_costing' order.id %}"
-       class="btn btn-outline-primary btn-sm">
-        💰 Order Costing
-    </a>
-      {% endif %}
-      <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
-      <i class="bi bi-printer"></i> Print
-    </button>
-    <span class="badge bg-info py-1 fs-5 text-dark ">{{ order.current_status }}</span>
-  </div>
-</div>
-    
+        <div class="d-flex align-items-center gap-3">
+            <div>
+                <a href="{% url 'cnc_work_app:index' %}" class="btn btn-outline-secondary btn-sm rounded-circle">
+                    <i class="bi bi-arrow-return-left"></i>
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="fw-semibold text-primary m-0">
+                    Title : {{ order.title }} || {{ order.sales_person }}
+                </h5>
+                <!-- ✏️ EDIT ORDER -->
+                {% if is_admin %}
+                <button
+                        class="btn btn-outline-primary btn-sm rounded-circle"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editOrderModal"
+                >
+                    <i class="bi bi-pencil"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="erp-header-right d-flex gap-2 align-items-center">
+            <!-- 💰 ORDER COSTING -->
+            {% if is_admin %}
+            <a href="{% url 'order_costing_app:order_costing' order.id %}"
+               class="btn btn-outline-primary btn-sm">
+                💰 Order Costing
+            </a>
+            {% endif %}
+            <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <span class="badge bg-info py-1 fs-5 text-dark ">{{ order.current_status }}</span>
+        </div>
+    </div>
+
     <!-- ================= IMAGE + ORDER INFO ================= -->
     <div class="row mb-4">
         <div class="col-md-4 text-center">
@@ -144,7 +158,7 @@
             </table>
         </div>
     </div>
-    
+
     <!-- ================= DESIGN FILES ================= -->
     {% if can_qc %}
     <div class="mb-4">
@@ -156,7 +170,7 @@
                 + Add Design
             </button>
         </div>
-        
+
         <div class="table-responsive">
             <table class="table table-sm table-striped mt-2 align-middle">
                 <thead class="table-light">
@@ -168,19 +182,19 @@
                     <th style="width:140px">Action</th>
                 </tr>
                 </thead>
-                
+
                 <tbody>
                 {% for file in design_files %}
                 <tr>
                     <td>{{ file.name }}</td>
-                    
+
                     <td>
                         <a href="{{ file.file_url }}" target="_blank"
                            class="btn btn-outline-secondary btn-sm">
                             View
                         </a>
                     </td>
-                    
+
                     <td>
                     <span class="badge
                         {% if file.status == 'approved' %} bg-success
@@ -189,12 +203,12 @@
                         {{ file.status|title }}
                     </span>
                     </td>
-                    
+
                     <td>{{ file.approved_at|default:"-" }}</td>
-                    
+
                     <td>
                         <div class="d-flex gap-1 action-btn-group">
-                            
+
                             {% if file.status == "pending" %}
                             <!-- APPROVE -->
                             <button class="btn btn-success btn-sm"
@@ -202,7 +216,7 @@
                                     onclick="designAction('{{ file.id }}','approve')">
                                 <i class="bi bi-check-lg"></i>
                             </button>
-                            
+
                             <!-- CANCEL -->
                             <button class="btn btn-warning btn-sm"
                                     title="Cancel"
@@ -210,7 +224,7 @@
                                 <i class="bi bi-x-lg"></i>
                             </button>
                             {% endif %}
-                            
+
                             <!-- DELETE -->
                             <form method="POST"
                                   action="{% url 'design_app:design_delete' order.id file.id %}">
@@ -222,7 +236,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-                        
+
                         </div>
                     </td>
                 </tr>
@@ -243,133 +257,133 @@
     <!-- ================= INVENTORY ================= -->
     {% if can_qc %}
     <div class=" mb-4">
-      <!-- HEADER -->
-      <div class="d-flex justify-content-between align-items-center">
-        <h5>Inventory</h5>
-      </div>
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center">
+            <h5>Inventory</h5>
+        </div>
 
-      <!-- QUICK ACTIONS -->
-        <div class="d-flex justify-content-between align-items-center" >
+        <!-- QUICK ACTIONS -->
+        <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex gap-2 mt-2">
                 <a href="{% url 'inv_app:check' order.id %}"
                    class="btn btn-outline-primary btn-sm">
-                  Inventory Check
+                    Inventory Check
                 </a>
                 <a href="{% url 'inv_app:pr_list' order.id %}"
-               class="btn btn-outline-warning btn-sm">
-              PR List
-            </a>
-          </div>
+                   class="btn btn-outline-warning btn-sm">
+                    PR List
+                </a>
+            </div>
             <button class="btn btn-success btn-sm px-4 "
                     data-bs-toggle="modal"
                     data-bs-target="#inventoryModal">
-              + Add
+                + Add
             </button>
         </div>
 
-      <!-- TABLE -->
-      <div class="table-responsive mt-2">
-        <table class="table table-sm table-bordered align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Item</th>
-              <th class="text-end">Required</th>
-              <th class="text-end">Reserved</th>
-              <th>Status</th>
-              <th width="160">Action</th>
-            </tr>
-          </thead>
-          <tbody>
+        <!-- TABLE -->
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-bordered align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Item</th>
+                    <th class="text-end">Required</th>
+                    <th class="text-end">Reserved</th>
+                    <th>Status</th>
+                    <th width="160">Action</th>
+                </tr>
+                </thead>
+                <tbody>
 
-          {% for inv in order_inventory %}
-          <tr>
-            <td>{{ inv.item_name }}</td>
-            <td class="text-end">{{ inv.required_qty }}</td>
-            <td class="text-end">{{ inv.reserved_qty|default:"-" }}</td>
-            <td>
-              {% if inv.status == "PENDING" %}
-                <span class="badge bg-secondary">Pending</span>
-              {% elif inv.status == "SHORTAGE" %}
-                <span class="badge bg-danger">Shortage</span>
-              {% elif inv.status == "PR_CREATED" %}
-                <span class="badge bg-warning text-dark">PR Created</span>
-              {% elif inv.status == "AVAILABLE" %}
-                <span class="badge bg-success">Available</span>
-              {% elif inv.status == "RESERVED" %}
-                <span class="badge bg-primary">Reserved</span>
-              {% endif %}
-            </td>
+                {% for inv in order_inventory %}
+                <tr>
+                    <td>{{ inv.item_name }}</td>
+                    <td class="text-end">{{ inv.required_qty }}</td>
+                    <td class="text-end">{{ inv.reserved_qty|default:"-" }}</td>
+                    <td>
+                        {% if inv.status == "PENDING" %}
+                        <span class="badge bg-secondary">Pending</span>
+                        {% elif inv.status == "SHORTAGE" %}
+                        <span class="badge bg-danger">Shortage</span>
+                        {% elif inv.status == "PR_CREATED" %}
+                        <span class="badge bg-warning text-dark">PR Created</span>
+                        {% elif inv.status == "AVAILABLE" %}
+                        <span class="badge bg-success">Available</span>
+                        {% elif inv.status == "RESERVED" %}
+                        <span class="badge bg-primary">Reserved</span>
+                        {% endif %}
+                    </td>
 
-            <td class="text-center">
+                    <td class="text-center">
 
-              <!-- DELETE -->
-              {% if inv.status == "PENDING" %}
-              <form method="POST"
-                    action="{% url 'inv_app:delete_inventory' order.id inv.id %}"
-                    class="d-inline">
-                {% csrf_token %}
-                <button class="btn btn-outline-danger btn-sm">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
+                        <!-- DELETE -->
+                        {% if inv.status == "PENDING" %}
+                        <form method="POST"
+                              action="{% url 'inv_app:delete_inventory' order.id inv.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
 
-              <!-- CREATE PR (POST – FIXED) -->
-              {% elif inv.status == "SHORTAGE" %}
-              <form method="POST"
-                    action="{% url 'inv_app:create_pr' inv.id %}"
-                    class="d-inline">
-                {% csrf_token %}
-                <button class="btn btn-outline-warning btn-sm">
-                  <i class="bi bi-cart-plus"></i> Create PR
-                </button>
-              </form>
+                        <!-- CREATE PR (POST – FIXED) -->
+                        {% elif inv.status == "SHORTAGE" %}
+                        <form method="POST"
+                              action="{% url 'inv_app:create_pr' inv.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-cart-plus"></i> Create PR
+                            </button>
+                        </form>
 
-              <!-- RESERVE -->
-              {% elif inv.status == "AVAILABLE" %}
-              <form method="POST"
-                    action="{% url 'inv_app:inventory_reserve' inv.id %}"
-                    class="d-inline">
-                {% csrf_token %}
-                <button class="btn btn-outline-primary btn-sm">
-                  <i class="bi bi-lock-fill"></i> Reserve
-                </button>
-              </form>
+                        <!-- RESERVE -->
+                        {% elif inv.status == "AVAILABLE" %}
+                        <form method="POST"
+                              action="{% url 'inv_app:inventory_reserve' inv.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-lock-fill"></i> Reserve
+                            </button>
+                        </form>
 
-              {% else %}
-                <span class="text-muted small">Locked</span>
-              {% endif %}
+                        {% else %}
+                        <span class="text-muted small">Locked</span>
+                        {% endif %}
 
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">
-              No inventory added
-            </td>
-          </tr>
-          {% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No inventory added
+                    </td>
+                </tr>
+                {% endfor %}
 
-          </tbody>
-        </table>
-      </div>
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
 </div>
 
-    <!-- ================= MACHINE DETAILS ================= -->
-    {% if can_production %}
-    <div class="mb-4">
-      <div class="d-flex justify-content-between">
+<!-- ================= MACHINE DETAILS ================= -->
+{% if can_production %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between">
         <h5>Machine Details</h5>
         <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#machineModal">
-          + Add Machine
+            + Add Machine
         </button>
-      </div>
+    </div>
 
-      <table class="table table-sm table-bordered mt-2">
+    <table class="table table-sm table-bordered mt-2">
         <thead class="table-light">
-          <tr>
+        <tr>
             <th>Date</th>
             <th>Machine</th>
             <th>Type</th>
@@ -377,12 +391,12 @@
             <th>Operator</th>
             <th>Status</th>
             <th width="160">Action</th>
-          </tr>
+        </tr>
         </thead>
 
         <tbody>
         {% for m in machines %}
-          <tr>
+        <tr>
             <td>{{ m.work_date }}</td>
             <td>{{ m.machine_name }}</td>
             <td>
@@ -393,153 +407,158 @@
             <td>{{ m.working_hour }}</td>
             <td>{{ m.operator|default:"-" }}</td>
             <td>
-              {% if m.status == "PENDING" %}
+                {% if m.status == "PENDING" %}
                 <span class="badge bg-secondary">Pending</span>
-              {% elif m.status == "IN_PROGRESS" %}
+                {% elif m.status == "IN_PROGRESS" %}
                 <span class="badge bg-warning text-dark">In Progress</span>
-              {% else %}
+                {% else %}
                 <span class="badge bg-success">Completed</span>
-              {% endif %}
+                {% endif %}
             </td>
             <td class="text-center">
 
-              {% if m.status == "PENDING" %}
-                <form method="post" action="{% url 'machine_app:machine_work_start' order.id m.id %}" style="display:inline">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-success">Start</button>
+                {% if m.status == "PENDING" %}
+                <form method="post" action="{% url 'machine_app:machine_work_start' order.id m.id %}"
+                      style="display:inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-success">Start</button>
                 </form>
 
-                <form method="post" action="{% url 'machine_app:machine_delete' order.id m.id %}" style="display:inline">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-danger"
-                          onclick="return confirm('Delete this entry?')">Delete</button>
+                <form method="post" action="{% url 'machine_app:machine_delete' order.id m.id %}"
+                      style="display:inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Delete this entry?')">Delete
+                    </button>
                 </form>
 
-              {% elif m.status == "IN_PROGRESS" %}
+                {% elif m.status == "IN_PROGRESS" %}
                 <form method="post" action="{% url 'machine_app:machine_work_complete' order.id m.id %}">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-primary">Complete</button>
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-primary">Complete</button>
                 </form>
-              {% else %}
+                {% else %}
                 —
-              {% endif %}
+                {% endif %}
 
             </td>
-          </tr>
+        </tr>
         {% empty %}
-          <tr><td colspan="7" class="text-center text-muted">No machine work</td></tr>
+        <tr>
+            <td colspan="7" class="text-center text-muted">No machine work</td>
+        </tr>
         {% endfor %}
         </tbody>
-      </table>
-    </div>
+    </table>
+</div>
 
-    {% endif %}
-    
-    <!-- ================= QUALITY CHECK ================= -->
-    {% if can_qc %}
-    <div class="mb-4">
-        <h5 class="mb-2">QC Check</h5>
-        
-        <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}" class="card card-body mb-2">
-            {% csrf_token %}
-            <div class="row g-2">
-                <div class="col-md-3"><input name="checked_by" class="form-control form-control-sm"
-                                             placeholder="Checked By" required></div>
-                <div class="col-md-3">
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="pass">Pass</option>
-                        <option value="fail">Fail</option>
-                    </select>
-                </div>
-                <div class="col-md-4"><input name="remarks" class="form-control form-control-sm" placeholder="Remarks">
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-success btn-sm w-100">Submit</button>
-                </div>
+{% endif %}
+
+<!-- ================= QUALITY CHECK ================= -->
+{% if can_qc %}
+<div class="mb-4">
+    <h5 class="mb-2">QC Check</h5>
+
+    <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}" class="card card-body mb-2">
+        {% csrf_token %}
+        <div class="row g-2">
+            <div class="col-md-3"><input name="checked_by" class="form-control form-control-sm"
+                                         placeholder="Checked By" required></div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                </select>
             </div>
-        </form>
-        
-        {% if quality_checks %}
-        <table class="table table-sm table-bordered">
-            <thead class="table-light">
-            <tr>
-                <th>Date</th>
-                <th>Checked By</th>
-                <th>Status</th>
-                <th>Remarks</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for q in quality_checks %}
-            <tr>
-                <td>{{ q.created_at|default:"-" }}</td>
-                <td>{{ q.checked_by }}</td>
-                <td>
+            <div class="col-md-4"><input name="remarks" class="form-control form-control-sm" placeholder="Remarks">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success btn-sm w-100">Submit</button>
+            </div>
+        </div>
+    </form>
+
+    {% if quality_checks %}
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+        <tr>
+            <th>Date</th>
+            <th>Checked By</th>
+            <th>Status</th>
+            <th>Remarks</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for q in quality_checks %}
+        <tr>
+            <td>{{ q.created_at|default:"-" }}</td>
+            <td>{{ q.checked_by }}</td>
+            <td>
           <span class="badge {% if q.status == 'pass' %}bg-success{% else %}bg-danger{% endif %}">
             {{ q.status|upper }}
           </span>
-                </td>
-                <td>{{ q.remarks|default:"-" }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="text-muted small">No quality checks</p>
-        {% endif %}
-    </div>
+            </td>
+            <td>{{ q.remarks|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted small">No quality checks</p>
     {% endif %}
-    
-    <!-- ================= DISPATCH ================= -->
-    {% if can_dispatch %}
-    <div class="mb-4">
-        <h5 class="mb-2">Dispatch</h5>
-        
-        <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}" class="card card-body mb-2">
-            {% csrf_token %}
-            <div class="row g-2">
-                <div class="col-md-2"><input name="vehicle_no" class="form-control form-control-sm"
-                                             placeholder="Vehicle No" required></div>
-                <div class="col-md-2"><input name="lr_no" class="form-control form-control-sm" placeholder="LR No"
-                                             required></div>
-                <div class="col-md-3"><input type="date" name="dispatch_date" class="form-control form-control-sm"
-                                             required></div>
-                <div class="col-md-3"><input name="dispatched_by" class="form-control form-control-sm"
-                                             placeholder="Dispatched By"></div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary btn-sm w-100">Dispatch</button>
-                </div>
+</div>
+{% endif %}
+
+<!-- ================= DISPATCH ================= -->
+{% if can_dispatch %}
+<div class="mb-4">
+    <h5 class="mb-2">Dispatch</h5>
+
+    <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}" class="card card-body mb-2">
+        {% csrf_token %}
+        <div class="row g-2">
+            <div class="col-md-2"><input name="vehicle_no" class="form-control form-control-sm"
+                                         placeholder="Vehicle No" required></div>
+            <div class="col-md-2"><input name="lr_no" class="form-control form-control-sm" placeholder="LR No"
+                                         required></div>
+            <div class="col-md-3"><input type="date" name="dispatch_date" class="form-control form-control-sm"
+                                         required></div>
+            <div class="col-md-3"><input name="dispatched_by" class="form-control form-control-sm"
+                                         placeholder="Dispatched By"></div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm w-100">Dispatch</button>
             </div>
-        </form>
-        
-        {% if dispatches %}
-        <table class="table table-sm table-bordered">
-            <thead class="table-light">
-            <tr>
-                <th>Date</th>
-                <th>Vehicle</th>
-                <th>LR</th>
-                <th>By</th>
-                <th>Remarks</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for d in dispatches %}
-            <tr>
-                <td>{{ d.dispatch_date }}</td>
-                <td>{{ d.vehicle_no }}</td>
-                <td>{{ d.lr_no }}</td>
-                <td>{{ d.dispatched_by|default:"-" }}</td>
-                <td>{{ d.remarks|default:"-" }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="text-muted small">No dispatch records</p>
-        {% endif %}
-    </div>
+        </div>
+    </form>
+
+    {% if dispatches %}
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+        <tr>
+            <th>Date</th>
+            <th>Vehicle</th>
+            <th>LR</th>
+            <th>By</th>
+            <th>Remarks</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for d in dispatches %}
+        <tr>
+            <td>{{ d.dispatch_date }}</td>
+            <td>{{ d.vehicle_no }}</td>
+            <td>{{ d.lr_no }}</td>
+            <td>{{ d.dispatched_by|default:"-" }}</td>
+            <td>{{ d.remarks|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted small">No dispatch records</p>
     {% endif %}
+</div>
+{% endif %}
 
 
 </div>
@@ -551,7 +570,6 @@
 {% include 'inv_app/inventory_add.html' %}
 
 {% include 'machine_app/m_add_edit.html' %}
-
 
 
 <script>
@@ -574,44 +592,44 @@
 </script>
 
 <script>
-document.querySelectorAll(".edit-machine-btn").forEach(btn => {
-  btn.addEventListener("click", function () {
+    document.querySelectorAll(".edit-machine-btn").forEach(btn => {
+      btn.addEventListener("click", function () {
 
-    document.getElementById("machineModalTitle").innerText = "✏️ Edit Machine Work";
+        document.getElementById("machineModalTitle").innerText = "✏️ Edit Machine Work";
 
-    document.getElementById("machine_work_id").value = this.dataset.id;
-    document.getElementById("machine_id").value = this.dataset.machineId;
-    document.getElementById("id_working_hour").value = this.dataset.hours;
-    document.getElementById("id_operator").value = this.dataset.operator || "";
-    document.getElementById("id_remarks").value = this.dataset.remarks || "";
-    document.getElementById("id_work_type").value = this.dataset.type;
+        document.getElementById("machine_work_id").value = this.dataset.id;
+        document.getElementById("machine_id").value = this.dataset.machineId;
+        document.getElementById("id_working_hour").value = this.dataset.hours;
+        document.getElementById("id_operator").value = this.dataset.operator || "";
+        document.getElementById("id_remarks").value = this.dataset.remarks || "";
+        document.getElementById("id_work_type").value = this.dataset.type;
 
-  });
-});
+      });
+    });
 
-// Reset modal when adding new
-document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {
-  document.getElementById("machineModalTitle").innerText = "🛠️ Add Machine Work";
-  document.getElementById("machineWorkForm").reset();
-  document.getElementById("machine_work_id").value = "";
-});
+    // Reset modal when adding new
+    document.getElementById("machineModal").addEventListener("hidden.bs.modal", function () {
+      document.getElementById("machineModalTitle").innerText = "🛠️ Add Machine Work";
+      document.getElementById("machineWorkForm").reset();
+      document.getElementById("machine_work_id").value = "";
+    });
 </script>
 
 
 <script>
-// DESIGN FILE ACTION
-function getCSRF() {
-  return document.querySelector("[name=csrfmiddlewaretoken]").value;
-}
+    // DESIGN FILE ACTION
+    function getCSRF() {
+      return document.querySelector("[name=csrfmiddlewaretoken]").value;
+    }
 
-function designAction(id, action) {
-  fetch(`/design-file/${id}/${action}/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": getCSRF() },
-  })
-    .then(() => location.reload())
-    .catch(() => alert("Action failed"));
-}
+    function designAction(id, action) {
+      fetch(`/design-file/${id}/${action}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRF() },
+      })
+        .then(() => location.reload())
+        .catch(() => alert("Action failed"));
+    }
 
 
 </script>
