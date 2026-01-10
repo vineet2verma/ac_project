@@ -1,12 +1,14 @@
 import random
 import string
-
 from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from cnc_work_app.mongo import users_collection
 from bson import ObjectId
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.hashers import check_password
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -71,12 +73,11 @@ def forgot_password(request):
         messages.success(request,"If this user exists, the admin will reset the password.")
     return render(request,"accounts_app/forgot_password.html")
 
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth.hashers import check_password
+
 
 
 def login_view(request):
+
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
@@ -85,8 +86,6 @@ def login_view(request):
             "username": username,
             "is_active": True
         })
-
-        print(f"user: {user} password: {password}")
 
         # ❌ Invalid username or password
         if not user or not check_password(password, user.get("password")):
@@ -112,6 +111,7 @@ def login_view(request):
             return redirect("core_app:dashboard")
 
         return redirect("cnc_work_app:index")
+
 
     return render(request, "accounts_app/login.html")
 

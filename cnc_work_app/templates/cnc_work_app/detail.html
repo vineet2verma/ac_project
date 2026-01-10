@@ -93,7 +93,9 @@
             <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
                 <i class="bi bi-printer"></i> Print
             </button>
-            <span class="badge bg-info py-1 fs-5 text-dark ">{{ order.current_status }}</span>
+            <span class="badge {{ order.status_badge }}">
+                {{ order.display_status }}
+            </span>
         </div>
     </div>
 

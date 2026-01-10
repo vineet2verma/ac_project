@@ -336,7 +336,7 @@
                                 {% elif img.current_status == 'Dispatch Pending' %}bg-primary
                                 {% elif img.current_status == 'Inventory Pending' %}bg-warning text-dark
                                 {% else %}bg-danger{% endif %}">
-                                {{ img.current_status }}
+                                {{ img.display_status  }}
                             </span>
                         </td>
                     </tr>

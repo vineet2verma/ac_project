@@ -1,6 +1,5 @@
 # Create your views here.
 from django.views.decorators.http import require_POST
-from django.utils import timezone
 from datetime import datetime, date
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -16,12 +15,49 @@ from .mongo import  *
 # Permission
 from utils.permissions import get_user_permissions
 
+def is_order_complete(order_status):
+    return order_status and all(s["status"] == "COMPLETE" for s in order_status)
+
+
+def get_current_pending_stage(order_status):
+    for s in order_status:
+        if s["status"] == "PENDING":
+            return s["stage"]
+    return None
+
+
+def get_order_display_status(order_status):
+    if not order_status:
+        return "Pending", "bg-danger"
+
+    pending_stages = [
+        s["stage"].title()
+        for s in order_status
+        if s.get("status") == "PENDING"
+    ]
+
+    # ✅ All stages complete
+    if not pending_stages:
+        return "Complete", "bg-success"
+
+    # ✅ Multiple pending stages
+    text = " + ".join(f"{stage} Pending" for stage in pending_stages)
+
+    # Badge color logic
+    if len(pending_stages) > 1:
+        badge = "bg-danger"          # Multiple pending → red
+    else:
+        badge = "bg-warning text-dark"  # Single pending → yellow
+
+    return text, badge
+
+
+
 # CNC Order List
 @mongo_login_required
 def cnc_order_list(request):
     order_collection = get_orders_collection()
 
-    # ================= LOGGED IN USER =================
     role = request.session.get("mongo_role")
     username = request.session.get("mongo_username")
 
@@ -29,14 +65,21 @@ def cnc_order_list(request):
 
     # ================= QUICK STATUS FILTER =================
     quick_status = request.GET.get("quick_status", "pending")
-    if quick_status == "complete": query["current_status"] = "Complete"
-    else: query["current_status"] = {"$ne": "Complete"}
+
+    if quick_status == "complete":
+        query["order_status"] = {
+            "$not": {"$elemMatch": {"status": "PENDING"}}
+        }
+    else:
+        query["order_status"] = {
+            "$elemMatch": {"status": "PENDING"}
+        }
 
     # ================= ROLE BASED FILTER =================
-    # 🔒 SALES user → only own orders
-    if role == "SALES": query["sales_person"] = username
+    if role == "SALES":
+        query["sales_person"] = username
 
-    # ================= ADMIN / MANAGER SALES FILTER (⬅️ HERE) =================
+    # ================= ADMIN / MANAGER SALES FILTER =================
     sales_filter = request.GET.get("sales_person")
     if sales_filter and role in ["ADMIN", "MANAGER"]:
         query["sales_person"] = sales_filter
@@ -46,14 +89,10 @@ def cnc_order_list(request):
     per_page = int(request.GET.get("per_page", 10))
     skip = (page - 1) * per_page
 
-    # ================= SEARCH & FILTER =================
+    # ================= SEARCH =================
     q = request.GET.get("q")
-    status = request.GET.get("status")
-    from_date = request.GET.get("from_date")
-    to_date = request.GET.get("to_date")
-
-    # 🔍 TEXT SEARCH
-    if q: query["$or"] = [
+    if q:
+        query["$or"] = [
             {"stone": {"$regex": q, "$options": "i"}},
             {"color": {"$regex": q, "$options": "i"}},
             {"party_name": {"$regex": q, "$options": "i"}},
@@ -61,45 +100,49 @@ def cnc_order_list(request):
             {"title": {"$regex": q, "$options": "i"}},
         ]
 
-    # 🔹 STATUS FILTER (from accordion)
-    if status: query["current_status"] = status
+    # ================= DATE FILTER =================
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
 
-    # 📅 DATE FILTER
     if from_date or to_date:
         date_query = {}
         if from_date:
             date_query["$gte"] = datetime.strptime(from_date, "%Y-%m-%d")
         if to_date:
             date_query["$lte"] = datetime.strptime(to_date, "%Y-%m-%d")
-
         query["approval_date"] = date_query
 
-    # ================= TOTAL COUNT =================
+    # ================= COUNT =================
     total_count = order_collection.count_documents(query)
 
-    # ================= FETCH ORDERS =================
+    # ================= FETCH =================
     orders = list(
         order_collection.find(query)
         .sort("created_at", -1)
         .skip(skip)
         .limit(per_page)
     )
+
     for o in orders:
         o["id"] = str(o["_id"])
 
-    # ================= SALES USERS (DROPDOWN) =================
-    users_col = users_collection()
+        # 🔥 COMPUTED STATUS (NEW)
+        text, badge = get_order_display_status(o.get("order_status", []))
+        o["display_status"] = text
+        o["status_badge"] = badge
 
+    # ================= SALES USERS =================
+    users_col = users_collection()
     sales_users = list(users_col.find(
         {"roles": "SALES", "is_active": True},
         {"username": 1, "full_name": 1}
     ))
 
-    # ================= PAGINATOR (UI ONLY) =================
+    # ================= PAGINATOR =================
     paginator = Paginator(range(total_count), per_page)
     page_obj = paginator.get_page(page)
 
-    # ================= PERMISSION =================
+    # ================= PERMISSIONS =================
     permissions = get_user_permissions(request)
 
     context = {
@@ -108,20 +151,18 @@ def cnc_order_list(request):
         "per_page": per_page,
         "total": total_count,
         "sales_users": sales_users,
-        "quick_status": quick_status,  # for dropdown selection
-        # Permission
+        "quick_status": quick_status,
+
         "can_qc": permissions["qc"],
         "can_dispatch": permissions["dispatch"],
         "can_inventory": permissions["inventory"],
         "can_sales": permissions["sales"],
         "can_production": permissions["production"],
         "is_admin": permissions["override"],
-
     }
 
-
-
     return render(request, "cnc_work_app/cnc_order_list.html", context)
+
 
 
 # Add Order
@@ -324,6 +365,14 @@ def order_detail(request, pk):
     if not order:
         raise Http404("Order not found")
     order["id"] = str(order["_id"])
+
+    # ---------------- COMPUTED STATUS NEW ----------------
+    status_text, status_badge = get_order_display_status(
+        order.get("order_status", [])
+    )
+    order["display_status"] = status_text
+    order["status_badge"] = status_badge
+
 
     # ---------------- DESIGN FILES ----------------
     design_files = list(design_col.find({"order_id": pk}).sort("created_at", -1))
