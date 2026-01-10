@@ -314,16 +314,13 @@ def order_edit(request, pk):
 @mongo_login_required
 def order_delete(request, pk):
     order_collection = get_orders_collection()
-
     # 🔹 Fetch order from MongoDB
     order = order_collection.find_one({"_id": ObjectId(pk)})
-
     if not order:
         messages.error(request, "Order not found")
         return redirect("cnc_work_app:index")
 
     if request.method == "POST":
-
         # 🔥 Delete image from Cloudinary (SAFE)
         image_url = order.get("image")
         if image_url:

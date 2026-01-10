@@ -403,7 +403,7 @@ def dashboard(request):
         # Machine Count
         "machine_reports": get_last_5_days_machine_summary(),
         # 5 days ledger in / out
-        # "inv_5day_summary": get_last_5_days_inventory_in_out_summary(),
+        "inv_5day_summary": get_last_5_days_inventory_in_out_summary(),
         #
         # "order_lifecycle": get_pending_order_lifecycle_summary()
     }

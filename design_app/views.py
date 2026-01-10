@@ -1,12 +1,10 @@
-
+import cloudinary
 from django.shortcuts import render, get_object_or_404, redirect
 from datetime import datetime, date
 from cnc_work_app.mongo import *
 from bson import ObjectId
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
 from cloudinary.uploader import upload, destroy
-
-# Create your views here.
 
 
 # Add Design File In Order
@@ -43,11 +41,8 @@ def add_design_file(request, pk):
 
     return redirect("cnc_work_app:detail", pk=pk)
 
-# Add Design Action
-from bson import ObjectId
-from datetime import datetime
 
-
+# Delete Design File From Order
 def design_action(request, design_id, action):
     design_col = get_design_files_collection()
     order_col = get_orders_collection()
@@ -114,10 +109,22 @@ def design_action(request, design_id, action):
 
 # Design Delete
 def design_delete(request, order_id, design_id):
-    if request.method != "POST":
-        raise Http404("Invalid request")
-
+    if request.method != "POST": raise Http404("Invalid request")
     design_col = get_design_files_collection()
+
+    # 🔹 Fetch design first
+    design = design_col.find_one({
+        "_id": ObjectId(design_id),
+        "order_id": order_id
+    })
+
+    if not design: raise Http404("Design not found")
+
+    # 🔹 Delete image from Cloudinary
+    public_id = design.get("public_id")
+    if public_id:
+        try: cloudinary.uploader.destroy(public_id)
+        except Exception: pass
 
     design_col.delete_one({
         "_id": ObjectId(design_id),
