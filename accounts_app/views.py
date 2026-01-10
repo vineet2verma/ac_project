@@ -1,14 +1,12 @@
 import random
 import string
+import uuid
 from datetime import datetime
-from django.shortcuts import render, redirect
-from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from cnc_work_app.mongo import users_collection
+from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.contrib.auth.hashers import check_password
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -31,6 +29,8 @@ def mongo_role_required(allowed_roles):
         return wrapper
     return decorator
 
+
+# Sign Up View
 def signup_view(request):
     if request.method == "POST":
         data = {
@@ -68,16 +68,21 @@ def signup_view(request):
 
     return render(request, "accounts_app/signup.html")
 
+
+# Forgot Password
 def forgot_password(request):
     if request.method == "POST":
         messages.success(request,"If this user exists, the admin will reset the password.")
     return render(request,"accounts_app/forgot_password.html")
 
 
+# Role Not Define
+def role_not_defined(request):
+    return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
 
 
+# Login
 def login_view(request):
-
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
@@ -99,6 +104,9 @@ def login_view(request):
         request.session["mongo_username"] = user["username"]
         request.session["mongo_roles"] = roles
 
+        # ✅ RECORD LOGIN INFORMATION
+        record_login(request, user)
+
         # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
         if not roles:
             messages.error(
@@ -116,15 +124,13 @@ def login_view(request):
     return render(request, "accounts_app/login.html")
 
 
-
-def role_not_defined(request):
-    return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
-
-
 @mongo_login_required
 def logout_view(request):
+    # ✅ RECORD LOGOUT INFORMATION
+    record_logout(request)
     request.session.flush()
     return redirect("accounts_app:login")
+
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
@@ -189,14 +195,6 @@ def update_user(request, user_id):
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
-def generate_temp_password(length=8):
-    print("Generate Temp Clicked")
-    chars = string.ascii_letters + string.digits
-    return "".join(random.choice(chars) for _ in range(length))
-
-
-@mongo_login_required
-@mongo_role_required(["ADMIN"])
 def admin_reset_password(request, user_id):
 
     if request.method == "POST":
@@ -216,3 +214,69 @@ def admin_reset_password(request, user_id):
 
     return redirect("accounts_app:user_master")  # ✅ FIXED
 
+
+# Device Name
+def get_device_name(request):
+    ua = request.META.get("HTTP_USER_AGENT", "").lower()
+    if "windows" in ua:
+        return "Windows Browser"
+    if "android" in ua:
+        return "Android Device"
+    if "iphone" in ua:
+        return "iPhone"
+    if "mac" in ua:
+        return "Mac Browser"
+    return "Unknown Device"
+
+# Record Login Info
+def record_login(request, user):
+    login_activity_col = get_login_activity_collection()
+
+    # 🔹 Unique device id per browser
+    device_id = request.session.get("device_id")
+    if not device_id:
+        device_id = str(uuid.uuid4())
+        request.session["device_id"] = device_id
+
+    login_time = datetime.utcnow()
+
+    activity_id = login_activity_col.insert_one({
+        "user_id": str(user["_id"]),
+        "username": user["username"],
+
+        "device_id": device_id,
+        "device_name": get_device_name(request),
+
+        "login_time": login_time,
+        "logout_time": None,
+        "session_duration": None,
+
+        "ip_address": request.META.get("REMOTE_ADDR"),
+        "user_agent": request.META.get("HTTP_USER_AGENT"),
+    }).inserted_id
+
+    request.session["login_time"] = login_time.isoformat()
+    request.session["login_activity_id"] = str(activity_id)
+
+# Record Logout Info
+def record_logout(request):
+    activity_id = request.session.get("login_activity_id")
+    login_time_str = request.session.get("login_time")
+
+    if not activity_id or not login_time_str:
+        return
+
+    login_activity_col = get_login_activity_collection()
+
+    login_time = datetime.fromisoformat(login_time_str)
+    logout_time = datetime.utcnow()
+
+    login_activity_col.update_one(
+        {"_id": ObjectId(activity_id)},
+        {
+            "$set": {
+                "logout_time": logout_time,
+                "session_duration": (logout_time - login_time).total_seconds()
+            }
+        }
+    )
