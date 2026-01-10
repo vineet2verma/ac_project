@@ -41,6 +41,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     ".onrender.com",
     ".railway.app",
+    "www.sragaindia.co.in",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
