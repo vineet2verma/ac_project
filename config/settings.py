@@ -41,6 +41,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     ".onrender.com",
     ".railway.app",
+    "sragaindia.co.in",
     "www.sragaindia.co.in",
 ]
 
