@@ -52,7 +52,6 @@ def get_order_display_status(order_status):
     return text, badge
 
 
-
 # CNC Order List
 @mongo_login_required
 def cnc_order_list(request):
@@ -60,8 +59,17 @@ def cnc_order_list(request):
 
     role = request.session.get("mongo_role")
     username = request.session.get("mongo_username")
+    access_scope = request.session.get("access_scope")
 
     query = {}
+
+    # ================= ACCESS SCOPE (ONLY SOURCE OF TRUTH) =================
+    if access_scope == "OWN":
+        query["sales_person"] = username
+    elif access_scope == "ALL":
+        pass  # No restriction
+    else:
+        query["_id"] = None  # Safety fallback
 
     # ================= QUICK STATUS FILTER =================
     quick_status = request.GET.get("quick_status", "pending")
@@ -74,10 +82,6 @@ def cnc_order_list(request):
         query["order_status"] = {
             "$elemMatch": {"status": "PENDING"}
         }
-
-    # ================= ROLE BASED FILTER =================
-    if role == "SALES":
-        query["sales_person"] = username
 
     # ================= ADMIN / MANAGER SALES FILTER =================
     sales_filter = request.GET.get("sales_person")

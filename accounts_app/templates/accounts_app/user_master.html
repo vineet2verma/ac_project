@@ -127,6 +127,23 @@
                             {% endfor %}
                         </div>
                     </div>
+                    
+                    <!-- Access Scope -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Access Scope</label>
+                        <select name="access_scope" class="form-select" required>
+                            {% for scope in ACCESS_CHOICES %}
+                                <option value="{{ scope }}"
+                                    {% if scope == u.access_scope %}selected{% endif %}>
+                                    {{ scope }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            OWN = Only own data<br>
+                            ALL = All users data
+                        </div>
+                    </div>
 
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
@@ -134,6 +151,7 @@
                             <option value="true" {% if u.is_active %}selected{% endif %}>Active</option>
                             <option value="false" {% if not u.is_active %}selected{% endif %}>Inactive</option>
                         </select>
+                        
                     </div>
                 </div>
 
@@ -215,6 +233,12 @@ function confirmRoleChange(form) {
         alert("At least one role is required.");
         return false;
     }
+
+    const access = form.querySelector("select[name='access_scope']").value;
+    if (access === "ALL") {
+        return confirm("ALL access gives visibility to all orders. Continue?");
+    }
+
     return confirm("You are updating user roles. Continue?");
 }
 

@@ -52,6 +52,8 @@ def signup_view(request):
             messages.error(request, "Username already exists")
             return redirect("accounts_app:signup")
 
+        access_scope = "OWN"
+
         users_col.insert_one({
             "full_name": data["full_name"],
             "username": data["username"],
@@ -60,7 +62,9 @@ def signup_view(request):
             "department": data["department"],
             "password": make_password(data["password"]),
             "roles" : [],
+            "access_scope": access_scope,
             "is_active": True,
+            "created_at": datetime.utcnow(),
         })
 
         messages.success(request, "Account created successfully. Please login.")
@@ -103,6 +107,7 @@ def login_view(request):
         request.session["mongo_user_id"] = str(user["_id"])
         request.session["mongo_username"] = user["username"]
         request.session["mongo_roles"] = roles
+        request.session["access_scope"] = user.get("access_scope", "OWN")
 
         # ✅ RECORD LOGIN INFORMATION
         record_login(request, user)
@@ -142,7 +147,6 @@ def user_master(request):
         "ADMIN",
         "MANAGER",
         "DASHBOARD",
-        "REPORT",
         "SALES",
         "DESIGNER",
         "PRODUCTION",
@@ -151,18 +155,23 @@ def user_master(request):
         "DISPATCH",
     ]
 
+    ACCESS_CHOICES = ["OWN", "ALL"]
+
     for u in users:
         u["id"] = str(u["_id"])
         u["roles"] = u.get("roles", [])
+        u["access_scope"] = u.get("access_scope", "OWN") # DEFAULT
 
     return render(
         request,
         "accounts_app/user_master.html",
         {
             "users": users,
-            "ROLE_CHOICES": ROLE_CHOICES
+            "ROLE_CHOICES": ROLE_CHOICES,
+            "ACCESS_CHOICES": ACCESS_CHOICES,
         }
     )
+
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
@@ -170,10 +179,15 @@ def update_user(request, user_id):
     if request.method == "POST":
         users_col = users_collection()
 
-        roles = request.POST.getlist("roles")  # ✅ MULTIPLE ROLES
+        roles = request.POST.getlist("roles")  # ✅ MULTI ROLE
+        access_scope = request.POST.get("access_scope")  # ✅ NEW
 
         if not roles:
             messages.error(request, "At least one role is required.")
+            return redirect("accounts_app:user_master")
+
+        if access_scope not in ["OWN", "ALL"]:
+            messages.error(request, "Invalid access scope.")
             return redirect("accounts_app:user_master")
 
         users_col.update_one(
@@ -184,7 +198,9 @@ def update_user(request, user_id):
                 "mobile": request.POST.get("mobile"),
                 "department": request.POST.get("department"),
                 "roles": roles,
-                "is_active": request.POST.get("is_active") == "true"
+                "access_scope": access_scope,  # ✅ SAVE HERE
+                "is_active": request.POST.get("is_active") == "true",
+                "updated_at": datetime.utcnow()
             }}
         )
 
