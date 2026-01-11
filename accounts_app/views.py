@@ -88,7 +88,7 @@ def role_not_defined(request):
 # Login
 def login_view(request):
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
+        username = request.POST.get("username", "").strip().lower()
         password = request.POST.get("password", "").strip()
 
         user = users_collection().find_one({
@@ -232,6 +232,7 @@ def admin_reset_password(request, user_id):
 
 
 # Device Name
+@mongo_login_required
 def get_device_name(request):
     ua = request.META.get("HTTP_USER_AGENT", "").lower()
     if "windows" in ua:
@@ -245,6 +246,7 @@ def get_device_name(request):
     return "Unknown Device"
 
 # Record Login Info
+@mongo_login_required
 def record_login(request, user):
     login_activity_col = get_login_activity_collection()
 
@@ -275,6 +277,7 @@ def record_login(request, user):
     request.session["login_activity_id"] = str(activity_id)
 
 # Record Logout Info
+@mongo_login_required
 def record_logout(request):
     activity_id = request.session.get("login_activity_id")
     login_time_str = request.session.get("login_time")

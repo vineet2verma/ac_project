@@ -12,6 +12,7 @@ urlpatterns = [
     path('',include("design_app.urls")),
     path('',include("machine_app.urls")),
     path('',include("order_costing_app.urls")),
+    path('',include("user_log_app.urls")),
 
 
 

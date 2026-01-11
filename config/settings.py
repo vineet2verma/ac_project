@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'order_costing_app',
+    'user_log_app',
 
 ]
 
@@ -139,7 +140,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
