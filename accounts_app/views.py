@@ -82,6 +82,7 @@ def login_view(request):
         user = users_collection().find_one({
             "username": username,
             "is_active": True
+
         })
 
         # ❌ Invalid username or password
