@@ -228,6 +228,7 @@
                             {% endif %}
 
                             <!-- DELETE -->
+
                             <form method="POST"
                                   action="{% url 'design_app:design_delete' order.id file.id %}">
                                 {% csrf_token %}
@@ -238,6 +239,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+
 
                         </div>
                     </td>
@@ -593,6 +595,7 @@
     }
 </script>
 
+
 <script>
     document.querySelectorAll(".edit-machine-btn").forEach(btn => {
       btn.addEventListener("click", function () {
@@ -625,11 +628,27 @@
     }
 
     function designAction(id, action) {
-      fetch(`/design-file/${id}/${action}/`, {
-        method: "POST",
-        headers: { "X-CSRFToken": getCSRF() },
-      })
-        .then(() => location.reload())
+        if (!confirm(`Are you sure you want to ${action} this design?`)) return;
+
+        fetch(`/design-file/${id}/${action}/`, {
+            method: "POST",
+            credentials: "same-origin",   // 🔥 REQUIRED for Django session
+            headers: {
+                "X-CSRFToken": getCSRF(),
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Request failed");
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || "Action failed");
+            }
+        })
         .catch(() => alert("Action failed"));
     }
 

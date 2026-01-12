@@ -74,12 +74,9 @@ def forgot_password(request):
     return render(request,"accounts_app/forgot_password.html")
 
 
-
-
 def login_view(request):
-
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
+        username = request.POST.get("username", "").strip().lower()
         password = request.POST.get("password", "").strip()
 
         user = users_collection().find_one({

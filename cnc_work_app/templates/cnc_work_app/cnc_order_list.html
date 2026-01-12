@@ -355,7 +355,7 @@
                     {# VIEW → ADMIN + NON-SALES #}
                     {% if is_admin or not can_sales %}
                     <a href="{% url 'cnc_work_app:detail' img.id %}"
-                       class="btn btn-outline-success btn-sm {% if is_admin %}w-75{% else %}w-100{% endif %}">
+                       class="btn btn-outline-success btn-sm {% if is_admin %}w-75{% else %}w-100{% endif %} btn-loader" data-loader-text="Saving order, please wait…">
                         <i class="bi bi-eye-fill"></i> View Details
                     </a>
                     {% endif %}
