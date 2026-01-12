@@ -82,7 +82,6 @@ def login_view(request):
         user = users_collection().find_one({
             "username": username,
             "is_active": True
-
         })
 
         # ❌ Invalid username or password
@@ -96,6 +95,7 @@ def login_view(request):
         request.session["mongo_user_id"] = str(user["_id"])
         request.session["mongo_username"] = user["username"]
         request.session["mongo_roles"] = roles
+        request.session["access_scope"] = user.get("access_scope", "OWN")
 
         # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
         if not roles:
@@ -128,13 +128,11 @@ def logout_view(request):
 @mongo_role_required(["ADMIN"])
 def user_master(request):
     users_col = users_collection()
-    users = list(users_col.find())
 
     ROLE_CHOICES = [
         "ADMIN",
         "MANAGER",
         "DASHBOARD",
-        "REPORT",
         "SALES",
         "DESIGNER",
         "PRODUCTION",
@@ -143,18 +141,53 @@ def user_master(request):
         "DISPATCH",
     ]
 
+    ACCESS_CHOICES = ["OWN", "ALL"]
+
+    # ================= UPDATE USER =================
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        roles = request.POST.getlist("roles")   # multiple
+        access_scope = request.POST.get("access_scope")
+
+        if not user_id:
+            messages.error(request, "Invalid user")
+            return redirect("accounts_app:user_master")
+
+        if access_scope not in ACCESS_CHOICES:
+            messages.error(request, "Invalid access scope")
+            return redirect("accounts_app:user_master")
+
+        users_col.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "roles": roles,
+                    "access_scope": access_scope
+                }
+            }
+        )
+
+        messages.success(request, "User updated successfully")
+        return redirect("accounts_app:user_master")
+
+    # ================= FETCH USERS =================
+    users = list(users_col.find())
+
     for u in users:
         u["id"] = str(u["_id"])
         u["roles"] = u.get("roles", [])
+        u["access_scope"] = u.get("access_scope", "OWN")
 
     return render(
         request,
         "accounts_app/user_master.html",
         {
             "users": users,
-            "ROLE_CHOICES": ROLE_CHOICES
+            "ROLE_CHOICES": ROLE_CHOICES,
+            "ACCESS_CHOICES": ACCESS_CHOICES
         }
     )
+
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
