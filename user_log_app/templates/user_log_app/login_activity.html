@@ -5,8 +5,52 @@
 
     <!-- PAGE HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Login Activity</h5>
-        <span class="text-muted small">Security & Session Monitoring</span>
+        <div>
+            <h5 class="mb-0">Login Activity</h5>
+            <small class="text-muted">Security & Session Monitoring</small>
+        </div>
+    </div>
+
+    <!-- SEARCH & FILTER -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-center">
+
+                <div class="col-md-4">
+                    <input type="text"
+                           name="search"
+                           value="{{ search }}"
+                           class="form-control form-control-sm"
+                           placeholder="Search username, IP, device">
+                </div>
+
+                <div class="col-md-3">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Sessions</option>
+                        <option value="active" {% if status == "active" %}selected{% endif %}>
+                            Active
+                        </option>
+                        <option value="logged_out" {% if status == "logged_out" %}selected{% endif %}>
+                            Logged Out
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-primary btn-sm w-100">
+                        Apply
+                    </button>
+                </div>
+
+                <div class="col-md-2">
+                    <a href="{% url 'user_log_app:login_activity' %}"
+                       class="btn btn-outline-secondary btn-sm w-100">
+                        Reset
+                    </a>
+                </div>
+
+            </form>
+        </div>
     </div>
 
     <!-- TABLE CARD -->
@@ -26,8 +70,8 @@
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
 
+                    <tbody>
                         {% for a in activities %}
                         <tr>
                             <td class="fw-semibold">{{ a.username }}</td>
@@ -49,9 +93,13 @@
 
                             <td class="text-center">
                                 {% if a.logout_time %}
-                                    <span class="badge bg-secondary">Logged Out</span>
+                                    <span class="badge bg-secondary px-2">
+                                        Logged Out
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="badge bg-success px-2">
+                                        Active
+                                    </span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -62,13 +110,48 @@
                             </td>
                         </tr>
                         {% endfor %}
-
                     </tbody>
+
                 </table>
             </div>
 
         </div>
     </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="d-flex justify-content-end mt-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page_obj.previous_page_number }}&search={{ search }}&status={{ status }}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page_obj.next_page_number }}&search={{ search }}&status={{ status }}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 
 </div>
 

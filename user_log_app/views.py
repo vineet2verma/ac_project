@@ -1,28 +1,62 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timezone as dt_timezone
 from cnc_work_app.mongo import get_login_activity_collection
-
 
 def make_aware(dt):
     if dt and timezone.is_naive(dt):
         return timezone.make_aware(dt, dt_timezone.utc)
     return dt
 
-
 def login_activity_view(request):
     login_col = get_login_activity_collection()
-    activities = list(login_col.find().sort("login_time", -1))
 
+    # ----------------------------
+    # GET PARAMETERS
+    # ----------------------------
+    search = request.GET.get("search", "").strip()
+    status = request.GET.get("status", "")   # active / logged_out
+    page_number = request.GET.get("page", 1)
+
+    # ----------------------------
+    # BUILD MONGO QUERY
+    # ----------------------------
+    query = {}
+
+    if search:
+        query["$or"] = [
+            {"username": {"$regex": search, "$options": "i"}},
+            {"ip_address": {"$regex": search, "$options": "i"}},
+        ]
+
+    if status == "active":
+        query["logout_time"] = None
+    elif status == "logged_out":
+        query["logout_time"] = {"$ne": None}
+
+    # ----------------------------
+    # FETCH DATA
+    # ----------------------------
+    activities = list(
+        login_col.find(query).sort("login_time", -1)
+    )
+
+    # ----------------------------
+    # FORMAT DATA
+    # ----------------------------
     for act in activities:
-        login_time = make_aware(act.get("login_time"))
+        login_time = act.get("login_time")
+        logout_time = act.get("logout_time")
+
         if login_time:
+            login_time = make_aware(login_time)
             act["login_time_fmt"] = timezone.localtime(
                 login_time
             ).strftime("%d-%b-%Y %I:%M %p")
 
-        logout_time = make_aware(act.get("logout_time"))
         if logout_time:
+            logout_time = make_aware(logout_time)
             act["logout_time_fmt"] = timezone.localtime(
                 logout_time
             ).strftime("%d-%b-%Y %I:%M %p")
@@ -33,6 +67,19 @@ def login_activity_view(request):
             act["logout_time_fmt"] = "Active"
             act["session_minutes"] = "—"
 
-    return render(request, "user_log_app/login_activity.html", {
-        "activities": activities
-    })
+    # ----------------------------
+    # PAGINATION
+    # ----------------------------
+    paginator = Paginator(activities, 10)  # 10 records per page
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "user_log_app/login_activity.html",
+        {
+            "activities": page_obj,
+            "search": search,
+            "status": status,
+            "page_obj": page_obj,
+        }
+    )

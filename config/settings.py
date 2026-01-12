@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'order_costing_app',
     'user_log_app',
-
 ]
 
 MIDDLEWARE = [

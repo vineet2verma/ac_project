@@ -15,4 +15,5 @@ urlpatterns = [
     path("users/", views.user_master, name="user_master"),
     path("users/update/<str:user_id>/", views.update_user, name="update_user"),
 
+
 ]

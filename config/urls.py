@@ -2,6 +2,7 @@
 from django.contrib import admin
 from django.urls import path, include
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('cnc_work_app.urls')),
@@ -13,7 +14,7 @@ urlpatterns = [
     path('',include("machine_app.urls")),
     path('',include("order_costing_app.urls")),
     path('',include("user_log_app.urls")),
-
-
-
 ]
+
+# 🔥 Custom 404 handler
+# handler404 = "cnc_work_app.views.custom_404"

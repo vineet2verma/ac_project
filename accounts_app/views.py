@@ -1,10 +1,11 @@
 import random
 import string
+import uuid
 from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from cnc_work_app.mongo import users_collection
+from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
 from django.contrib import messages
 from django.shortcuts import render, redirect
@@ -249,3 +250,72 @@ def admin_reset_password(request, user_id):
 
     return redirect("accounts_app:user_master")  # ✅ FIXED
 
+
+# Device Name
+@mongo_login_required
+def get_device_name(request):
+    ua = request.META.get("HTTP_USER_AGENT", "").lower()
+    if "windows" in ua:
+        return "Windows Browser"
+    if "android" in ua:
+        return "Android Device"
+    if "iphone" in ua:
+        return "iPhone"
+    if "mac" in ua:
+        return "Mac Browser"
+    return "Unknown Device"
+
+# Record Login Info
+@mongo_login_required
+def record_login(request, user):
+    login_activity_col = get_login_activity_collection()
+
+    # 🔹 Unique device id per browser
+    device_id = request.session.get("device_id")
+    if not device_id:
+        device_id = str(uuid.uuid4())
+        request.session["device_id"] = device_id
+
+    login_time = datetime.utcnow()
+
+    activity_id = login_activity_col.insert_one({
+        "user_id": str(user["_id"]),
+        "username": user["username"],
+
+        "device_id": device_id,
+        "device_name": get_device_name(request),
+
+        "login_time": login_time,
+        "logout_time": None,
+        "session_duration": None,
+
+        "ip_address": request.META.get("REMOTE_ADDR"),
+        "user_agent": request.META.get("HTTP_USER_AGENT"),
+    }).inserted_id
+
+    request.session["login_time"] = login_time.isoformat()
+    request.session["login_activity_id"] = str(activity_id)
+
+# Record Logout Info
+@mongo_login_required
+def record_logout(request):
+    activity_id = request.session.get("login_activity_id")
+    login_time_str = request.session.get("login_time")
+
+    if not activity_id or not login_time_str:
+        return
+
+    login_activity_col = get_login_activity_collection()
+
+    login_time = datetime.fromisoformat(login_time_str)
+    logout_time = datetime.utcnow()
+
+    login_activity_col.update_one(
+        {"_id": ObjectId(activity_id)},
+        {
+            "$set": {
+                "logout_time": logout_time,
+                "session_duration": (logout_time - login_time).total_seconds()
+            }
+        }
+    )

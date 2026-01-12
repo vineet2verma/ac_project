@@ -51,6 +51,11 @@ def get_order_display_status(order_status):
 
     return text, badge
 
+# Not working yet now
+def custom_404(request, exception):
+    print("=======>>>> <<<<=======")
+    return render(request, "404.html", status=404)
+
 
 # CNC Order List
 @mongo_login_required
