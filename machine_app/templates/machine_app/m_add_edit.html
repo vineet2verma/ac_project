@@ -1,6 +1,6 @@
 <div class="modal fade" id="machineModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-md">
-    <form method="POST"
+    <form method="POST" data-loader-text="Saving order, please wait…" enctype="multipart/form-data"
           action="{% url 'machine_app:add_machine_work' order.id %}"
           class="modal-content shadow-sm border-0 rounded-3"
           id="machineWorkForm">

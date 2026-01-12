@@ -461,6 +461,7 @@ def add_quality_check(request, order_id):
         qc_collection = get_quality_collection()
         orders_collection = get_orders_collection()
 
+        # ---- INSERT QC RECORD ----
         qc_collection.insert_one({
             "order_id": order_id,
             "checked_by": request.POST.get("checked_by"),
@@ -469,10 +470,63 @@ def add_quality_check(request, order_id):
             "checked_at": datetime.utcnow(),
         })
 
+        now = datetime.utcnow()
+
+        order = orders_collection.find_one({"_id": ObjectId(order_id)})
+
+        updated_status = []
+        stages_found = {
+            "INVENTORY": False,
+            "MACHINE": False,
+            "DISPATCH": False
+        }
+
+        for s in order.get("order_status", []):
+            if s["stage"] == "INVENTORY":
+                s["status"] = "COMPLETE"
+                s["updated_at"] = now
+                stages_found["INVENTORY"] = True
+
+            elif s["stage"] == "MACHINE":
+                s["status"] = "COMPLETE"
+                s["updated_at"] = now
+                stages_found["MACHINE"] = True
+
+            elif s["stage"] == "DISPATCH":
+                s["status"] = "PENDING"
+                s["updated_at"] = now
+                stages_found["DISPATCH"] = True
+
+            updated_status.append(s)
+
+        # ---- ADD MISSING STAGES ----
+        if not stages_found["INVENTORY"]:
+            updated_status.append({
+                "stage": "INVENTORY",
+                "status": "COMPLETE",
+                "updated_at": now
+            })
+
+        if not stages_found["MACHINE"]:
+            updated_status.append({
+                "stage": "MACHINE",
+                "status": "COMPLETE",
+                "updated_at": now
+            })
+
+        if not stages_found["DISPATCH"]:
+            updated_status.append({
+                "stage": "DISPATCH",
+                "status": "PENDING",
+                "updated_at": now
+            })
+
+        # ---- FINAL UPDATE ----
         orders_collection.update_one(
             {"_id": ObjectId(order_id)},
             {"$set": {
-                "current_status": "Dispatch Pending"
+                "current_status": "Dispatch Pending",
+                "order_status": updated_status
             }}
         )
 
@@ -483,19 +537,20 @@ def add_quality_check(request, order_id):
 @mongo_login_required
 def add_dispatch(request, order_id):
     order_collection = get_orders_collection()
-    dispatch_collection = get_dispatch_collection()  # 👈 aapko ye function banana hoga
+    dispatch_collection = get_dispatch_collection()
 
-    # 🔹 Fetch order from MongoDB
+    # 🔹 Fetch order
     order = order_collection.find_one({"_id": ObjectId(order_id)})
     if not order:
         raise Http404("Order not found")
 
-    # 🔒 SAFETY: Prevent double dispatch
-    if order.get("current_status") == "COMPLETED":
+    # 🔒 Prevent double dispatch
+    if order.get("current_status") == "Complete":
         raise Http404("Order already dispatched")
 
     if request.method == "POST":
-        # 🔹 Insert dispatch record
+
+        # ---- INSERT DISPATCH RECORD ----
         dispatch_collection.insert_one({
             "order_id": ObjectId(order_id),
             "vehicle_no": request.POST.get("vehicle_no"),
@@ -503,20 +558,40 @@ def add_dispatch(request, order_id):
             "dispatch_date": request.POST.get("dispatch_date"),
             "dispatched_by": request.POST.get("dispatched_by"),
             "remarks": request.POST.get("remarks"),
-            "created_at": datetime.now()
+            "created_at": datetime.utcnow()
         })
 
-        # 🔹 Update order status
+        now = datetime.utcnow()
+
+        # ---- UPDATE ORDER_STATUS ----
+        updated_status = []
+        dispatch_found = False
+
+        for s in order.get("order_status", []):
+            if s["stage"] == "DISPATCH":
+                s["status"] = "COMPLETE"
+                s["updated_at"] = now
+                dispatch_found = True
+            updated_status.append(s)
+
+        if not dispatch_found:
+            updated_status.append({
+                "stage": "DISPATCH",
+                "status": "COMPLETE",
+                "updated_at": now
+            })
+
+        # ---- FINAL ORDER UPDATE ----
         order_collection.update_one(
             {"_id": ObjectId(order_id)},
             {"$set": {
                 "current_status": "Complete",
-                "dispatched_at": datetime.now()
+                "dispatched_at": now,
+                "order_status": updated_status
             }}
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
-
 
 # Active Machines For Dropdown in Detail Page
 def get_active_machines():

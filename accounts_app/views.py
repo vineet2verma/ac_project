@@ -31,6 +31,7 @@ def mongo_role_required(allowed_roles):
         return wrapper
     return decorator
 
+
 def signup_view(request):
     if request.method == "POST":
         data = {
@@ -67,6 +68,7 @@ def signup_view(request):
         return redirect("accounts_app:login")
 
     return render(request, "accounts_app/signup.html")
+
 
 def forgot_password(request):
     if request.method == "POST":

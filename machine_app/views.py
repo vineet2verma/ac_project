@@ -59,6 +59,9 @@ def add_machine_work(request, order_id):
         work_col = get_machine_work_collection()
         work_id = request.POST.get("machine_work_id")
 
+        STATUS_PENDING = "PENDING"
+        STATUS_COMPLETED = "COMPLETED"
+
         work_type = request.POST.get("work_type", "ONTIME")
 
         data = {
@@ -70,7 +73,7 @@ def add_machine_work(request, order_id):
         }
 
         # ✅ AUTO STATUS LOGIC
-        status = "Completed" if work_type == "DOWNTIME" else "Pending"
+        status = STATUS_COMPLETED if work_type == "DOWNTIME" else STATUS_PENDING
 
 
         # -------- EDIT (only if PENDING) --------
