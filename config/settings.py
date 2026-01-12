@@ -40,12 +40,12 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".onrender.com",
-    ".railway.app",
+    "sragaindia.co.in",
+    "www.sragaindia.co.in",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
-    "https://*.railway.app"
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'order_costing_app',
+    'user_log_app',
 
 ]
 
@@ -139,7 +140,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 

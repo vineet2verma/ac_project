@@ -331,11 +331,11 @@
                     <tr>
                         <th>Status</th>
                         <td>
-                            <span class="badge
+                            <span class="badge px-2 py-1
                                 {% if img.current_status == 'Complete' %}bg-success
                                 {% elif img.current_status == 'Dispatch Pending' %}bg-primary
                                 {% elif img.current_status == 'Inventory Pending' %}bg-warning text-dark
-                                {% else %}bg-danger{% endif %}">
+                                {% else %}bg-danger{% endif %}" style="font-size: 0.80rem;" >
                                 {{ img.display_status  }}
                             </span>
                         </td>
