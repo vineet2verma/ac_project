@@ -21,6 +21,7 @@
                     <th>DOB</th>
                     <th>Department</th>
                     <th>Role</th>
+                    <th>Access</th>
                     <th>Status</th>
                     <th width="140" class="text-center">Action</th>
                 </tr>
@@ -37,6 +38,9 @@
                         {% for r in u.roles %}
                         <span class="badge bg-info text-dark me-1">{{ r }}</span>
                         {% endfor %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ u.access_scope }}</span>
                     </td>
                     <td>
                         {% if u.is_active %}
@@ -65,12 +69,16 @@
 <div class="modal fade" id="editUser{{ u.id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
 
+        <!-- 🔥 POST TO SAME VIEW -->
         <form method="POST"
-              action="{% url 'accounts_app:update_user' u.id %}"
+              action="{% url 'accounts_app:user_master' %}"
               class="modal-content"
               onsubmit="return confirmRoleChange(this);">
 
             {% csrf_token %}
+
+            <!-- 🔥 REQUIRED -->
+            <input type="hidden" name="user_id" value="{{ u.id }}">
 
             <div class="modal-header">
                 <h6 class="modal-title">Edit User</h6>
@@ -78,35 +86,7 @@
             </div>
 
             <div class="modal-body">
-
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" name="full_name"
-                               value="{{ u.full_name }}"
-                               class="form-control" required>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">DOB</label>
-                        <input type="date" name="dob"
-                               value="{{ u.dob }}"
-                               class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Mobile</label>
-                        <input type="text" name="mobile"
-                               value="{{ u.mobile }}"
-                               class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Department</label>
-                        <input type="text" name="department"
-                               value="{{ u.department }}"
-                               class="form-control">
-                    </div>
 
                     <div class="col-md-12">
                         <label class="form-label fw-semibold">Roles</label>
@@ -119,17 +99,15 @@
                                            name="roles"
                                            value="{{ role }}"
                                            {% if role in u.roles %}checked{% endif %}>
-                                    <label class="form-check-label">
-                                        {{ role }}
-                                    </label>
+                                    <label class="form-check-label">{{ role }}</label>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
-                    
-                    <!-- Access Scope -->
-                    <div class="col-md-3">
+
+                    <!-- ACCESS SCOPE -->
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Access Scope</label>
                         <select name="access_scope" class="form-select" required>
                             {% for scope in ACCESS_CHOICES %}
@@ -140,33 +118,12 @@
                             {% endfor %}
                         </select>
                         <div class="form-text">
-                            OWN = Only own data<br>
-                            ALL = All users data
+                            OWN = Own records only<br>
+                            ALL = All records
                         </div>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label">Status</label>
-                        <select name="is_active" class="form-select">
-                            <option value="true" {% if u.is_active %}selected{% endif %}>Active</option>
-                            <option value="false" {% if not u.is_active %}selected{% endif %}>Inactive</option>
-                        </select>
-                        
-                    </div>
                 </div>
-
-                <hr>
-
-                <!-- RESET PASSWORD BUTTON -->
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small">Admin password reset</span>
-                    <button type="button"
-                            class="btn btn-warning btn-sm"
-                            onclick="openResetPassword('{{ u.id }}')">
-                        Reset Password
-                    </button>
-                </div>
-
             </div>
 
             <div class="modal-footer">
@@ -180,80 +137,19 @@
 </div>
 {% endfor %}
 
-<!-- ================= RESET PASSWORD MODALS (SEPARATE) ================= -->
-{% for u in users %}
-<div class="modal fade" id="resetPasswordModal{{ u.id }}" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-
-        <form method="POST"
-              action="{% url 'accounts_app:admin_reset_password' u.id %}"
-              class="modal-content">
-
-            {% csrf_token %}
-
-            <div class="modal-header bg-warning">
-                <h6 class="modal-title fw-semibold">Reset Password</h6>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                <p class="small text-muted">
-                    Reset password for <strong>{{ u.username }}</strong>
-                </p>
-
-                <input type="password"
-                       name="new_password"
-                       class="form-control form-control-sm"
-                       placeholder="New Password"
-                       required>
-
-                <input type="password"
-                       name="confirm_password"
-                       class="form-control form-control-sm mt-2"
-                       placeholder="Confirm Password"
-                       required>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-warning btn-sm w-100">
-                    Reset Password
-                </button>
-            </div>
-
-        </form>
-    </div>
-</div>
-{% endfor %}
-
-<!-- ================= JS ================= -->
 <script>
 function confirmRoleChange(form) {
-    const checked = form.querySelectorAll(".role-checkbox:checked");
-    if (checked.length === 0) {
+    const roles = form.querySelectorAll(".role-checkbox:checked");
+    if (roles.length === 0) {
         alert("At least one role is required.");
         return false;
     }
 
     const access = form.querySelector("select[name='access_scope']").value;
     if (access === "ALL") {
-        return confirm("ALL access gives visibility to all orders. Continue?");
+        return confirm("ALL access allows viewing all data. Continue?");
     }
-
-    return confirm("You are updating user roles. Continue?");
-}
-
-function openResetPassword(userId) {
-
-    // Close edit modal
-    const editModalEl = document.getElementById("editUser" + userId);
-    const editModal = bootstrap.Modal.getInstance(editModalEl);
-    if (editModal) editModal.hide();
-
-    // Open reset modal
-    const resetModal = new bootstrap.Modal(
-        document.getElementById("resetPasswordModal" + userId)
-    );
-    resetModal.show();
+    return confirm("Update user roles?");
 }
 </script>
 

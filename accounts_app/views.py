@@ -133,7 +133,7 @@ def logout_view(request):
 
 
 @mongo_login_required
-@mongo_role_required(["ADMIN"])
+@mongo_role_required(["ADMIN","MANAGER"])
 def user_master(request):
     users_col = users_collection()
 
