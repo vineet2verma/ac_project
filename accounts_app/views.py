@@ -100,6 +100,9 @@ def login_view(request):
         request.session["mongo_roles"] = roles
         request.session["access_scope"] = user.get("access_scope", "OWN")
 
+        # 🔥 SAVE LOGIN ACTIVITY
+        record_login(request, user)
+
         # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
         if not roles:
             messages.error(
@@ -124,8 +127,10 @@ def role_not_defined(request):
 
 @mongo_login_required
 def logout_view(request):
+    record_logout(request)  # 🔥 save logout activity
     request.session.flush()
     return redirect("accounts_app:login")
+
 
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
