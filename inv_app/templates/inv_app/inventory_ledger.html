@@ -3,32 +3,106 @@
 {% block content %}
 
 <div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Inventory Ledger</h5>
 
-    <h5 class="mb-3">Inventory Ledger</h5>
+        <button class="btn btn-success btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#stockInModal">
+            <i class="bi bi-plus-circle"></i> Stock In
+        </button>
+    </div>
+
 
     <!-- STOCK IN -->
-    <form method="POST" class="card p-3 mb-3">
-        {% csrf_token %}
-        <div class="row g-2">
-            <div class="col-md-3">
-                <select name="item_id" class="form-control" required>
+<!--    <form method="POST" class="card p-3 mb-3">-->
+<!--        {% csrf_token %}-->
+<!--        <div class="row g-2">-->
+<!--            <div class="col-md-3">-->
+<!--                <select name="item_id" class="form-control" required>-->
+<!--                    {% for i in items %}-->
+<!--                        <option value="{{ i.id }}">{{ i.item_name }}</option>-->
+<!--                    {% endfor %}-->
+<!--                </select>-->
+<!--            </div>-->
+<!--            <div class="col-md-2">-->
+<!--                <input name="qty" class="form-control" placeholder="Qty" required>-->
+<!--            </div>-->
+<!--            <div class="col-md-2">-->
+<!--                <input name="rate" class="form-control" placeholder="Rate">-->
+<!--            </div>-->
+<!--            <div class="col-md-3">-->
+<!--                <input name="remarks" class="form-control" placeholder="Remarks">-->
+<!--            </div>-->
+<!--            <div class="col-md-2">-->
+<!--                <button class="btn btn-primary w-100">Stock In</button>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </form>-->
+
+    <!-- ================= SUMMARY ================= -->
+    <div class="alert alert-info py-2 mb-3">
+        <div class="d-flex gap-4 small fw-semibold">
+            <span>Total Entries: {{ total_entries }}</span>
+            <span>Total Qty: {{ total_qty }}</span>
+            <span>Total Amount: {{ total_amount }}</span>
+        </div>
+    </div>
+
+    <!-- ================= FILTER ================= -->
+    <form method="get" class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+
+            <div class="col-md-2">
+                <label class="form-label small">Search Item</label>
+                <input name="search" value="{{ search }}"
+                       class="form-control form-control-sm">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small">Item</label>
+                <select name="item_id" class="form-select form-select-sm">
+                    <option value="">All</option>
                     {% for i in items %}
-                        <option value="{{ i.id }}">{{ i.item_name }}</option>
+                        <option value="{{ i.id }}"
+                            {% if i.id == item_filter %}selected{% endif %}>
+                            {{ i.item_name }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
+
             <div class="col-md-2">
-                <input name="qty" class="form-control" placeholder="Qty" required>
+                <label class="form-label small">Type</label>
+                <select name="txn_type" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="IN" {% if txn_type == "IN" %}selected{% endif %}>IN</option>
+                    <option value="OUT" {% if txn_type == "OUT" %}selected{% endif %}>OUT</option>
+                </select>
             </div>
+
             <div class="col-md-2">
-                <input name="rate" class="form-control" placeholder="Rate">
+                <label class="form-label small">From</label>
+                <input type="date" name="from_date"
+                       value="{{ from_date }}"
+                       class="form-control form-control-sm">
             </div>
-            <div class="col-md-3">
-                <input name="remarks" class="form-control" placeholder="Remarks">
-            </div>
+
             <div class="col-md-2">
-                <button class="btn btn-primary w-100">Stock In</button>
+                <label class="form-label small">To</label>
+                <input type="date" name="to_date"
+                       value="{{ to_date }}"
+                       class="form-control form-control-sm">
             </div>
+
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-primary btn-sm w-100">Filter</button>
+                <a href="{% url 'inv_app:inventory_ledger' %}"
+                   class="btn btn-outline-secondary btn-sm w-100">
+                    Reset
+                </a>
+            </div>
+
         </div>
     </form>
 
@@ -59,6 +133,72 @@
         {% endfor %}
         </tbody>
     </table>
+
+    <!-- ================= STOCK IN MODAL ================= -->
+    <div class="modal fade" id="stockInModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <form method="POST"
+                  action="{% url 'inv_app:inventory_ledger' %}"
+                  class="modal-content">
+
+                {% csrf_token %}
+
+                <div class="modal-header">
+                    <h6 class="modal-title">Stock In</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-2">
+
+                        <div class="col-md-6">
+                            <label class="form-label small">Item</label>
+                            <select name="item_id"
+                                    class="form-select form-select-sm"
+                                    required>
+                                <option value="">-- Select Item --</option>
+                                {% for i in items %}
+                                    <option value="{{ i.id }}">{{ i.item_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small">Qty</label>
+                            <input type="number"
+                                   step="0.01"
+                                   name="qty"
+                                   class="form-control form-control-sm"
+                                   required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small">Rate</label>
+                            <input type="number"
+                                   step="0.01"
+                                   name="rate"
+                                   class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small">Remarks</label>
+                            <input name="remarks"
+                                   class="form-control form-control-sm"
+                                   placeholder="Optional remarks">
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-success btn-sm w-100">
+                        Save Stock In
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
 
 </div>
 {% endblock %}

@@ -193,6 +193,15 @@ def inventory_master_view(request):
     for c in categories:
         c["id"] = str(c["_id"])
 
+    # ================= STOCK SUMMARY =================
+    total_items = len(items)
+    total_qty = sum(i.get("current_qty", 0) for i in items)
+    total_value = sum(
+        i.get("current_qty", 0) * i.get("rate", 0)
+        for i in items
+    )
+
+
     # ================= RENDER =================
     return render(request, "inv_app/inventory_master.html", {
         "items": items,
@@ -201,6 +210,10 @@ def inventory_master_view(request):
         "category_filter": category_filter,
         "location_filter": location_filter,
         "low_stock": low_stock,
+        # 🔥 SUMMARY
+        "total_items": total_items,
+        "total_qty": round(total_qty, 2),
+        "total_value": round(total_value, 2),
     })
 
 # Low Stock Alert
@@ -370,34 +383,27 @@ def inventory_ledger_view(request):
     inv_col = get_inventory_master_collection()
     ledger_col = get_inventory_ledger_collection()
 
-    # 🔹 INVENTORY ITEMS (for dropdown)
+    # ================= ITEMS FOR DROPDOWN =================
     items = list(inv_col.find({"is_active": True}))
     for i in items:
         i["id"] = str(i["_id"])
 
-    # 🔹 LEDGER RECORDS (IN + OUT)
-    ledger = list(ledger_col.find().sort("created_at", -1))
-    for l in ledger:
-        l["id"] = str(l["_id"])
-
-    # 🔹 STOCK IN SUBMIT
+    # ================= STOCK IN =================
     if request.method == "POST":
         item_id = request.POST.get("item_id")
         qty = float(request.POST.get("qty"))
-        rate = float(request.POST.get("rate"))
-        location = request.POST.get("location")
+        rate = float(request.POST.get("rate", 0))
         remarks = request.POST.get("remarks", "")
 
         item = inv_col.find_one({"_id": ObjectId(item_id)})
         if not item:
             raise Exception("Inventory item not found")
 
-        # LEDGER IN
         ledger_col.insert_one({
             "item_id": item["_id"],
             "item_name": item["item_name"],
             "category": item.get("category"),
-            "location": location,
+            "location": item.get("location"),
             "qty": qty,
             "rate": rate,
             "amount": qty * rate,
@@ -408,7 +414,6 @@ def inventory_ledger_view(request):
             "created_at": datetime.now()
         })
 
-        # UPDATE MASTER
         inv_col.update_one(
             {"_id": item["_id"]},
             {"$inc": {"current_qty": qty}}
@@ -416,11 +421,62 @@ def inventory_ledger_view(request):
 
         return redirect("inv_app:inventory_ledger")
 
+    # ================= FILTER PARAMS =================
+    search = request.GET.get("search", "").strip()
+    item_filter = request.GET.get("item_id", "")
+    txn_type = request.GET.get("txn_type", "")
+    remarks_filter = request.GET.get("remarks", "")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
 
+    # ================= QUERY BUILD =================
+    query = {}
+
+    if search:
+        query["item_name"] = {"$regex": search, "$options": "i"}
+
+    if item_filter:
+        query["item_id"] = ObjectId(item_filter)
+
+    if txn_type:
+        query["txn_type"] = txn_type
+
+    if remarks_filter:
+        query["remarks"] = {"$regex": remarks_filter, "$options": "i"}
+
+    if from_date or to_date:
+        query["created_at"] = {}
+        if from_date:
+            query["created_at"]["$gte"] = datetime.fromisoformat(from_date)
+        if to_date:
+            query["created_at"]["$lte"] = datetime.fromisoformat(to_date)
+
+    # ================= LEDGER LIST =================
+    ledger = list(ledger_col.find(query).sort("created_at", -1))
+    for l in ledger:
+        l["id"] = str(l["_id"])
+
+    # ================= SUMMARY =================
+    total_entries = len(ledger)
+    total_qty = sum(l.get("qty", 0) for l in ledger)
+    total_amount = sum(l.get("amount", 0) for l in ledger)
 
     return render(request, "inv_app/inventory_ledger.html", {
         "items": items,
-        "ledger": ledger
+        "ledger": ledger,
+
+        # filters
+        "search": search,
+        "item_filter": item_filter,
+        "txn_type": txn_type,
+        "remarks_filter": remarks_filter,
+        "from_date": from_date,
+        "to_date": to_date,
+
+        # summary
+        "total_entries": total_entries,
+        "total_qty": round(total_qty, 2),
+        "total_amount": round(total_amount, 2),
     })
 
 # ✅ Add Inventory Requirement to Order (ERP Correct)
