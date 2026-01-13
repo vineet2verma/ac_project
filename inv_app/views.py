@@ -1,8 +1,6 @@
 from datetime import datetime, date
 from bson import ObjectId
-from django.contrib import messages
 import openpyxl
-from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from cnc_work_app.mongo import *
@@ -131,7 +129,6 @@ def inventory_master_view(request):
         rate = to_float(request.POST.get("rate"))
         reorder_level = to_float(request.POST.get("reorder_level"))
 
-        # ---------- COMMON DATA ----------
         base_data = {
             "item_name": request.POST.get("item_name", "").strip(),
             "category": request.POST.get("category") or None,
@@ -143,28 +140,47 @@ def inventory_master_view(request):
             "updated_at": datetime.now()
         }
 
-        # ================= UPDATE =================
+        # ---------- UPDATE ----------
         if item_id:
             inv_col.update_one(
                 {"_id": ObjectId(item_id)},
                 {"$set": base_data}
             )
 
-        # ================= ADD =================
+        # ---------- ADD ----------
         else:
             base_data.update({
                 "opening_qty": opening_qty,
-                "current_qty": opening_qty,   # stock initialized only once
+                "current_qty": opening_qty,
                 "created_at": datetime.now()
             })
             inv_col.insert_one(base_data)
 
         return redirect("inv_app:inventory_master")
 
+    # ================= FILTER PARAMS =================
+    search = request.GET.get("search", "").strip()
+    category_filter = request.GET.get("category", "")
+    location_filter = request.GET.get("location", "")
+    low_stock = request.GET.get("low_stock")
+
+    # ================= QUERY BUILD =================
+    query = {"is_active": True}
+
+    if search:
+        query["item_name"] = {"$regex": search, "$options": "i"}
+
+    if category_filter:
+        query["category"] = category_filter
+
+    if location_filter:
+        query["location"] = {"$regex": location_filter, "$options": "i"}
+
+    if low_stock:
+        query["$expr"] = {"$lte": ["$current_qty", "$reorder_level"]}
+
     # ================= INVENTORY LIST =================
-    items = list(inv_col.find(
-        {"is_active": True}
-    ).sort("created_at", -1))
+    items = list(inv_col.find(query).sort("created_at", -1))
 
     for i in items:
         i["id"] = str(i["_id"])
@@ -177,11 +193,15 @@ def inventory_master_view(request):
     for c in categories:
         c["id"] = str(c["_id"])
 
+    # ================= RENDER =================
     return render(request, "inv_app/inventory_master.html", {
         "items": items,
         "categories": categories,
+        "search": search,
+        "category_filter": category_filter,
+        "location_filter": location_filter,
+        "low_stock": low_stock,
     })
-
 
 # Low Stock Alert
 def low_stock_alert(request):
