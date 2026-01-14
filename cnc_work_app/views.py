@@ -132,6 +132,8 @@ def cnc_order_list(request):
         .limit(per_page)
     )
 
+    print(f"order 1 chk : {len(orders)}")
+
     for o in orders:
         o["id"] = str(o["_id"])
 
@@ -154,6 +156,8 @@ def cnc_order_list(request):
     # ================= PERMISSIONS =================
     permissions = get_user_permissions(request)
 
+    print(f"order 2 chk : {len(orders)}")
+
     context = {
         "images": orders,
         "page_obj": page_obj,
@@ -171,7 +175,6 @@ def cnc_order_list(request):
     }
 
     return render(request, "cnc_work_app/cnc_order_list.html", context)
-
 
 
 # Add Order
@@ -429,7 +432,7 @@ def order_detail(request, pk):
 
     permissions = get_user_permissions(request)
 
-
+    print(f"permissions: {permissions}")
 
     context = {
         "order": order,
@@ -447,12 +450,13 @@ def order_detail(request, pk):
         # Sales Person
         "sales_users": sales_users,
         # Permission
+        "is_admin": permissions["override"],
+        "can_sales": permissions["sales"],
+        "can_designer" : permissions["designer"],
+        "can_inventory": permissions["inventory"],
+        "can_production": permissions["production"],
         "can_qc": permissions["qc"],
         "can_dispatch": permissions["dispatch"],
-        "can_inventory": permissions["inventory"],
-        "can_sales": permissions["sales"],
-        "can_production": permissions["production"],
-        "is_admin": permissions["override"],
     }
 
     # ---------------- RENDER ----------------
@@ -597,6 +601,7 @@ def add_dispatch(request, order_id):
         )
 
     return redirect("cnc_work_app:detail", pk=order_id)
+
 
 # Active Machines For Dropdown in Detail Page
 def get_active_machines():

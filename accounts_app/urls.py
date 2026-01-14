@@ -13,7 +13,6 @@ urlpatterns = [
     path("users/<str:user_id>/reset-password/",views.admin_reset_password,name="admin_reset_password"),
     # User
     path("users/", views.user_master, name="user_master"),
-    path("users/update/<str:user_id>/", views.update_user, name="update_user"),
 
 
 ]

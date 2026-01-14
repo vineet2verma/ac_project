@@ -184,7 +184,7 @@
         {% endif %}
     {% endfor %}
 
-    {% if request.session.mongo_role in "ADMIN MANAGER" %}
+    {% if is_admin or is_manager  %}
         <label class="small text-muted">Sales:</label>
         <select name="sales_person"
                 class="form-select form-select-sm"

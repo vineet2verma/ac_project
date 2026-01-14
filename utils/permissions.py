@@ -35,8 +35,8 @@ def get_user_permissions(request):
     permissions = {
         "sales": False,
         "designer": False,
-        "production": False,
         "inventory": False,
+        "production": False,
         "qc": False,
         "dispatch": False,
         "override": False,

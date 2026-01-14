@@ -138,15 +138,8 @@ def user_master(request):
     users_col = users_collection()
 
     ROLE_CHOICES = [
-        "ADMIN",
-        "MANAGER",
-        "DASHBOARD",
-        "SALES",
-        "DESIGNER",
-        "PRODUCTION",
-        "INVENTORY",
-        "QC",
-        "DISPATCH",
+        "ADMIN", "MANAGER", "DASHBOARD", "SALES",
+        "DESIGNER", "PRODUCTION", "INVENTORY", "QC", "DISPATCH"
     ]
 
     ACCESS_CHOICES = ["OWN", "ALL"]
@@ -154,11 +147,15 @@ def user_master(request):
     # ================= UPDATE USER =================
     if request.method == "POST":
         user_id = request.POST.get("user_id")
-        roles = request.POST.getlist("roles")   # multiple
+        roles = request.POST.getlist("roles")
         access_scope = request.POST.get("access_scope")
 
         if not user_id:
             messages.error(request, "Invalid user")
+            return redirect("accounts_app:user_master")
+
+        if not roles:
+            messages.error(request, "At least one role is required")
             return redirect("accounts_app:user_master")
 
         if access_scope not in ACCESS_CHOICES:
@@ -167,12 +164,15 @@ def user_master(request):
 
         users_col.update_one(
             {"_id": ObjectId(user_id)},
-            {
-                "$set": {
-                    "roles": roles,
-                    "access_scope": access_scope
-                }
-            }
+            {"$set": {
+                "full_name": request.POST.get("full_name"),
+                "mobile": request.POST.get("mobile"),
+                "dob": request.POST.get("dob") or None,
+                "department": request.POST.get("department"),
+                "roles": roles,
+                "access_scope": access_scope,
+                "is_active": request.POST.get("is_active") == "true",
+            }}
         )
 
         messages.success(request, "User updated successfully")
@@ -192,38 +192,39 @@ def user_master(request):
         {
             "users": users,
             "ROLE_CHOICES": ROLE_CHOICES,
-            "ACCESS_CHOICES": ACCESS_CHOICES
+            "ACCESS_CHOICES": ACCESS_CHOICES,
         }
     )
 
 
-@mongo_login_required
-@mongo_role_required(["ADMIN"])
-def update_user(request, user_id):
-    if request.method == "POST":
-        users_col = users_collection()
-
-        roles = request.POST.getlist("roles")  # ✅ MULTIPLE ROLES
-
-        if not roles:
-            messages.error(request, "At least one role is required.")
-            return redirect("accounts_app:user_master")
-
-        users_col.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {
-                "full_name": request.POST.get("full_name"),
-                "dob": request.POST.get("dob") or None,
-                "mobile": request.POST.get("mobile"),
-                "department": request.POST.get("department"),
-                "roles": roles,
-                "is_active": request.POST.get("is_active") == "true"
-            }}
-        )
-
-        messages.success(request, "User updated successfully")
-
-    return redirect("accounts_app:user_master")
+# @mongo_login_required
+# @mongo_role_required(["ADMIN"])
+# def update_user(request, user_id):
+#     if request.method == "POST":
+#         users_col = users_collection()
+#
+#         roles = request.POST.getlist("roles")  # ✅ MULTIPLE ROLES
+#
+#         if not roles:
+#             messages.error(request, "At least one role is required.")
+#             return redirect("accounts_app:user_master")
+#
+#         users_col.update_one(
+#             {"_id": ObjectId(user_id)},
+#             {"$set": {
+#                 "full_name": request.POST.get("full_name"),
+#                 "mobile": request.POST.get("mobile"),
+#                 "dob": request.POST.get("dob") or None,
+#                 "department": request.POST.get("department"),
+#                 "roles": roles,
+#                 "access_scope": request.POST.get("access_scope"),
+#                 "is_active": request.POST.get("is_active") == "true"
+#             }}
+#         )
+#
+#         messages.success(request, "User updated successfully")
+#
+#     return redirect("accounts_app:user_master")
 
 
 @mongo_login_required

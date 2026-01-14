@@ -162,15 +162,17 @@
     </div>
 
     <!-- ================= DESIGN FILES ================= -->
-    {% if can_qc %}
+    {% if can_qc or can_designer    %}
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">Design Files</h5>
+            {% if can_designer %}
             <button class="btn btn-primary btn-sm rounded-pill"
                     data-bs-toggle="modal"
                     data-bs-target="#designModal">
                 + Add Design
             </button>
+            {% endif %}
         </div>
 
         <div class="table-responsive">
@@ -228,7 +230,7 @@
                             {% endif %}
 
                             <!-- DELETE -->
-
+                            {% if can_designer %}
                             <form method="POST"
                                   action="{% url 'design_app:design_delete' order.id file.id %}">
                                 {% csrf_token %}
@@ -239,6 +241,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            {% endif %}
 
 
                         </div>
