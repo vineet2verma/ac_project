@@ -857,6 +857,7 @@ def category_master(request):
         {"categories": categories}
     )
 
+
 # Inventory Category Delete
 def category_delete(request, pk):
     col = category_collection()

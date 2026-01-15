@@ -132,7 +132,6 @@ def cnc_order_list(request):
         .limit(per_page)
     )
 
-    print(f"order 1 chk : {len(orders)}")
 
     for o in orders:
         o["id"] = str(o["_id"])
@@ -156,7 +155,6 @@ def cnc_order_list(request):
     # ================= PERMISSIONS =================
     permissions = get_user_permissions(request)
 
-    print(f"order 2 chk : {len(orders)}")
 
     context = {
         "images": orders,
@@ -431,8 +429,6 @@ def order_detail(request, pk):
     ))
 
     permissions = get_user_permissions(request)
-
-    print(f"permissions: {permissions}")
 
     context = {
         "order": order,
