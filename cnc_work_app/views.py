@@ -93,6 +93,12 @@ def cnc_order_list(request):
     if sales_filter and role in ["ADMIN", "MANAGER"]:
         query["sales_person"] = sales_filter
 
+    # ================= WORK TYPE FILTER =================
+    # ✅ NEW WORK TYPE FILTER
+    type_of_work = request.GET.get("type_of_work")
+    if type_of_work:
+        query["type_of_work"] = type_of_work
+
     # ================= PAGINATION =================
     page = int(request.GET.get("page", 1))
     per_page = int(request.GET.get("per_page", 10))
@@ -127,11 +133,10 @@ def cnc_order_list(request):
     # ================= FETCH =================
     orders = list(
         order_collection.find(query)
-        .sort("created_at", -1)
+        .sort([("created_at", -1)])
         .skip(skip)
         .limit(per_page)
     )
-
 
     for o in orders:
         o["id"] = str(o["_id"])
@@ -226,6 +231,7 @@ def add_order(request):
             'coverage_area': request.POST.get('coverage_area'),
             'party_name': request.POST.get('party_name'),
             'sales_person': request.POST.get('sales_person'),
+            'type_of_work': request.POST.get('type_of_work'),
             'created_at': datetime.now(),
             'approval_date': approval_date_obj,
             'exp_delivery_date': exp_delivery_date_obj,
@@ -293,6 +299,7 @@ def order_edit(request, pk):
             "party_name": request.POST.get("party_name"),
             "packing_instruction": request.POST.get("packing_instruction"),
             "sales_person": request.POST.get("sales_person"),
+            'type_of_work': request.POST.get('type_of_work'),
             "remarks": request.POST.get("remarks"),
             "image": image_url,
             "updated_at": datetime.now(),

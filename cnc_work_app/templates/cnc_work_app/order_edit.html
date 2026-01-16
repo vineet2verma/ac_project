@@ -95,6 +95,28 @@
                                     {% endfor %}
                                 </select>
                     </div>
+                    <div class="col-md-4 col-12">
+                        <label class="form-label">Type of Work</label>
+                        <select class="form-select" name="type_of_work" required>
+                            <option value="">Select Type of Work</option>
+                            <option value="CNC Work"
+                                {% if order.type_of_work == "CNC Work" %}selected{% endif %}>
+                                CNC Work
+                            </option>
+                            <option value="Third Fire"
+                                {% if order.type_of_work == "Third Fire" %}selected{% endif %}>
+                                Third Fire
+                            </option>
+                            <option value="Sand Blasting"
+                                {% if order.type_of_work == "Sand Blasting" %}selected{% endif %}>
+                                Sand Blasting
+                            </option>
+                            <option value="Tile Cutting"
+                                {% if order.type_of_work == "Tile Cutting" %}selected{% endif %}>
+                                Tile Cutting
+                            </option>
+                        </select>
+                    </div>
 
                     <div class="col-6">
                         <label class="form-label">Remarks</label>

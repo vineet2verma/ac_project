@@ -177,53 +177,66 @@
     <div class="d-flex justify-content-end mx-2">
         <form method="get" class="d-flex align-items-center gap-2">
 
-    {# preserve filters #}
-    {% for key, value in request.GET.items %}
-        {% if key not in "sales_person quick_status page" %}
-            <input type="hidden" name="{{ key }}" value="{{ value }}">
-        {% endif %}
-    {% endfor %}
+        {# preserve filters #}
+        {% for key, value in request.GET.items %}
+            {% if key not in "sales_person quick_status page" %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
 
-    {% if is_admin or is_manager  %}
-        <label class="small text-muted">Sales:</label>
-        <select name="sales_person"
+        {% if is_admin or is_manager  %}
+            <label class="small text-muted">Sales:</label>
+            <select name="sales_person"
+                    class="form-select form-select-sm"
+                    style="width:160px"
+                    onchange="this.form.submit()">
+                <option value="">All Sales</option>
+                {% for u in sales_users %}
+                    <option value="{{ u.username }}"
+                            {% if request.GET.sales_person == u.username %}selected{% endif %}>
+                        {{ u.full_name|default:u.username }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% endif %}
+
+        {% if is_admin %}
+            <label class="small text-muted">Work-Type</label>
+            <select name="type_of_work"
+                    class="form-select form-select-sm"
+                    onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="CNC Work" {% if request.GET.type_of_work == "CNC Work" %}selected{% endif %}>CNC Work</option>
+                <option value="Third Fire" {% if request.GET.type_of_work == "Third Fire" %}selected{% endif %}>Third Fire</option>
+                <option value="Sand Blasting" {% if request.GET.type_of_work == "Sand Blasting" %}selected{% endif %}>Sand Blasting</option>
+                <option value="Tile Cutting" {% if request.GET.type_of_work == "Tile Cutting" %}selected{% endif %}>Tile Cutting</option>
+            </select>
+        {% endif %}
+
+        <label class="small text-muted">Show:</label>
+        <select name="quick_status"
                 class="form-select form-select-sm"
-                style="width:160px"
+                style="width:180px"
                 onchange="this.form.submit()">
-            <option value="">All Sales</option>
-            {% for u in sales_users %}
-                <option value="{{ u.username }}"
-                        {% if request.GET.sales_person == u.username %}selected{% endif %}>
-                    {{ u.full_name|default:u.username }}
+
+            {% if request.session.mongo_role == "SALES" %}
+                <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                    My Pending Orders
                 </option>
-            {% endfor %}
+                <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                    My Completed Orders
+                </option>
+            {% else %}
+                <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                    Pending Orders
+                </option>
+                <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                    Completed Orders
+                </option>
+            {% endif %}
         </select>
-    {% endif %}
 
-    <label class="small text-muted">Show:</label>
-    <select name="quick_status"
-            class="form-select form-select-sm"
-            style="width:180px"
-            onchange="this.form.submit()">
-
-        {% if request.session.mongo_role == "SALES" %}
-            <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
-                My Pending Orders
-            </option>
-            <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
-                My Completed Orders
-            </option>
-        {% else %}
-            <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
-                Pending Orders
-            </option>
-            <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
-                Completed Orders
-            </option>
-        {% endif %}
-    </select>
-
-</form>
+    </form>
 
 
     </div>
@@ -277,9 +290,18 @@
             <div class="col-md-3">
                 <table class="table table-sm erp-table mb-0">
                     <tr>
+                        <th>Work Type</th>
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                {{ img.type_of_work }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Stone</th>
                         <td>{{ img.stone }}</td>
                     </tr>
+
                     <tr>
                         <th>Color</th>
                         <td>{{ img.color }}</td>
