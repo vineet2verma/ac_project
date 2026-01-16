@@ -292,7 +292,19 @@
                     <tr>
                         <th>Work Type</th>
                         <td>
-                            <span class="badge bg-info text-dark">
+                            <span class="badge px-2 py-1
+                                {% if img.type_of_work == 'CNC Work' %}
+                                    bg-primary
+                                {% elif img.type_of_work == 'Third Fire' %}
+                                    bg-warning text-dark
+                                {% elif img.type_of_work == 'Sand Blasting' %}
+                                    bg-secondary
+                                {% elif img.type_of_work == 'Tile Cutting' %}
+                                    bg-success
+                                {% else %}
+                                    bg-info text-dark
+                                {% endif %}
+                            ">
                                 {{ img.type_of_work }}
                             </span>
                         </td>
@@ -322,11 +334,11 @@
                 <table class="table table-sm erp-table mb-0">
                     <tr>
                         <th>Approval</th>
-                        <td>{{ img.approval_date }}</td>
+                        <td>{{ img.approval_date|date:"M d, Y" }}</td>
                     </tr>
                     <tr>
                         <th>Delivery</th>
-                        <td>{{ img.exp_delivery_date }}</td>
+                        <td>{{ img.exp_delivery_date|date:"M d, Y" }}</td>
                     </tr>
                     <tr>
                         <th>Coverage</th>

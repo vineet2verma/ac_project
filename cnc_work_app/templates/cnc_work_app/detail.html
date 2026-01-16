@@ -65,9 +65,9 @@
                     <i class="bi bi-arrow-return-left"></i>
                 </a>
             </div>
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-4">
                 <h5 class="fw-semibold text-primary m-0">
-                    Title : {{ order.title }} || {{ order.sales_person }}
+                    Title : <span class="badge bg-warning text-dark  "> {{ order.title }} </span> || <span class="badge bg-secondary "> {{ order.sales_person }} </span> || <span class="badge bg-info text-dark }}" > {{ order.type_of_work  }} </span>
                 </h5>
                 <!-- ✏️ EDIT ORDER -->
                 {% if is_admin %}
@@ -151,6 +151,10 @@
                 <tr>
                     <th>Sales</th>
                     <td>{{ order.sales_person }}</td>
+                </tr>
+                <tr>
+                    <th>Type of Work </th>
+                    <td>{{ order.type_of_work }}</td>
                 </tr>
                 <tr>
                     <th>Remarks</th>

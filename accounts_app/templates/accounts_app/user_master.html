@@ -21,6 +21,7 @@
                     <th>DOB</th>
                     <th>Department</th>
                     <th>Role</th>
+                    <th>Work Types</th>
                     <th>Access</th>
                     <th>Status</th>
                     <th width="140" class="text-center">Action</th>
@@ -38,6 +39,15 @@
                         {% for r in u.roles %}
                         <span class="badge bg-info text-dark me-1">{{ r }}</span>
                         {% endfor %}
+                    </td>
+                    <td>
+                        {% if u.work_type_access %}
+                            {% for wt in u.work_type_access %}
+                                <span class="badge bg-secondary me-1">{{ wt }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
                     </td>
                     <td>
                         <span class="badge bg-secondary">{{ u.access_scope }}</span>
@@ -156,6 +166,65 @@
                         </div>
                     </div>
 
+                    <!-- WORK TYPE ACCESS -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Work Type Access</label>
+                        <div class="row g-2">
+
+                            {% with wt=u.work_type_access %}
+                            <div class="col-6 col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="work_type_access"
+                                           value="CNC Work"
+                                           {% if "CNC Work" in wt %}checked{% endif %}>
+                                    <label class="form-check-label">CNC Work</label>
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="work_type_access"
+                                           value="Third Fire"
+                                           {% if "Third Fire" in wt %}checked{% endif %}>
+                                    <label class="form-check-label">Third Fire</label>
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="work_type_access"
+                                           value="Sand Blasting"
+                                           {% if "Sand Blasting" in wt %}checked{% endif %}>
+                                    <label class="form-check-label">Sand Blasting</label>
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="work_type_access"
+                                           value="Tile Cutting"
+                                           {% if "Tile Cutting" in wt %}checked{% endif %}>
+                                    <label class="form-check-label">Tile Cutting</label>
+                                </div>
+                            </div>
+                            {% endwith %}
+
+                        </div>
+
+                        <div class="form-text">
+                            Checked work types will be visible to the user.
+                        </div>
+                    </div>
+
+
                     <!-- ACCESS SCOPE -->
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">Access Scope</label>
@@ -172,6 +241,7 @@
                             ALL = All records
                         </div>
                     </div>
+
 
                 </div>
             </div>

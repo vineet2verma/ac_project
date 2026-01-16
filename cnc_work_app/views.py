@@ -61,20 +61,30 @@ def custom_404(request, exception):
 @mongo_login_required
 def cnc_order_list(request):
     order_collection = get_orders_collection()
+    users_col = users_collection()
 
-    role = request.session.get("mongo_role")
-    username = request.session.get("mongo_username")
+    # ================= SESSION DATA =================
+    role = request.session.get("mongo_roles",[])
     access_scope = request.session.get("access_scope")
+    user_work_types = request.session.get("work_type_access", [])
+    username = request.session.get("mongo_username")
+
+    is_admin_or_manager = any(r in ["ADMIN", "MANAGER"] for r in role)
 
     query = {}
 
     # ================= ACCESS SCOPE (ONLY SOURCE OF TRUTH) =================
-    if access_scope == "OWN":
-        query["sales_person"] = username
-    elif access_scope == "ALL":
-        pass  # No restriction
-    else:
-        query["_id"] = None  # Safety fallback
+    if access_scope == "OWN": query["sales_person"] = username
+    elif access_scope == "ALL":  pass  # No restriction
+    else: query["_id"] = None  # Safety fallback
+
+    # ================= WORK TYPE ACCESS (SECURITY) =================
+    # Admin / Manager can see all
+    if role not in ["ADMIN", "MANAGER"]:
+        if user_work_types:
+            query["type_of_work"] = {"$in": user_work_types}
+        # else:
+            # query["_id"] = None  # user sees nothing
 
     # ================= QUICK STATUS FILTER =================
     quick_status = request.GET.get("quick_status", "pending")
@@ -90,19 +100,13 @@ def cnc_order_list(request):
 
     # ================= ADMIN / MANAGER SALES FILTER =================
     sales_filter = request.GET.get("sales_person")
-    if sales_filter and role in ["ADMIN", "MANAGER"]:
+    if sales_filter and is_admin_or_manager:
         query["sales_person"] = sales_filter
 
-    # ================= WORK TYPE FILTER =================
-    # ✅ NEW WORK TYPE FILTER
+    # ================= ADMIN WORK TYPE FILTER (UI) =================
     type_of_work = request.GET.get("type_of_work")
-    if type_of_work:
+    if type_of_work and is_admin_or_manager:
         query["type_of_work"] = type_of_work
-
-    # ================= PAGINATION =================
-    page = int(request.GET.get("page", 1))
-    per_page = int(request.GET.get("per_page", 10))
-    skip = (page - 1) * per_page
 
     # ================= SEARCH =================
     q = request.GET.get("q")
@@ -127,6 +131,11 @@ def cnc_order_list(request):
             date_query["$lte"] = datetime.strptime(to_date, "%Y-%m-%d")
         query["approval_date"] = date_query
 
+    # ================= PAGINATION =================
+    page = int(request.GET.get("page", 1))
+    per_page = int(request.GET.get("per_page", 10))
+    skip = (page - 1) * per_page
+
     # ================= COUNT =================
     total_count = order_collection.count_documents(query)
 
@@ -147,7 +156,6 @@ def cnc_order_list(request):
         o["status_badge"] = badge
 
     # ================= SALES USERS =================
-    users_col = users_collection()
     sales_users = list(users_col.find(
         {"roles": "SALES", "is_active": True},
         {"username": 1, "full_name": 1}
@@ -159,7 +167,6 @@ def cnc_order_list(request):
 
     # ================= PERMISSIONS =================
     permissions = get_user_permissions(request)
-
 
     context = {
         "images": orders,
