@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from cnc_work_app.mongo import *
 from django.http import Http404
+from collections import defaultdict
 
 
 # Inventory Templates
@@ -201,6 +202,26 @@ def inventory_master_view(request):
         for i in items
     )
 
+    # ================= CATEGORY-WISE SUMMARY (FOR ACCORDION) =================
+    category_summary = []
+
+    grouped = defaultdict(list)
+    for item in items:
+        category = item.get("category") or "Uncategorized"
+        grouped[category].append(item)
+
+    for category, cat_items in grouped.items():
+        category_summary.append({
+            "category": category,
+            "total_items": len(cat_items),
+            "total_qty": round(
+                sum(i.get("current_qty", 0) for i in cat_items), 2
+            ),
+            "total_value": round(
+                sum(i.get("current_qty", 0) * i.get("rate", 0) for i in cat_items), 2
+            ),
+        })
+
 
     # ================= RENDER =================
     return render(request, "inv_app/inventory_master.html", {
@@ -214,6 +235,8 @@ def inventory_master_view(request):
         "total_items": total_items,
         "total_qty": round(total_qty, 2),
         "total_value": round(total_value, 2),
+        # 🔥 ACCORDION DATA
+        "category_summary": category_summary,
     })
 
 # Low Stock Alert

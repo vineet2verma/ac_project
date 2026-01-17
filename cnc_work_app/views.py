@@ -338,22 +338,30 @@ def order_edit(request, pk):
 @mongo_login_required
 def order_delete(request, pk):
     order_collection = get_orders_collection()
-    # 🔹 Fetch order from MongoDB
+
+    # 🔹 Fetch order
     order = order_collection.find_one({"_id": ObjectId(pk)})
     if not order:
         messages.error(request, "Order not found")
         return redirect("cnc_work_app:index")
 
     if request.method == "POST":
-        # 🔥 Delete image from Cloudinary (SAFE)
+        confirm_title = request.POST.get("confirm_title", "").strip()
+        actual_title = order.get("title", "").strip()
+
+        # ❌ If title does NOT match → stop delete
+        if confirm_title != actual_title:
+            messages.error(request, "Entered title does not match. Order not deleted.")
+            return redirect("cnc_work_app:order_delete", pk=pk)
+
+        # 🔥 Delete image from Cloudinary
         image_url = order.get("image")
         if image_url:
             try:
-                # extract public_id from URL
                 public_id = image_url.split("/")[-1].split(".")[0]
                 destroy(f"orders/{public_id}")
             except Exception:
-                pass  # production में logger use करें
+                pass  # use logger in production
 
         # 🔥 Delete order from MongoDB
         order_collection.delete_one({"_id": ObjectId(pk)})
@@ -366,7 +374,6 @@ def order_delete(request, pk):
         "cnc_work_app/order_confirm_delete.html",
         {"order": order}
     )
-
 
 # Order detail page
 @mongo_login_required

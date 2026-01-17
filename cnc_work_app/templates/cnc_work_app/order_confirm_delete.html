@@ -8,29 +8,34 @@
 
             <h5 class="text-danger">Confirm Order Delete</h5>
 
+            <div class="alert alert-warning">
+                This action <strong>cannot be undone</strong>.
+            </div>
+
             <p>
-                Are you sure you want to delete order:
-                <strong>{{ order.party_name }} - {{ order.stone }}</strong>?
+                To confirm deletion, type the order title exactly:
+                <br>
+                <strong class="text-danger">{{ order.title }}</strong>
             </p>
 
             {% if order.image %}
-                <img src="{{ order.image }}"
-                     width="200"
-                     class="mb-3 img-thumbnail">
-            {% else %}
-                <p class="text-muted">No image uploaded</p>
+                <img src="{{ order.image }}" width="200" class="mb-3 img-thumbnail">
             {% endif %}
 
             <form method="post">
                 {% csrf_token %}
 
-                <a href="{% url 'cnc_work_app:index' %}"
-                   class="btn btn-secondary">
+                <input type="text"
+                       name="confirm_title"
+                       class="form-control mb-3"
+                       placeholder="Type exact order title"
+                       required>
+
+                <a href="{% url 'cnc_work_app:index' %}" class="btn btn-secondary">
                     Cancel
                 </a>
 
-                <button type="submit"
-                        class="btn btn-danger">
+                <button type="submit" class="btn btn-danger">
                     Yes, Delete
                 </button>
             </form>
