@@ -241,13 +241,17 @@
                             ALL = All records
                         </div>
                     </div>
-
-
                 </div>
             </div>
 
             <!-- FOOTER -->
             <div class="modal-footer">
+                <button type="button"
+                    class="btn btn-warning btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#resetPassword{{ u.id }}">
+                    Reset Password
+                </button>
                 <button type="button"
                         class="btn btn-secondary btn-sm"
                         data-bs-dismiss="modal">
@@ -256,6 +260,54 @@
                 <button type="submit"
                         class="btn btn-primary btn-sm">
                     Save Changes
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% for u in users %}
+<div class="modal fade" id="resetPassword{{ u.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST"
+              action="{% url 'accounts_app:admin_reset_password' u.id %}"
+              class="modal-content">
+
+            {% csrf_token %}
+
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Reset Password</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">New Password</label>
+                    <input type="password"
+                           name="new_password"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password"
+                           name="confirm_password"
+                           class="form-control"
+                           required>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="btn btn-danger btn-sm">
+                    Reset Password
                 </button>
             </div>
 
