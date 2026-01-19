@@ -215,9 +215,9 @@ def machine_edit(request, order_id, machine_work_id):
         col.update_one(
             {"_id": ObjectId(machine_work_id)},
             {"$set": {
-                "machine_id": request.POST.get("machine_id"),   # ✅ optional but correct
+                "machine_id": request.POST.get("machine_id"),
                 "working_hour": float(request.POST.get("working_hour", 0)),
-                "work_type": request.POST.get("work_type", "ONTIME"),  # ✅ FIX
+                "work_type": request.POST.get("work_type", "ONTIME"),
                 "operator": request.POST.get("operator"),
                 "remarks": request.POST.get("remarks"),
             }}

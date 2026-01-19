@@ -1,3 +1,5 @@
+import traceback
+
 import cloudinary
 from django.shortcuts import render, get_object_or_404, redirect
 from datetime import datetime, date
@@ -44,67 +46,62 @@ def add_design_file(request, pk):
 
 # Delete Design File From Order
 def design_action(request, design_id, action):
-    design_col = get_design_files_collection()
-    order_col = get_orders_collection()
+    try:
+        if request.method != "POST":
+            return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
 
-    design = design_col.find_one({"_id": ObjectId(design_id)})
+        design_col = get_design_files_collection()
+        order_col = get_orders_collection()
 
-    if not design:
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        design = design_col.find_one({"_id": ObjectId(design_id)})
+        if not design:
+            return JsonResponse({"success": False, "message": "Design not found"}, status=404)
 
-    order_id = design.get("order_id")
+        order_id = design.get("order_id")
+        if not order_id:
+            return JsonResponse({"success": False, "message": "Order not linked"}, status=400)
 
-    if action == "approve" and order_id:
+        if action != "approve":
+            return JsonResponse({"success": False, "message": "Invalid action"}, status=400)
 
-        # 1️⃣ Update design file
+        now = datetime.utcnow()
+
+        # 1️⃣ Approve design
         design_col.update_one(
             {"_id": ObjectId(design_id)},
-            {
-                "$set": {
-                    "status": "approved",
-                    "approved_at": datetime.utcnow()
-                }
-            }
+            {"$set": {"status": "approved", "approved_at": now}}
         )
 
-        # 2️⃣ COMPLETE DESIGN
+        # 2️⃣ DESIGN → COMPLETE
+        order_col.update_one(
+            {"_id": ObjectId(order_id), "order_status.stage": "DESIGN"},
+            {"$set": {"order_status.$.status": "COMPLETE", "order_status.$.updated_at": now}}
+        )
+
+        # 3️⃣ MACHINE → PENDING (if not exists)
         order_col.update_one(
             {
                 "_id": ObjectId(order_id),
-                "order_status.stage": "DESIGN",
-                "order_status.status": "PENDING"
-            },
-            {
-                "$set": {
-                    "order_status.$.status": "COMPLETE",
-                    "order_status.$.updated_at": datetime.utcnow(),
-                    "current_status": "Machine Pending"
-                }
-            }
-        )
-
-        # 3️⃣ ADD MACHINE (ONLY IF NOT EXISTS)
-        order_col.update_one(
-            {
-                "_id": ObjectId(order_id),
-                "order_status": {
-                    "$not": {
-                        "$elemMatch": {"stage": "MACHINE"}
-                    }
-                }
+                "order_status": {"$not": {"$elemMatch": {"stage": "MACHINE"}}}
             },
             {
                 "$push": {
                     "order_status": {
                         "stage": "MACHINE",
                         "status": "PENDING",
-                        "updated_at": datetime.utcnow()
+                        "updated_at": now
                     }
                 }
             }
         )
 
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+        return JsonResponse({"success": True})
+
+    except Exception:
+        # print(traceback.format_exc())
+        return JsonResponse({"success": False, "message": "Server error"}, status=500)
+
+
 
 
 # Design Delete
