@@ -186,6 +186,7 @@
                     <th>Name</th>
                     <th>File</th>
                     <th>Status</th>
+                    <th>Approved By</th>
                     <th>Date</th>
                     <th style="width:140px">Action</th>
                 </tr>
@@ -204,12 +205,15 @@
                     </td>
 
                     <td>
-                    <span class="badge
-                        {% if file.status == 'approved' %} bg-success
-                        {% elif file.status == 'cancelled' %} bg-danger
-                        {% else %} bg-warning text-dark {% endif %}">
-                        {{ file.status|title }}
-                    </span>
+                        <span class="badge
+                            {% if file.status == 'approved' %} bg-success
+                            {% elif file.status == 'cancelled' %} bg-danger
+                            {% else %} bg-warning text-dark {% endif %}">
+                            {{ file.status|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {{ file.approved_by_name|default:"-" }}
                     </td>
 
                     <td>{{ file.approved_at|default:"-" }}</td>
@@ -234,19 +238,32 @@
                             {% endif %}
 
                             <!-- DELETE -->
-                            {% if can_designer %}
-                            <form method="POST"
-                                  action="{% url 'design_app:design_delete' order.id file.id %}">
-                                {% csrf_token %}
-                                <button type="submit"
-                                        class="btn btn-danger btn-sm"
-                                        title="Delete"
-                                        onclick="return confirm('Delete this design file?')">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            {% endif %}
+                            {% if is_admin %}
+                                <!-- Admin can delete anytime (even approved) -->
+                                <form method="POST"
+                                      action="{% url 'design_app:design_delete' order.id file.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            title="Delete"
+                                            onclick="return confirm('Delete this design file?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
 
+                            {% elif can_designer and file.status in "pending cancelled" %}
+                                <!-- Other users can delete only if pending/cancelled -->
+                                <form method="POST"
+                                      action="{% url 'design_app:design_delete' order.id file.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            title="Delete"
+                                            onclick="return confirm('Delete this design file?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
 
                         </div>
                     </td>
@@ -473,8 +490,8 @@
     <form method="POST" action="{% url 'cnc_work_app:quality_check' order.id %}" class="card card-body mb-2">
         {% csrf_token %}
         <div class="row g-2">
-            <div class="col-md-3"><input name="checked_by" class="form-control form-control-sm"
-                                         placeholder="Checked By" required></div>
+            <div class="col-md-3">
+                <input name="checked_by" class="form-control form-control-sm" placeholder="Checked By" required></div>
             <div class="col-md-3">
                 <select name="status" class="form-select form-select-sm">
                     <option value="pass">Pass</option>
@@ -524,7 +541,6 @@
 {% if can_dispatch %}
 <div class="mb-4">
     <h5 class="mb-2">Dispatch</h5>
-
     <form method="POST" action="{% url 'cnc_work_app:dispatch_add' order.id %}" class="card card-body mb-2">
         {% csrf_token %}
         <div class="row g-2">

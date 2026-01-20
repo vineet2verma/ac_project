@@ -433,13 +433,14 @@ def order_detail(request, pk):
 
     # ---------------------- QUALITY CHECK  ----------------------
     quality_checks = list(qc_col.find({"order_id": pk}).sort("created_at", -1))
-    for q in quality_checks:
-        q["id"] = str(q["_id"])
+    for q in quality_checks: q["id"] = str(q["_id"])
+
+    print(f"Quality checks: {quality_checks}")
 
     #  ---------------------- DISPATCH  ----------------------
-    dispatches = list(dispatch_col.find({"order_id": pk}).sort("created_at", -1))
-    for d in dispatches:
-        d["id"] = str(d["_id"])
+    dispatches = list(dispatch_col.find({"order_id": ObjectId(pk)}).sort("created_at", -1))
+    for d in dispatches: d["id"] = str(d["_id"])
+
 
     # ================= SALES USERS (DROPDOWN) =================
     users_col = users_collection()
@@ -567,12 +568,10 @@ def add_dispatch(request, order_id):
 
     # 🔹 Fetch order
     order = order_collection.find_one({"_id": ObjectId(order_id)})
-    if not order:
-        raise Http404("Order not found")
+    if not order: raise Http404("Order not found")
 
     # 🔒 Prevent double dispatch
-    if order.get("current_status") == "Complete":
-        raise Http404("Order already dispatched")
+    if order.get("current_status") == "Complete": raise Http404("Order already dispatched")
 
     if request.method == "POST":
 

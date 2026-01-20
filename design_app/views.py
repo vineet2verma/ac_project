@@ -7,9 +7,10 @@ from cnc_work_app.mongo import *
 from bson import ObjectId
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
 from cloudinary.uploader import upload, destroy
-
+from accounts_app.views import mongo_login_required, mongo_role_required
 
 # Add Design File In Order
+@mongo_login_required
 def add_design_file(request, pk):
     order_collection = get_orders_collection()
     design_collection = get_design_files_collection()
@@ -45,31 +46,44 @@ def add_design_file(request, pk):
 
 
 # Delete Design File From Order
+@mongo_login_required
 def design_action(request, design_id, action):
     try:
-        if request.method != "POST":
-            return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
+        if request.method != "POST": return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
 
         design_col = get_design_files_collection()
         order_col = get_orders_collection()
 
         design = design_col.find_one({"_id": ObjectId(design_id)})
-        if not design:
-            return JsonResponse({"success": False, "message": "Design not found"}, status=404)
+        if not design: return JsonResponse({"success": False, "message": "Design not found"}, status=404)
 
         order_id = design.get("order_id")
-        if not order_id:
-            return JsonResponse({"success": False, "message": "Order not linked"}, status=400)
+        if not order_id: return JsonResponse({"success": False, "message": "Order not linked"}, status=400)
 
-        if action != "approve":
-            return JsonResponse({"success": False, "message": "Invalid action"}, status=400)
+        if action != "approve": return JsonResponse({"success": False, "message": "Invalid action"}, status=400)
 
         now = datetime.utcnow()
+
+        # ✅ Approved person details
+        approved_by_user_id = request.session.get("mongo_user_id", "")
+        approved_by_username = request.session.get("mongo_username", "")
+        approved_by_roles = request.session.get("mongo_roles", [])
+
+        user_doc = users_collection().find_one({"_id": ObjectId(approved_by_user_id)})
+        approved_by_name = user_doc.get("full_name") if user_doc else approved_by_username
 
         # 1️⃣ Approve design
         design_col.update_one(
             {"_id": ObjectId(design_id)},
-            {"$set": {"status": "approved", "approved_at": now}}
+            {"$set":
+                {
+                    "status": "approved",
+                    "approved_at": now,
+                    "approved_by_id": approved_by_user_id,
+                    "approved_by_name": approved_by_name,
+                    "approved_by_role": approved_by_roles,
+                }
+            }
         )
 
         # 2️⃣ DESIGN → COMPLETE
@@ -105,6 +119,7 @@ def design_action(request, design_id, action):
 
 
 # Design Delete
+@mongo_login_required
 def design_delete(request, order_id, design_id):
     if request.method != "POST": raise Http404("Invalid request")
     design_col = get_design_files_collection()

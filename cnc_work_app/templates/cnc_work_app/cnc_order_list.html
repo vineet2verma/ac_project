@@ -18,21 +18,24 @@
     .erp-card {
         background: #fff;
         border: 1px solid #dee2e6;
-        border-radius: 6px;
-        margin-bottom: 8px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        overflow: hidden;
     }
-    
+
     .erp-table th {
         font-weight: 600;
         font-size: 12px;
         color: #555;
+        white-space: nowrap;
     }
-    
+
     .erp-table td {
         font-size: 12px;
         text-align: right;
+        word-break: break-word;
     }
-    
+
     /* ================= IMAGE PREVIEW ================= */
     .image-preview-container {
         width: 100%;
@@ -40,18 +43,18 @@
         margin: auto;
         position: relative;
     }
-    
+
     .preview-img {
         width: 100%;
         height: 140px;
         object-fit: cover;
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px solid #ddd;
         cursor: pointer;
         background: #f8f9fa;
         transition: all 0.2s ease-in-out;
     }
-    
+
     /* Hover preview (desktop only) */
     @media (min-width: 769px) {
         .preview-img:hover {
@@ -69,11 +72,86 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.35);
         }
     }
-    
-    /* Mobile safe */
+
+    /* ================= MOBILE RESPONSIVE ================= */
     @media (max-width: 768px) {
+
+        .erp-card {
+            padding: 10px !important;
+        }
+
+        .image-preview-container {
+            max-width: 100%;
+        }
+
         .preview-img {
-            height: 120px;
+            height: 180px;
+        }
+
+        /* Make tables look like key/value blocks */
+        .erp-table {
+            width: 100%;
+        }
+
+        .erp-table tr {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px dashed #e6e6e6;
+            padding: 6px 0;
+        }
+
+        .erp-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .erp-table th {
+            flex: 1;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .erp-table td {
+            flex: 1;
+            text-align: right;
+            font-size: 12px;
+        }
+
+        /* Action buttons full width */
+        .mobile-action-btns {
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+
+        .mobile-action-btns a {
+            width: 100% !important;
+        }
+
+        /* Top filter row stack */
+        .top-filter-wrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+        }
+
+        .top-filter-wrap .small {
+            text-align: center;
+        }
+
+        /* Quick filter forms stack */
+        .quick-filter-wrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            width: 100%;
+        }
+
+        .quick-filter-wrap form {
+            width: 100%;
+        }
+
+        .quick-filter-wrap select {
+            width: 100% !important;
         }
     }
 </style>
@@ -98,12 +176,11 @@
              data-bs-parent="#searchAccordion">
 
             <div class="accordion-body">
-
                 <form method="get">
                     <div class="row g-2 align-items-end">
 
                         <!-- SEARCH -->
-                        <div class="col-md-4">
+                        <div class="col-md-4 col-12">
                             <label class="form-label small">Search</label>
                             <input type="text"
                                    name="q"
@@ -112,20 +189,8 @@
                                    value="{{ request.GET.q }}">
                         </div>
 
-                        <!-- STATUS -->
-                        <div class="col-md-2">
-                            <label class="form-label small">Status</label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">All</option>
-                                <option value="Complete" {% if request.GET.status == "Complete" %}selected{% endif %}>Complete</option>
-                                <option value="Dispatch Pending" {% if request.GET.status == "Dispatch Pending" %}selected{% endif %}>Dispatch Pending</option>
-                                <option value="Inventory Pending" {% if request.GET.status == "Inventory Pending" %}selected{% endif %}>Inventory Pending</option>
-                                <option value="Design Pending" {% if request.GET.status == "Design Pending" %}selected{% endif %}>Design Pending</option>
-                            </select>
-                        </div>
-
                         <!-- FROM DATE -->
-                        <div class="col-md-2">
+                        <div class="col-md-3 col-6">
                             <label class="form-label small">From Date</label>
                             <input type="date"
                                    name="from_date"
@@ -134,7 +199,7 @@
                         </div>
 
                         <!-- TO DATE -->
-                        <div class="col-md-2">
+                        <div class="col-md-3 col-6">
                             <label class="form-label small">To Date</label>
                             <input type="date"
                                    name="to_date"
@@ -143,7 +208,7 @@
                         </div>
 
                         <!-- BUTTONS -->
-                        <div class="col-md-2 d-flex gap-2">
+                        <div class="col-md-2 col-12 d-flex gap-2">
                             <button class="btn btn-sm btn-primary w-100">
                                 Search
                             </button>
@@ -155,139 +220,124 @@
 
                     </div>
                 </form>
-
             </div>
+
         </div>
     </div>
 </div>
 
-
-
 <!-- ================= STATUS QUICK FILTER + PAGINATION INFO ================= -->
-<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+
     <div class="small text-muted">
         Showing {{ page_obj.start_index }} –
         {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
     </div>
 
+    <div class="filter-bar d-flex align-items-end gap-2 flex-wrap justify-content-end">
 
-<div class="d-flex justify-content-end align-items-center">
+        <!-- FILTER FORM -->
+        <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
 
-    <!-- ================= STATUS QUICK FILTER ================= -->
-    <div class="d-flex justify-content-end mx-2">
-        <form method="get" class="d-flex align-items-center gap-2">
+            {# preserve filters #}
+            {% for key, value in request.GET.items %}
+                {% if key not in "sales_person quick_status type_of_work page per_page" %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endfor %}
 
-        {# preserve filters #}
-        {% for key, value in request.GET.items %}
-            {% if key not in "sales_person quick_status page" %}
-                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% if is_admin or is_manager %}
+            <div class="filter-item">
+                <label class="form-label small mb-1 text-muted">Sales</label>
+                <select name="sales_person"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()">
+                    <option value="">All Sales</option>
+                    {% for u in sales_users %}
+                        <option value="{{ u.username }}"
+                                {% if request.GET.sales_person == u.username %}selected{% endif %}>
+                            {{ u.full_name|default:u.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
             {% endif %}
-        {% endfor %}
 
-        {% if is_admin or is_manager  %}
-            <label class="small text-muted">Sales:</label>
-            <select name="sales_person"
-                    class="form-select form-select-sm"
-                    style="width:160px"
-                    onchange="this.form.submit()">
-                <option value="">All Sales</option>
-                {% for u in sales_users %}
-                    <option value="{{ u.username }}"
-                            {% if request.GET.sales_person == u.username %}selected{% endif %}>
-                        {{ u.full_name|default:u.username }}
-                    </option>
-                {% endfor %}
-            </select>
-        {% endif %}
-
-        {% if is_admin %}
-            <label class="small text-muted">Work-Type</label>
-            <select name="type_of_work"
-                    class="form-select form-select-sm"
-                    onchange="this.form.submit()">
-                <option value="">All</option>
-                <option value="CNC Work" {% if request.GET.type_of_work == "CNC Work" %}selected{% endif %}>CNC Work</option>
-                <option value="Third Fire" {% if request.GET.type_of_work == "Third Fire" %}selected{% endif %}>Third Fire</option>
-                <option value="Sand Blasting" {% if request.GET.type_of_work == "Sand Blasting" %}selected{% endif %}>Sand Blasting</option>
-                <option value="Tile Cutting" {% if request.GET.type_of_work == "Tile Cutting" %}selected{% endif %}>Tile Cutting</option>
-            </select>
-        {% endif %}
-
-        <label class="small text-muted">Show:</label>
-        <select name="quick_status"
-                class="form-select form-select-sm"
-                style="width:180px"
-                onchange="this.form.submit()">
-
-            {% if request.session.mongo_role == "SALES" %}
-                <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
-                    My Pending Orders
-                </option>
-                <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
-                    My Completed Orders
-                </option>
-            {% else %}
-                <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
-                    Pending Orders
-                </option>
-                <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
-                    Completed Orders
-                </option>
+            {% if is_admin %}
+            <div class="filter-item">
+                <label class="form-label small mb-1 text-muted">Work-Type</label>
+                <select name="type_of_work"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()">
+                    <option value="">All</option>
+                    <option value="CNC Work" {% if request.GET.type_of_work == "CNC Work" %}selected{% endif %}>CNC Work</option>
+                    <option value="Third Fire" {% if request.GET.type_of_work == "Third Fire" %}selected{% endif %}>Third Fire</option>
+                    <option value="Sand Blasting" {% if request.GET.type_of_work == "Sand Blasting" %}selected{% endif %}>Sand Blasting</option>
+                    <option value="Tile Cutting" {% if request.GET.type_of_work == "Tile Cutting" %}selected{% endif %}>Tile Cutting</option>
+                </select>
+            </div>
             {% endif %}
-        </select>
 
-    </form>
+            <div class="filter-item">
+                <label class="form-label small mb-1 text-muted">Show</label>
+                <select name="quick_status"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()">
+                    {% if request.session.mongo_role == "SALES" %}
+                        <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                            My Pending Orders
+                        </option>
+                        <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                            My Completed Orders
+                        </option>
+                    {% else %}
+                        <option value="pending" {% if request.GET.quick_status != 'complete' %}selected{% endif %}>
+                            Pending Orders
+                        </option>
+                        <option value="complete" {% if request.GET.quick_status == 'complete' %}selected{% endif %}>
+                            Completed Orders
+                        </option>
+                    {% endif %}
+                </select>
+            </div>
 
+            <div class="filter-item rows-item">
+                <label class="form-label small mb-1 text-muted">Rows</label>
+                <select name="per_page"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()">
+                    <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+
+        </form>
 
     </div>
-
-    <!-- ================= PAGINATION DROPDOWN ================= -->
-    <form method="get" class="d-flex align-items-center gap-2">
-
-        {% for key, value in request.GET.items %}
-            {% if key != 'page' and key != 'per_page' %}
-                <input type="hidden" name="{{ key }}" value="{{ value }}">
-            {% endif %}
-        {% endfor %}
-
-        <label class="small">Rows:</label>
-        <select name="per_page"
-                class="form-select form-select-sm"
-                style="width:90px"
-                onchange="this.form.submit()">
-
-            <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
-            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
-            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-        </select>
-    </form>
-
-</div>
-
-
 </div>
 
 <!-- ================= ORDER LIST ================= -->
 <div class="container-fluid px-0">
     {% for img in images %}
     <div class="erp-card p-2">
-        <div class="row g-2">
+        <div class="row g-3 align-items-start">
 
             <!-- IMAGE -->
-            <div class="col-md-2 text-center">
+            <div class="col-md-2 col-12 text-center">
                 <div class="image-preview-container">
                     {% if img.image %}
-                    <img src="{{ img.image }}" class="preview-img">
+                        <img src="{{ img.image }}" class="preview-img">
                     {% else %}
-                    <span class="text-muted small">No Image</span>
+                        <div class="text-muted small py-5">No Image</div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- DETAILS 1 -->
-            <div class="col-md-3">
+            <div class="col-md-3 col-12">
                 <table class="table table-sm erp-table mb-0">
                     <tr>
                         <th>Work Type</th>
@@ -313,7 +363,6 @@
                         <th>Stone</th>
                         <td>{{ img.stone }}</td>
                     </tr>
-
                     <tr>
                         <th>Color</th>
                         <td>{{ img.color }}</td>
@@ -330,7 +379,7 @@
             </div>
 
             <!-- DETAILS 2 -->
-            <div class="col-md-3">
+            <div class="col-md-3 col-12">
                 <table class="table table-sm erp-table mb-0">
                     <tr>
                         <th>Approval</th>
@@ -352,8 +401,8 @@
             </div>
 
             <!-- ACTIONS -->
-            <div class="col-md-4">
-                <table class="table table-sm erp-table mb-1">
+            <div class="col-md-4 col-12">
+                <table class="table table-sm erp-table mb-2">
                     <tr>
                         <th>Sales</th>
                         <td>{{ img.sales_person }}</td>
@@ -369,19 +418,19 @@
                                 {% if img.current_status == 'Complete' %}bg-success
                                 {% elif img.current_status == 'Dispatch Pending' %}bg-primary
                                 {% elif img.current_status == 'Inventory Pending' %}bg-warning text-dark
-                                {% else %}bg-danger{% endif %}" style="font-size: 0.80rem;" >
-                                {{ img.display_status  }}
+                                {% else %}bg-danger{% endif %}"
+                                style="font-size: 0.80rem;">
+                                {{ img.display_status }}
                             </span>
                         </td>
                     </tr>
                 </table>
 
-
-                <div class="d-flex gap-3">
+                <div class="d-flex gap-2 mobile-action-btns">
                     {# DELETE → ADMIN ONLY #}
                     {% if is_admin %}
                     <a href="{% url 'cnc_work_app:order_delete' img.id %}"
-                       class="btn btn-outline-danger btn-sm w-25">
+                       class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-trash"></i> Delete
                     </a>
                     {% endif %}
@@ -389,11 +438,11 @@
                     {# VIEW → ADMIN + NON-SALES #}
                     {% if is_admin or not can_sales %}
                     <a href="{% url 'cnc_work_app:detail' img.id %}"
-                       class="btn btn-outline-success btn-sm {% if is_admin %}w-75{% else %}w-100{% endif %} btn-loader" data-loader-text="Saving order, please wait…">
+                       class="btn btn-outline-success btn-sm btn-loader"
+                       data-loader-text="Saving order, please wait…">
                         <i class="bi bi-eye-fill"></i> View Details
                     </a>
                     {% endif %}
-
                 </div>
             </div>
 
@@ -406,7 +455,7 @@
 
 <!-- ================= PAGINATION ================= -->
 <nav class="mt-3">
-    <ul class="pagination pagination-sm justify-content-center">
+    <ul class="pagination pagination-sm justify-content-center flex-wrap">
 
         {% if page_obj.has_previous %}
         <li class="page-item">
