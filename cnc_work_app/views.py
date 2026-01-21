@@ -188,6 +188,7 @@ def cnc_order_list(request):
 
 
 # Add Order
+@mongo_login_required
 def add_order(request):
     order_collection = get_orders_collection()
     if request.method == 'POST':
