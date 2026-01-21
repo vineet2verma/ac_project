@@ -1,15 +1,14 @@
 import random
 import string
 import uuid
-from datetime import datetime
-from django.shortcuts import render, redirect
-from django.contrib import messages
+from datetime import datetime, timedelta
 from django.contrib.auth.hashers import make_password, check_password
 from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth.hashers import check_password
+from  utils.cookies import set_cookie
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -113,9 +112,20 @@ def login_view(request):
             return redirect("accounts_app:role_not_defined")
 
         if "ADMIN" in roles:
-            return redirect("core_app:dashboard")
+            redirect_url = "core_app:dashboard"
+            # return redirect("core_app:dashboard")
+        else:
+            redirect_url = "cnc_work_app:index"
+        # return redirect("cnc_work_app:index")
 
-        return redirect("cnc_work_app:index")
+        # ✅ Create response FIRST
+        response = redirect(redirect_url)
+
+        # 🍪 SET COOKIES (non-sensitive)
+        set_cookie(response, "username", user["username"], days=7)
+        set_cookie(response, "primary_role", roles[0], days=7)
+
+        return response
 
 
     return render(request, "accounts_app/login.html")
@@ -128,8 +138,12 @@ def role_not_defined(request):
 
 @mongo_login_required
 def logout_view(request):
+    response = redirect("accounts_app:login")
+    request.session.flush()  # clears all sessions
+    response.delete_cookie("username")
+    response.delete_cookie("primary_role")
+
     record_logout(request)  # 🔥 save logout activity
-    request.session.flush()
     return redirect("accounts_app:login")
 
 
@@ -306,3 +320,5 @@ def record_logout(request):
             }
         }
     )
+
+

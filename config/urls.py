@@ -1,6 +1,7 @@
 
 from django.contrib import admin
 from django.urls import path, include
+from core_app.views import custom_404_view
 
 
 urlpatterns = [
@@ -17,4 +18,4 @@ urlpatterns = [
 ]
 
 # 🔥 Custom 404 handler
-# handler404 = "cnc_work_app.views.custom_404"
+handler404 = custom_404_view

@@ -11,7 +11,6 @@ urlpatterns = [
     # Detail
     path("order/<str:pk>/", views.order_detail, name="detail"),  # order detail
 
-
     # Quality Check
     path("order/<str:order_id>/qc/", views.add_quality_check, name="quality_check"),
 

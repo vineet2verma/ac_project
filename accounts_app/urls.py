@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+
 app_name = "accounts_app"
 
 urlpatterns = [
@@ -15,6 +16,7 @@ urlpatterns = [
     # Reset Password
     path("users/<str:user_id>/reset-password/",views.admin_reset_password,name="admin_reset_password"),
     path("admin-reset-password/<str:user_id>/", views.admin_reset_password,name="admin_reset_password"),
+
 
 
 ]

@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
 from accounts_app.views import mongo_login_required, mongo_role_required
 from cnc_work_app.mongo import *
 from datetime import datetime, timedelta
@@ -409,15 +410,14 @@ def dashboard(request):
     }
     return render(request, "core_app/dashboard.html", context)
 
-# Not Found Page 404
-class Custom404Middleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
 
-    def __call__(self, request):
-        response = self.get_response(request)
+def error_page(request):
+    return render(request, "404.html")
 
-        if response.status_code == 404:
-            return render(request, "404.html", status=404)
-
-        return response
+def custom_404_view(request, exception):
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse(
+            {"error": "Page not found"},
+            status=404
+        )
+    return redirect("core_app:error_page")
