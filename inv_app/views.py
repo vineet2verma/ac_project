@@ -78,8 +78,8 @@ def inventory_bulk_upload(request):
 
             # 🔴 DUPLICATE CHECK
             exists = inv_col.find_one({
-                "item_name": item_name.strip(),
-                "category": category,
+                "item_name": item_name.strip().lower(),
+                "category": str(category).strip().lower(),
                 "is_active": True
             })
             if exists:
@@ -87,6 +87,8 @@ def inventory_bulk_upload(request):
                 continue
 
             opening_qty = float(opening_qty or 0)
+            rate = float(rate) if rate else 0
+            reorder_level = float(reorder_level) if reorder_level else 0
 
             inv_col.insert_one({
                 "item_name": item_name.strip(),
@@ -95,8 +97,8 @@ def inventory_bulk_upload(request):
                 "unit": unit,
                 "opening_qty": opening_qty,
                 "current_qty": opening_qty,
-                "rate": float(rate or 0),
-                "reorder_level": float(reorder_level or 0),
+                "rate": rate,
+                "reorder_level": reorder_level,
                 "is_active": True,
                 "created_at": datetime.now()
             })

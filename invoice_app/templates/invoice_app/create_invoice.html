@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* ===== IMAGE COLUMN ===== */
+    .image-cell {
+        width: 90px;
+        min-width: 90px;
+        max-width: 90px;
+        vertical-align: middle;
+    }
+
+    /* Hard lock image box */
+    .image-box {
+        width: 70px;
+        height: 70px;
+        margin: auto;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    /* Image never controls row height */
+    .item-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;   /* 👈 IMPORTANT */
+        display: block;
+    }
+
+    /* ================= PRINT ================= */
+    @media print {
+        .btn,
+        input[type="file"],
+        #addRow,
+        .removeRow,
+        .form-check-input {
+            display: none !important;
+        }
+
+        input, textarea {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+
+        table {
+            font-size: 12px;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .image-box {
+            width: 50px;
+            height: 50px;
+            border: none;
+        }
+    }
+        @media print {
+        .image-box {
+            width: 55px;
+            height: 55px;
+            border: none;
+        }
+
+        .item-preview {
+            object-fit: contain;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3">
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- ================= HEADER ================= -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body text-center">
+                <h5 class="mb-1 fw-bold">SRAGA INDIA QUOTATION</h5>
+                <small class="text-muted">Subject to Delhi Jurisdiction</small>
+            </div>
+        </div>
+
+        <!-- ================= COMPANY & CLIENT ================= -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Company Details</h6>
+                        <textarea name="company_address" class="form-control form-control-sm" rows="4">
+SRAGA INDIA LLP
+Delhi, India
+GSTIN: XXXXXXXXX
+                </textarea>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Client Details</h6>
+                        <input type="text" name="client_name" class="form-control form-control-sm mb-2"
+                               placeholder="Client Name">
+                        <input type="text" name="client_gst" class="form-control form-control-sm mb-2"
+                               placeholder="Client GST No">
+                        <textarea name="delivery_address" class="form-control form-control-sm" rows="3"
+                                  placeholder="Delivery Address"></textarea>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ITEM TABLE ================= -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body p-0">
+
+                <table class="table table-bordered table-sm mb-0 text-center align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Image</th>
+                        <th>Description</th>
+                        <th>Size</th>
+                        <th>Sqft</th>
+                        <th>Box</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+
+                    <tbody id="itemTable">
+                    <tr>
+                        <td class="image-cell">
+                            <div class="image-box">
+                                <img class="item-preview d-none">
+                            </div>
+                            <input type="file"
+                                   name="item_image[]"
+                                   class="form-control form-control-sm item-image-input mt-1"
+                                   accept="image/*">
+                        </td>
+                        <td><input name="desc[]" class="form-control form-control-sm"></td>
+                        <td><input name="size[]" class="form-control form-control-sm"></td>
+                        <td><input name="sqft[]" class="form-control form-control-sm sqft text-end" value="0"></td>
+                        <td><input name="box[]" class="form-control form-control-sm text-end"></td>
+                        <td><input name="rate[]" class="form-control form-control-sm rate text-end" value="0"></td>
+                        <td><input class="form-control form-control-sm amount text-end" readonly></td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm removeRow">✕</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="p-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="addRow">+ Add Item</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= AMOUNT SUMMARY ================= -->
+        <div class="row mb-4">
+            <div class="col-md-7"></div>
+
+            <div class="col-md-5">
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                    <tr>
+                        <th class="text-end">Sub Total</th>
+                        <td><input id="subTotal" class="form-control form-control-sm text-end" readonly></td>
+                    </tr>
+
+                    <tr id="cartageRow">
+                        <th class="text-end"><input type="checkbox" id="cartageToggle" checked> Cartage</th>
+                        <td><input id="cartage" class="form-control form-control-sm text-end"></td>
+                    </tr>
+
+                    <tr id="packingRow">
+                        <th class="text-end"><input type="checkbox" id="packingToggle"> Packing</th>
+                        <td><input id="packing" class="form-control form-control-sm text-end d-none"></td>
+                    </tr>
+
+                    <tr id="discountRow">
+                        <th class="text-end"><input type="checkbox" id="discountToggle"> Discount</th>
+                        <td><input id="discount" class="form-control form-control-sm text-end d-none"></td>
+                    </tr>
+
+                    <tr>
+                        <th class="text-end">GST (%)</th>
+                        <td><input id="gst" value="18" class="form-control form-control-sm text-end"></td>
+                    </tr>
+
+                    <tr class="table-light">
+                        <th class="text-end fw-bold">Grand Total</th>
+                        <td><input id="grandTotal" class="form-control form-control-sm fw-bold text-end" readonly></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= TERMS ================= -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="fw-bold">Terms & Conditions</h6>
+                <ul class="small mb-0">
+                    <li>Payment: 100% Advance</li>
+                    <li>Delivery: 30–45 Days</li>
+                    <li>No return after sale</li>
+                    <li>Delhi jurisdiction only</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button class="btn btn-success btn-sm">Save</button>
+            <a href="{% url 'invoice_app:invoice_list' %}" class="btn btn-secondary btn-sm">Back</a>
+        </div>
+
+    </form>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+    /* IMAGE PREVIEW */
+    document.addEventListener("change", e => {
+        if (e.target.classList.contains("item-image-input")) {
+            const img = e.target.closest("td").querySelector(".item-preview");
+            img.src = URL.createObjectURL(e.target.files[0]);
+            img.classList.remove("d-none");
+        }
+    });
+
+    /* CALCULATION */
+    function recalc() {
+        let sub = 0;
+        document.querySelectorAll("#itemTable tr").forEach(r => {
+            let sqft = +r.querySelector(".sqft").value || 0;
+            let rate = +r.querySelector(".rate").value || 0;
+            let amt = sqft * rate;
+            r.querySelector(".amount").value = amt.toFixed(2);
+            sub += amt;
+        });
+
+        subTotal.value = sub.toFixed(2);
+
+        let total = sub;
+        if (cartageToggle.checked) total += +cartage.value || 0;
+        if (packingToggle.checked) total += +packing.value || 0;
+        if (discountToggle.checked) total -= +discount.value || 0;
+        total += total * (+gst.value || 0) / 100;
+
+        grandTotal.value = total.toFixed(2);
+    }
+
+    document.addEventListener("input", recalc);
+
+    /* TOGGLES */
+    function toggleRow(t, row, input) {
+        document.getElementById(row).style.display = t.checked ? "" : "none";
+        document.getElementById(input).classList.toggle("d-none", !t.checked);
+        recalc();
+    }
+
+    cartageToggle.onchange = () => toggleRow(cartageToggle,"cartageRow","cartage");
+    packingToggle.onchange = () => toggleRow(packingToggle,"packingRow","packing");
+    discountToggle.onchange = () => toggleRow(discountToggle,"discountRow","discount");
+
+    /* ADD ROW */
+    addRow.onclick = () => {
+        itemTable.insertAdjacentHTML("beforeend", `
+        <tr>
+            <td class="image-cell text-center">
+                <div class="image-box"><img class="item-preview d-none"></div>
+                <input type="file" name="item_image[]" class="form-control form-control-sm item-image-input mt-1" accept="image/*">
+            </td>
+            <td><input name="desc[]" class="form-control form-control-sm"></td>
+            <td><input name="size[]" class="form-control form-control-sm"></td>
+            <td><input name="sqft[]" class="form-control form-control-sm sqft text-end" value="0"></td>
+            <td><input name="box[]" class="form-control form-control-sm text-end"></td>
+            <td><input name="rate[]" class="form-control form-control-sm rate text-end" value="0"></td>
+            <td><input class="form-control form-control-sm amount text-end" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm removeRow">✕</button></td>
+        </tr>`);
+    };
+
+    /* REMOVE ROW */
+    document.addEventListener("click", e => {
+        if (e.target.classList.contains("removeRow")) {
+            e.target.closest("tr").remove();
+            recalc();
+        }
+    });
+</script>
+
+{% endblock %}

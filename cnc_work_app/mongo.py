@@ -58,6 +58,9 @@ def get_quality_collection():
 # Order Dispatch
 def get_dispatch_collection():
     return _db["dispatches"]
+# Invoice Collection
+def invoice_collection():
+    return _db['invoices']
 
 # To Do's
 def todo_collection():

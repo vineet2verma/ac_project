@@ -15,6 +15,7 @@ urlpatterns = [
     path('',include("machine_app.urls")),
     path('',include("order_costing_app.urls")),
     path('',include("user_log_app.urls")),
+    path('',include('invoice_app.urls')),
 ]
 
 # 🔥 Custom 404 handler

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between mb-3">
+        <h5>Invoice / Quotation List</h5>
+        <a href="{% url 'invoice_app:create_invoice' %}" class="btn btn-primary btn-sm">
+            + Create Invoice
+        </a>
+    </div>
+
+    <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light">
+        <tr>
+            <th>No</th>
+            <th>Client</th>
+            <th>Amount</th>
+            <th>Image</th>
+            <th>Date</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for i in invoices %}
+        <tr>
+            <td>{{ i.invoice_no }}</td>
+            <td>{{ i.client_name }}</td>
+            <td>₹ {{ i.amount }}</td>
+            <td>
+                {% if i.image %}
+                    <img src="/media/{{ i.image }}" width="60">
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ i.created_at|date:"d-m-Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No invoices found</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
