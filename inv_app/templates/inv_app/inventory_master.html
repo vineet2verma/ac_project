@@ -4,7 +4,6 @@
 {% block content %}
 
 <div class="container-fluid py-1">
-
     <!-- ================= HEADER ================= -->
     <div class="d-flex justify-content-between align-items-center mb-1">
         <h5 class="mb-0">Inventory Master</h5>
@@ -31,6 +30,28 @@
             </button>
         </div>
     </div>
+
+    <!-- ================= BULK UPLOAD ALERTS ================= -->
+    {% if request.session.bulk_upload_summary %}
+    <div class="alert alert-info alert-dismissible fade show py-2 small" role="alert">
+        <strong>Bulk Upload:</strong>
+        Added {{ request.session.bulk_upload_summary.added }},
+        Skipped {{ request.session.bulk_upload_summary.skipped }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    {% if request.session.bulk_upload_errors %}
+    <div class="alert alert-danger alert-dismissible fade show py-2 small" role="alert">
+        <strong>Why data not added?</strong>
+        <ul class="mb-0">
+            {% for err in request.session.bulk_upload_errors %}
+            <li>{{ err }}</li>
+            {% endfor %}
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
 
     <!-- ================= SUMMARY ACCORDION ================= -->
     <div class="accordion mb-2" id="inventorySummaryAccordion">
@@ -253,6 +274,12 @@
                            accept=".xlsx"
                            required>
 
+                    <div class="text-danger small mt-2">
+                        <i class="bi bi-info-circle"></i>
+                        Category name must exactly match Category Master
+                    </div>
+
+
                     <button type="submit"
                             class="btn btn-primary btn-sm w-100 mt-3">
                         Upload
@@ -260,6 +287,53 @@
                 </form>
 
             </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ================= ADD INVENTORY MODAL ================= -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title">Add Inventory Item</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="POST" action="{% url 'inv_app:inventory_master_add' %}">
+                {% csrf_token %}
+                <div class="modal-body row g-2">
+
+                    <div class="col-md-6">
+                        <label class="form-label small">Item Name</label>
+                        <input type="text" name="item_name"
+                               class="form-control form-control-sm" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small">Category</label>
+                        <select name="category"
+                                class="form-select form-select-sm"
+                                required>
+                            <option value="">Select Category</option>
+                            {% for c in categories %}
+                            <option value="{{ c.category_name }}">
+                                {{ c.category_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success btn-sm">Save</button>
+                </div>
+            </form>
 
         </div>
     </div>

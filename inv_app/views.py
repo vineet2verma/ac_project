@@ -58,41 +58,55 @@ def inventory_bulk_upload(request):
     sheet = wb.active
 
     inv_col = get_inventory_master_collection()
+    cat_col = category_collection()
+
+    # Load valid categories
+    valid_categories = {
+        c["category_name"].strip().lower()
+        for c in cat_col.find({"is_active": True})
+    }
+
     added, skipped = 0, 0
+    invalid_rows = []
 
-    for row in sheet.iter_rows(min_row=2, values_only=True):
+    for index, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         try:
-            (
-                item_name,
-                category,
-                location,
-                unit,
-                opening_qty,
-                rate,
-                reorder_level
-            ) = row
+            item_name, category, location, unit, opening_qty, rate, reorder_level = row
 
-            if not item_name:
+            if not item_name or not category:
                 skipped += 1
+                invalid_rows.append(f"Row {index}: Missing item name or category")
                 continue
 
-            # 🔴 DUPLICATE CHECK
+            item_name_clean = item_name.strip().lower()
+            category_clean = str(category).strip().lower()
+
+            # Category validation
+            if category_clean not in valid_categories:
+                skipped += 1
+                invalid_rows.append(
+                    f"Row {index}: Invalid Category → {category}"
+                )
+                continue
+
+            # Duplicate check
             exists = inv_col.find_one({
-                "item_name": item_name.strip().lower(),
-                "category": str(category).strip().lower(),
+                "item_name": item_name_clean,
+                "category": category_clean,
                 "is_active": True
             })
             if exists:
                 skipped += 1
+                invalid_rows.append(f"Row {index}: Duplicate item")
                 continue
 
-            opening_qty = float(opening_qty or 0)
+            opening_qty = float(opening_qty) if opening_qty else 0
             rate = float(rate) if rate else 0
             reorder_level = float(reorder_level) if reorder_level else 0
 
             inv_col.insert_one({
-                "item_name": item_name.strip(),
-                "category": category,
+                "item_name": item_name_clean,
+                "category": category_clean,
                 "location": location,
                 "unit": unit,
                 "opening_qty": opening_qty,
@@ -107,15 +121,82 @@ def inventory_bulk_upload(request):
 
         except Exception as e:
             skipped += 1
-            print("Bulk upload error:", e)
+            invalid_rows.append(f"Row {index}: {str(e)}")
 
-    # print(f"Inventory Bulk Upload → Added:{added}, Skipped:{skipped}")
+    # Store result in session
+    request.session["bulk_upload_summary"] = {
+        "added": added,
+        "skipped": skipped
+    }
+    request.session["bulk_upload_errors"] = invalid_rows
+
+    return redirect("inv_app:inventory_master")
+
+# Inventory Add Item in Master
+def inventory_master_add(request):
+    if request.method == "POST":
+        inv_col = get_inventory_master_collection()
+        cat_col = category_collection()
+
+        item_name = request.POST.get("item_name", "").strip()
+        category = request.POST.get("category", "").strip()
+
+        # 🔴 Validate category against master
+        valid_categories = {
+            c["category_name"].strip().lower()
+            for c in cat_col.find({"is_active": True})
+        }
+
+        if category.lower() not in valid_categories:
+            request.session["bulk_upload_errors"] = [
+                f"Invalid Category → {category} (not found in Category Master)"
+            ]
+            return redirect("inv_app:inventory_master")
+
+        opening_qty = float(request.POST.get("opening_qty", 0))
+        rate = float(request.POST.get("rate", 0))
+        reorder_level = float(request.POST.get("reorder_level", 0))
+
+        # 🔴 Duplicate check
+        exists = inv_col.find_one({
+            "item_name": item_name.lower(),
+            "category": category.lower(),
+            "is_active": True
+        })
+        if exists:
+            request.session["bulk_upload_errors"] = [
+                f"Duplicate Item → {item_name}"
+            ]
+            return redirect("inv_app:inventory_master")
+
+        inv_col.insert_one({
+            "item_name": item_name.lower(),
+            "category": category.lower(),
+            "location": request.POST.get("location"),
+            "unit": request.POST.get("unit"),
+            "opening_qty": opening_qty,
+            "current_qty": opening_qty,
+            "rate": rate,
+            "reorder_level": reorder_level,
+            "is_active": True,
+            "created_at": datetime.now()
+        })
+
+        request.session["bulk_upload_summary"] = {
+            "added": 1,
+            "skipped": 0
+        }
+
     return redirect("inv_app:inventory_master")
 
 # ================= INVENTORY MASTER =================
 def inventory_master_view(request):
     inv_col = get_inventory_master_collection()
     cat_col = category_collection()
+
+    # ================= READ & CLEAR BULK UPLOAD SESSION =================
+    bulk_summary = request.session.pop("bulk_upload_summary", None)
+    bulk_errors = request.session.pop("bulk_upload_errors", None)
 
     # ================= SAFE FLOAT =================
     def to_float(val):
@@ -143,14 +224,11 @@ def inventory_master_view(request):
             "updated_at": datetime.now()
         }
 
-        # ---------- UPDATE ----------
         if item_id:
             inv_col.update_one(
                 {"_id": ObjectId(item_id)},
                 {"$set": base_data}
             )
-
-        # ---------- ADD ----------
         else:
             base_data.update({
                 "opening_qty": opening_qty,
@@ -204,10 +282,10 @@ def inventory_master_view(request):
         for i in items
     )
 
-    # ================= CATEGORY-WISE SUMMARY (FOR ACCORDION) =================
+    # ================= CATEGORY-WISE SUMMARY =================
     category_summary = []
-
     grouped = defaultdict(list)
+
     for item in items:
         category = item.get("category") or "Uncategorized"
         grouped[category].append(item)
@@ -216,14 +294,11 @@ def inventory_master_view(request):
         category_summary.append({
             "category": category,
             "total_items": len(cat_items),
-            "total_qty": round(
-                sum(i.get("current_qty", 0) for i in cat_items), 2
-            ),
+            "total_qty": round(sum(i.get("current_qty", 0) for i in cat_items), 2),
             "total_value": round(
                 sum(i.get("current_qty", 0) * i.get("rate", 0) for i in cat_items), 2
             ),
         })
-
 
     # ================= RENDER =================
     return render(request, "inv_app/inventory_master.html", {
@@ -233,13 +308,20 @@ def inventory_master_view(request):
         "category_filter": category_filter,
         "location_filter": location_filter,
         "low_stock": low_stock,
+
         # 🔥 SUMMARY
         "total_items": total_items,
         "total_qty": round(total_qty, 2),
         "total_value": round(total_value, 2),
+
         # 🔥 ACCORDION DATA
         "category_summary": category_summary,
+
+        # 🔥 BULK UPLOAD MESSAGES
+        "bulk_summary": bulk_summary,
+        "bulk_errors": bulk_errors,
     })
+
 
 # Low Stock Alert
 def low_stock_alert(request):

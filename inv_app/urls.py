@@ -8,9 +8,10 @@ urlpatterns = [
     path("inventory/master/", views.inventory_master_view, name="inventory_master"),
     # Inventory Master delete
     path("master/delete/<str:pk>/", views.inventory_master_delete, name="inventory_master_delete"),
-    # path("inventory/<str:pk>/delete/", views.inventory_master_delete, name="inventory_delete"),
     # Bulk Upload
     path("inventory/bulk-upload/", views.inventory_bulk_upload, name="inventory_bulk_upload"),
+    # add item in inventory master
+    path("inventory/add/",views.inventory_master_add,name="inventory_master_add"),
     # Templates
     path("inventory/template/", views.inventory_template_download, name="inventory_template"),
     # Low Stock
@@ -34,9 +35,8 @@ urlpatterns = [
     # Material Received
     path("pr/receive/<str:pr_id>/", views.material_received, name="material_received"),
     #
-    path(
-        "pr/cancel/<str:pr_id>/", views.cancel_pr, name="cancel_pr"),
-
+    path("pr/cancel/<str:pr_id>/", views.cancel_pr, name="cancel_pr"),
+    #
     path("inventory/ledger/delete-stock-in/<str:ledger_id>/", views.delete_stock_in, name="delete_stock_in"),
 
     # Order Add Inventory
