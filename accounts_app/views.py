@@ -2,6 +2,8 @@ import random
 import string
 import uuid
 from datetime import datetime
+
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
@@ -10,6 +12,7 @@ from bson import ObjectId
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth.hashers import check_password
+from utils.cookies import set_cookie, delete_cookie
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -32,6 +35,8 @@ def mongo_role_required(allowed_roles):
         return wrapper
     return decorator
 
+def role_not_defined(request):
+    return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
 
 def signup_view(request):
     if request.method == "POST":
@@ -70,12 +75,10 @@ def signup_view(request):
 
     return render(request, "accounts_app/signup.html")
 
-
 def forgot_password(request):
     if request.method == "POST":
         messages.success(request,"If this user exists, the admin will reset the password.")
     return render(request,"accounts_app/forgot_password.html")
-
 
 def login_view(request):
     if request.method == "POST":
@@ -112,25 +115,33 @@ def login_view(request):
             )
             return redirect("accounts_app:role_not_defined")
 
+        # 🎯 Decide redirect URL
         if "ADMIN" in roles:
-            return redirect("core_app:dashboard")
+            redirect_url = "core_app:dashboard"
+        else:
+            redirect_url = "cnc_work_app:index"
 
-        return redirect("cnc_work_app:index")
+        # ✅ Create response FIRST
+        response = redirect(redirect_url)
 
+        # 🍪 SET COOKIES (non-sensitive)
+        set_cookie(response, "username", user["username"], days=7)
+        set_cookie(response, "primary_role", roles[0], days=7)
+
+        return response
 
     return render(request, "accounts_app/login.html")
 
 
 
-def role_not_defined(request):
-    return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
-
-
 @mongo_login_required
 def logout_view(request):
+    response = redirect("accounts_app:login")
+    delete_cookie(response, "username")
+    delete_cookie(response, "primary_role")
     record_logout(request)  # 🔥 save logout activity
     request.session.flush()
-    return redirect("accounts_app:login")
+    return response
 
 
 @mongo_login_required
