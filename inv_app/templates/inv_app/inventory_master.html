@@ -139,6 +139,7 @@
                 <th class="text-end">Stock</th>
                 <th class="text-end">Rate</th>
                 <th class="text-end">Reorder</th>
+                <th class="text-center" style="width:120px;">Action</th>
             </tr>
             </thead>
             <tbody>
@@ -151,6 +152,34 @@
                 <td class="text-end">{{ i.current_qty }}</td>
                 <td class="text-end">{{ i.rate }}</td>
                 <td class="text-end">{{ i.reorder_level }}</td>
+                <td class="text-center">
+                    <!-- EDIT -->
+                    <button type="button"
+                            class="btn btn-link p-0 text-primary edit-btn"
+                            data-id="{{ i.id }}"
+                            data-name="{{ i.item_name }}"
+                            data-category="{{ i.category }}"
+                            data-location="{{ i.location }}"
+                            data-unit="{{ i.unit }}"
+                            data-opening="{{ i.opening_qty }}"
+                            data-rate="{{ i.rate }}"
+                            data-reorder="{{ i.reorder_level }}"
+                            data-bs-toggle="modal"
+                            data-bs-target="#inventoryModal">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+
+                    <!-- DELETE -->
+                    <form method="POST"
+                          action="{% url 'inv_app:inventory_master_delete' i.id %}"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete this item?');">
+                        {% csrf_token %}
+                        <button class="btn btn-link p-0 text-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
             </tr>
             {% empty %}
             <tr>
