@@ -6,6 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from cnc_work_app.mongo import *
 from django.http import Http404
 from collections import defaultdict
+import math
 
 
 # Inventory Templates
@@ -260,14 +261,41 @@ def inventory_master_view(request):
     if low_stock:
         query["$expr"] = {"$lte": ["$current_qty", "$reorder_level"]}
 
+    # ================= PAGINATION PARAMS =================
+    page = int(request.GET.get("page", 1))
+    per_page = int(request.GET.get("per_page", 10))
+    page_sizes = [10, 25, 50, 100]
+
+
+    # allow only valid values
+    if per_page not in [10, 25, 50, 100]:
+        per_page = 10
+
+    skip = (page - 1) * per_page
+
+
+
     # ================= INVENTORY LIST =================
-    items = list(inv_col.find(query).sort("created_at", -1))
+    # items = list(inv_col.find(query).sort("created_at", -1))
+    total_count = inv_col.count_documents(query)
+
+    total_pages = math.ceil(total_count / per_page)
+    page_range = list(range(1, total_pages + 1))
+
+    items = list(
+        inv_col.find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(per_page)
+    )
 
     for i in items:
         i["id"] = str(i["_id"])
         i.setdefault("current_qty", 0)
         i.setdefault("rate", 0)
         i.setdefault("reorder_level", 0)
+
+    total_pages = math.ceil(total_count / per_page)
 
     # ================= CATEGORY LIST =================
     categories = list(cat_col.find({"is_active": True}))
@@ -300,6 +328,8 @@ def inventory_master_view(request):
             ),
         })
 
+
+
     # ================= RENDER =================
     return render(request, "inv_app/inventory_master.html", {
         "items": items,
@@ -320,6 +350,14 @@ def inventory_master_view(request):
         # 🔥 BULK UPLOAD MESSAGES
         "bulk_summary": bulk_summary,
         "bulk_errors": bulk_errors,
+
+        # 🔥 PAGINATION
+        "page_sizes": page_sizes,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+        "total_count": total_count,
+        "page_range": page_range,
     })
 
 
