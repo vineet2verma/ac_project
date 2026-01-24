@@ -76,10 +76,9 @@
                         Misc
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                       <li><a class="dropdown-item" href="{% url 'accounts_app:user_master' %}">User
-                           Master</a></li>
+                       <li><a class="dropdown-item" href="{% url 'accounts_app:user_master' %}">User Master</a></li>
                         <li><a class="dropdown-item" href="{% url 'todo_app:list' %}">Todo's</a></li>
-<!--                        <li><a class="dropdown-item" href="#">Catalog-list</a></li>-->
+                        <li><a class="dropdown-item" href="{% url 'invoice_app:quotation_list' %}">Quotation List</a></li>
                     </ul>
                 </li>
                 {% endif %}

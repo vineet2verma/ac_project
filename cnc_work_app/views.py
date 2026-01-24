@@ -1,11 +1,9 @@
 # Create your views here.
-from django.views.decorators.http import require_POST
 from datetime import datetime, date
 from django.contrib import messages
 from django.core.paginator import Paginator
-# Create your views here.
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
+from django.http import Http404
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 from bson import ObjectId

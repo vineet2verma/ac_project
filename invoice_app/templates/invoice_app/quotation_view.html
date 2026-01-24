@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}View Quotation {% endblock %}
+
+
+{% block navbtn1 %}
+<div class="d-flex justify-content-end no-print gap-2">
+    <a href="{% url 'invoice_app:quotation_list' %}"
+       class="btn btn-secondary btn-sm">
+        ← Back
+    </a>
+
+    <button onclick="window.print()"
+            class="btn btn-dark btn-sm">
+        Print
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<style>
+    body {
+        background: #fff;
+    }
+
+    .quotation-box {
+        font-size: 12px;
+        color: #000;
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    table th, table td {
+        padding: 6px;
+        border: 1px solid #ccc;
+        vertical-align: middle;
+    }
+
+    table th {
+        background: #f2f2f2;
+        font-weight: 600;
+    }
+
+    .image-cell img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border: 1px solid #aaa;
+    }
+
+    .totals-table {
+        width: 320px;
+        margin-left: auto;
+    }
+
+    .totals-table th {
+        text-align: left;
+    }
+
+    .totals-table td {
+        text-align: right;
+        font-weight: 500;
+    }
+
+    .grand-total {
+        background: #e6e6e6;
+        font-size: 13px;
+        font-weight: bold;
+    }
+
+    @media print {
+        .no-print,
+        .btn,
+        button {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        table {
+            font-size: 11px;
+        }
+
+        .quotation-box {
+            width: 100%;
+            margin: 0;
+        }
+     table th {
+        background: #f2f2f2 !important;
+    }
+    }
+</style>
+
+<div class="quotation-box mt-3">
+
+    <!-- ================= HEADER ================= -->
+    <div class="text-center mb-3">
+        <h4 class="fw-bold mb-1">SRAGA INDIA</h4>
+        <div>KH.No. 12/8, 12/9, Village Mandoli, East Delhi, Delhi - 110093</div>
+        <div>GSTIN: 07AEMFS7374F1ZJ</div>
+        <h5 class="fw-bold text-decoration-underline mt-2">
+            QUOTATION
+        </h5>
+    </div>
+
+    <!-- ================= BASIC DETAILS ================= -->
+    <table class="table table-sm table-bordered mb-3">
+        <tbody>
+        <tr>
+            <th width="15%">Quotation No</th>
+            <td width="35%">{{ quotation.quotation_no }}</td>
+            <th width="15%">Date</th>
+            <td width="35%">{{ quotation.created_at|date:"d-m-Y" }}</td>
+        </tr>
+        <tr>
+            <th>Client</th>
+            <td>{{ quotation.customer.name }}</td>
+            <th>GSTIN</th>
+            <td>{{ quotation.customer.gstin }}</td>
+        </tr>
+        <tr>
+            <th>Mobile</th>
+            <td>{{ quotation.customer.phone }}</td>
+            <th>Sales Person</th>
+            <td>{{ quotation.customer.sales_person }}</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- ================= ADDRESS ================= -->
+    <table class="table table-sm table-bordered mb-3">
+        <tr>
+            <th width="50%">Company Address</th>
+            <th width="50%">Delivery Address</th>
+        </tr>
+        <tr>
+            <td style="white-space: pre-line;">
+                {{ quotation.company_address }}
+            </td>
+            <td style="white-space: pre-line;">
+                {{ quotation.delivery_address }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- ================= ITEM TABLE ================= -->
+    <table class="table table-bordered table-sm align-middle text-center mb-1">
+        <thead>
+        <tr>
+            <th>Image</th>
+            <th>Description</th>
+            <th>Size</th>
+            <th>Sqft</th>
+            <th>Qty(Box)</th>
+            <th>Rate (₹)</th>
+            <th>Amount (₹)</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for item in quotation.items %}
+        <tr>
+            <td class="image-cell">
+                {% if item.image %}
+                <img src="{{ item.image }}" alt="Item Image" loading="lazy">
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td>{{ item.description }}</td>
+            <td>{{ item.size }}</td>
+            <td>{{ item.sqft }}</td>
+            <td>{{ item.qty_box }}</td>
+            <td>{{ item.rate }}</td>
+            <td>{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ================= BANK DETAIL + TOTAL ================= -->
+    <div class="row mt-2 align-items-start">
+        <!-- BANK DETAILS -->
+        <div class="col-7">
+            <h6 class="fw-bold border-bottom pb-1 mb-2">Bank Details</h6>
+            <table class="table table-sm table-bordered mb-0">
+                <tbody>
+                <tr>
+                    <th width="35%">Bank</th>
+                    <td>HDFC BANK</td>
+                </tr>
+                <tr>
+                    <th>A/C Name</th>
+                    <td>SRAGA INDIA LLP</td>
+                </tr>
+                <tr>
+                    <th>Account No.</th>
+                    <td>50200062874525</td>
+                </tr>
+                <tr>
+                    <th>IFSC</th>
+                    <td>HDFC0001003</td>
+                </tr>
+                <tr>
+                    <th>Branch</th>
+                    <td>BALI NAGAR, NEW DELHI 110015</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TOTALS -->
+        <div class="col-5">
+            <h6 class="fw-bold border-bottom pb-1 mb-2 text-end">
+                Amount Summary
+            </h6>
+
+            <table class="table table-sm table-bordered">
+                <tbody>
+                <tr>
+                    <th>Subtotal</th>
+                    <td class="text-end">₹ {{ quotation.subtotal }}</td>
+                </tr>
+
+                {% if quotation.charges.discount > 0 %}
+                <tr>
+                    <th>Discount</th>
+                    <td class="text-end">₹ {{ quotation.charges.discount }}</td>
+                </tr>
+                {% endif %}
+
+                {% if quotation.charges.cutting > 0 %}
+                <tr>
+                    <th>Cutting Charges</th>
+                    <td class="text-end">₹ {{ quotation.charges.cutting }}</td>
+                </tr>
+                {% endif %}
+
+                {% if quotation.charges.cartage > 0 %}
+                <tr>
+                    <th>Cartage Charges</th>
+                    <td class="text-end">₹ {{ quotation.charges.cartage }}</td>
+                </tr>
+                {% endif %}
+
+                {% if quotation.charges.packing > 0 %}
+                <tr>
+                    <th>Packing Charges</th>
+                    <td class="text-end">₹ {{ quotation.charges.packing }}</td>
+                </tr>
+                {% endif %}
+
+                {% if quotation.charges.gst > 0 %}
+                <tr>
+                    <th>GST</th>
+                    <td class="text-end">₹ {{ quotation.charges.gst }}</td>
+                </tr>
+                {% endif %}
+
+                <tr class="table-secondary fw-bold">
+                    <th>Grand Total</th>
+                    <td class="text-end">₹ {{ quotation.grand_total }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <!-- ================= TERMS ================= -->
+    <div class="mt-0">
+        <h6 class="fw-bold border-bottom pb-1">
+            Terms & Conditions
+        </h6>
+        <ul style="font-size: 12px; line-height: 1.4;">
+            <li>Payment: 100% advance</li>
+            <li>Delivery: 10–15 days after PO & payment</li>
+            <li>No return after delivery</li>
+            <li>Delhi jurisdiction only</li>
+            <li>Unloading charges extra</li>
+            <li>Transport damage up to 3% acceptable</li>
+            <li>Stone items delivery 25–30 days</li>
+        </ul>
+    </div>
+
+</div>
+
+{% endblock %}

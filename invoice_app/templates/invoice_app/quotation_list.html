@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid mt-3">
+
+    <div class="d-flex justify-content-between mb-2">
+        <div class="d-flex gap-3 "  >
+        <h5>Quotation List</h5>
+        <a href="{% url 'invoice_app:quotation_create' %}"
+           class="btn btn-sm btn-outline-success">
+            Create Quotation
+        </a>
+        </div>
+
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" value="{{ search }}"
+                   class="form-control form-control-sm"
+                   placeholder="Search quotation / client / mobile">
+            <button class="btn btn-sm btn-primary">Search</button>
+        </form>
+    </div>
+
+    <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light">
+        <tr>
+            <th>Quotation No</th>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Mobile</th>
+            <th>Total</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for q in quotations %}
+        <tr>
+            <td>{{ q.quotation_no }}</td>
+            <td>{{ q.date }}</td>
+            <td>{{ q.customer.name }}</td>
+            <td>{{ q.customer.phone }}</td>
+            <td>₹ {{ q.grand_total }}</td>
+            <td>
+                <a href="{% url 'invoice_app:quotation_view' q.id %}"
+                   class="btn btn-sm btn-outline-primary">
+                    View
+                </a>
+                <a href="{% url 'invoice_app:quotation_delete' q.id %}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Delete this quotation permanently?')">
+                    Delete
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-center">No records found</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    <nav>
+        <ul class="pagination pagination-sm">
+            {% for p in page_range %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link"
+                       href="?page={{ p }}&search={{ search }}">
+                        {{ p }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        </nav>
+
+</div>
+
+{% endblock %}

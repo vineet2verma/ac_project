@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+{% block title %}Create Quotation{% endblock %}
+{% load static %}
+
+{% block navbtn1 %}
+<div class="d-flex justify-content-end no-print">
+    <div class="dropdown">
+        <button class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown">
+            Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#">📄 Download PDF</a></li>
+            <li><a class="dropdown-item" href="#">✉️ Send Email</a></li>
+            <li>
+                <a class="dropdown-item"
+                    href="https://wa.me/{{ customer.phone }}?text=Your quotation is ready">
+                    💬 WhatsApp
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <style>
+            input[type="text"],
+            input[type="number"],
+            textarea {
+                color: #000 !important;
+                background: #fff !important;
+                border: 0 !important;
+                padding: 3px 6px !important;
+                font-size: 12px !important;
+            }
+
+            .image-cell img {
+                width: 70px;
+                height: 70px;
+                object-fit: cover;
+                cursor: pointer;
+                border: 1px solid #aaa;
+            }
+
+            @media print {
+
+                .no-print,
+                button,
+                .btn,
+                select {
+                    display: none !important;
+                }
+            }
+        </style>
+
+        <div class="quotation-box">
+
+            <!-- HEADER -->
+            <div class="text-center mt-4">
+                <h2 class="fw-bold mb-0">SRAGA INDIA</h2>
+                <p class="mb-0">KH.No. 12/8, 12/9, Village Mandoli, East Delhi, Delhi- 110093</p>
+                <p class="mb-0">GSTIN: 07AEMFS7374F1ZJ</p>
+                <h4 class="fw-bold text-decoration-underline">QUOTATION</h4>
+            </div>
+
+            <!-- CUSTOMER DETAILS -->
+            <table class="table table-sm table-bordered mt-3">
+                <tbody>
+                    <tr>
+                        <th>Company</th>
+                        <td>{{ customer.company }}</td>
+                        <th>Date</th>
+                        <td>{% now "d-m-Y" %}</td>
+                    </tr>
+                    <tr>
+                        <th>Client</th>
+                        <td>{{ customer.name }}</td>
+                        <th>GSTIN</th>
+                        <td>{{ customer.gstin }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sales Person</th>
+                        <td>{{ customer.sales_person }}</td>
+                        <th>Mobile</th>
+                        <td>{{ customer.phone }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- PRODUCT HEADER -->
+            <div class="d-flex justify-content-between mb-2">
+                <h5>Product Details</h5>
+
+                <div class="no-print d-flex gap-2">
+                    <button type="button" class="btn btn-success btn-sm"
+                        onclick="addRow()">+ Add Item</button>
+
+                    <!-- FIXED BUTTON -->
+                    <button type="button" class="btn btn-primary btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#chargesModal">
+                        + Add Charges
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- PRODUCT TABLE -->
+            <div class="table-responsive">
+                <table class="table table-bordered text-center" id="itemTable">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Description</th>
+                            <th>Size</th>
+                            <th>Sqft</th>
+                            <th>Qty(Box)</th>
+                            <th>Rate(₹)</th>
+                            <th>Amount(₹)</th>
+                            <th class="no-print">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-7">
+                    <div class="row">
+                        <div class="col-5">
+                            <h5 class="fw-bold border-bottom pb-1">Bank
+                                Details</h5>
+                            <ul style="font-size:12px; line-height:1.5;">
+                                <li><strong>Bank:</strong> HDFC BANK</li>
+                                <li><strong>A/C Name:</strong> SRAGA INDIA
+                                    LLP</li>
+                                <li><strong>Account No.:</strong> 50200062874525</li>
+                                <li><strong>IFSC:</strong> HDFC0001003</li>
+                                <li><strong>Branch:</strong> BALI NAGAR, NEW DELHI 110015</li>
+                            </ul>
+                        </div>
+<!--                        <div class="col-2 mt-4">-->
+<!--                            <img src="{% static 'images/qr_bank.png' %}" width="100">-->
+<!--                        </div>-->
+                    </div>
+                </div>
+
+                <div class="col-5">
+                    <div class="total-wrapper my-3">
+
+                        <table class="table table-bordered"
+                            style="width: 350px; float: right;">
+                            <!-- Subtotal -->
+                            <tr>
+                                <th>Subtotal</th>
+                                <td>₹ <span id="subtotalValue">0.00</span></td>
+                            </tr>
+                            <!-- Discount -->
+                            <tr id="discountRow" style="display:none;">
+                                <th id="discountLabel">Discount</th>
+                                <td>₹ <span id="discountValue">0.00</span></td>
+                            </tr>
+                            <!-- Cutting -->
+                            <tr id="cuttingRow" style="display:none;">
+                                <th>Cutting Charges</th>
+                                <td>₹ <span id="cuttingValue">0.00</span></td>
+                            </tr>
+                            <!-- Cartage -->
+                            <tr id="cartageRow" style="display:none;">
+                                <th>Cartage Charges</th>
+                                <td>₹ <span id="cartageValue">0.00</span></td>
+                            </tr>
+                            <!-- Packing -->
+                            <tr id="packingRow" style="display:none;">
+                                <th>Packing Charges</th>
+                                <td>₹ <span id="packingValue">0.00</span></td>
+                            </tr>
+                            <!-- GST -->
+                            <tr id="gstRow" style="display:none;">
+                                <th id="gstLabel">GST</th>
+                                <td>₹ <span id="gstValue">0.00</span></td>
+                            </tr>
+                            <!-- Grand Total -->
+                            <tr class="table-secondary fw-bold">
+                                <th>Grand Total</th>
+                                <td>₹ <span
+                                        id="grandTotalValue">0.00</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TERMS & BANK DETAILS -->
+            <div class="row mt-4">
+                <div class="col-7">
+                    <h5 class="fw-bold border-bottom pb-1">Terms &
+                        Conditions</h5>
+                    <ul style="font-size:12px; line-height:1.4;">
+                        <li>Payment 100% advance</li>
+                        <li>Delivery 10–15 days after PO & payment</li>
+                        <li>No return after delivery</li>
+                        <li>Delhi jurisdiction only</li>
+                        <li>Unloading charges extra</li>
+                        <li>Transport damage up to 3% acceptable</li>
+                        <li>Stone items delivery 25–30 days</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Hidden Inputs -->
+            <input type="hidden" name="subtotal" id="subtotalInput">
+            <input type="hidden" name="discount" id="discountInput">
+            <input type="hidden" name="gst" id="gstInput">
+            <input type="hidden" name="cutting" id="cuttingInput">
+            <input type="hidden" name="cartage" id="cartageInput">
+            <input type="hidden" name="packing" id="packingInput">
+            <input type="hidden" name="grand_total" id="grandTotalInput">
+
+        </div>
+
+        <div class="text-center my-6 no-print">
+            <button class="btn btn-primary px-5">Save Invoice</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- CHARGES MODAL -->
+<div class="modal fade" id="chargesModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Charges</h5>
+                <button type="button" class="btn-close"
+                    data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <label>Discount (%)</label>
+                <input type="number" class="form-control mb-2"
+                    id="discountPercent" value="0">
+
+                <label>GST Extra (%)</label>
+                <input type="number" class="form-control mb-2" id="gstPercent"
+                    value="18">
+
+                <label>Cutting Charges (₹)</label>
+                <input type="number" class="form-control mb-2"
+                    id="cuttingCharges" value="0">
+
+                <label>Cartage Charges (₹)</label>
+                <input type="number" class="form-control mb-2"
+                    id="cartageCharges" value="0">
+
+                <label>Packing Charges (₹)</label>
+                <input type="number" class="form-control mb-2"
+                    id="packingCharges" value="0">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary"
+                    onclick="updateTotals()" data-bs-dismiss="modal">
+                    Apply
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- JAVASCRIPT -->
+<script>
+
+    function addRow() {
+        const table = document.querySelector("#itemTable tbody");
+        const row = table.insertRow();
+
+        row.innerHTML = `
+            <td class="image-cell">
+                <input type="file"
+                       name="image[]"
+                       accept="image/*"
+                       class="form-control form-control-sm"
+                       onchange="previewImage(this)">
+                <img class="mt-1 d-none"
+                     style="width:60px;height:60px;object-fit:cover;border:1px solid #999;">
+            </td>
+
+            <td><input type="text" name="description[]" class="form-control"></td>
+            <td><input type="text" name="size[]" class="form-control text-center"></td>
+
+            <td><input type="number" name="sqft[]" class="form-control qty-sqft text-center"
+                       value="0" oninput="calculateAmount(this)"></td>
+
+            <td><input type="number" name="qty_box[]" class="form-control qty-box text-center"
+                       value="0" oninput="calculateAmount(this)"></td>
+
+            <td><input type="number" name="rate[]" class="form-control price text-center"
+                       value="0" oninput="calculateAmount(this)"></td>
+
+            <td><input type="number" name="amount[]" class="amount form-control text-center" readonly></td>
+
+            <td class="no-print">
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">
+                    <i class="bi bi-trash-fill"></i>
+                </button>
+            </td>
+        `;
+    }
+
+    function triggerUpload(img) {
+        img.previousElementSibling.click();
+    }
+
+    function previewImage(input) {
+        const file = input.files[0];
+        if (file) {
+            input.nextElementSibling.src = URL.createObjectURL(file);
+        }
+    }
+
+    function loadImagesFromFolder(event) {
+        const files = event.target.files;
+        const table = document.querySelector("#itemTable tbody");
+
+        for (let file of files) {
+
+            if (!file.type.startsWith("image/")) continue;
+
+            const row = table.insertRow();
+
+            row.innerHTML = `
+                <td class="image-cell">
+                    <input type="file"
+                           name="image[]"
+                           accept="image/*"
+                           onchange="previewImage(this)"
+                           class="form-control form-control-sm">
+                    <img class="mt-1 d-none" style="width:60px;height:60px;object-fit:cover;">
+                </td>
+
+                <td><input type="text" name="description[]" class="form-control"
+                    value="${file.name.replace(/\.[^/.]+$/, '')}"></td>
+
+                <td><input type="text" name="size[]" class="form-control text-center"></td>
+
+                <td><input type="number" name="sqft[]" class="form-control qty-sqft text-center"
+                           value="0" oninput="calculateAmount(this)"></td>
+
+                <td><input type="number" name="qty_box[]" class="form-control qty-box text-center"
+                           value="0" oninput="calculateAmount(this)"></td>
+
+                <td><input type="number" name="rate[]" class="form-control price text-center"
+                           value="0" oninput="calculateAmount(this)"></td>
+
+                <td><input type="number" name="amount[]" class="amount form-control text-center" readonly></td>
+
+                <td class="no-print">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </td>
+            `;
+
+            // assign file to hidden input
+            const input = row.querySelector("input[type=file]");
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+        }
+    }
+
+    function removeRow(btn) {
+        btn.closest("tr").remove();
+        updateTotals();
+    }
+
+
+    function calculateAmount(input) {
+        const row = input.closest("tr");
+        const sqft = parseFloat(row.querySelector(".qty-sqft").value) || 0;
+        const qty = parseFloat(row.querySelector(".qty-box").value) || 0;
+        const rate = parseFloat(row.querySelector(".price").value) || 0;
+
+        const amount = sqft * qty * rate;
+        row.querySelector(".amount").value = amount.toFixed(2);
+
+        updateTotals();
+    }
+
+
+    function updateTotals() {
+
+        // Sum of all item amounts
+        let subtotal = 0;
+        document.querySelectorAll(".amount").forEach(a => {
+            subtotal += parseFloat(a.value) || 0;
+        });
+
+        // Charges From Modal
+        const discountPercent = parseFloat(document.getElementById("discountPercent").value) || 0;
+        const gstPercent = parseFloat(document.getElementById("gstPercent").value) || 0;
+        const cutting = parseFloat(document.getElementById("cuttingCharges").value) || 0;
+        const cartage = parseFloat(document.getElementById("cartageCharges").value) || 0;
+        const packing = parseFloat(document.getElementById("packingCharges").value) || 0;
+
+        const discountAmount = subtotal * (discountPercent / 100);
+        const afterDiscount = subtotal - discountAmount;
+        const gstAmount = afterDiscount * (gstPercent / 100);
+
+        const grandTotal =
+            afterDiscount +
+            gstAmount +
+            cutting +
+            cartage +
+            packing;
+
+        // Show subtotal
+        document.getElementById("subtotalValue").innerHTML = subtotal.toFixed(2);
+
+        // ------------ DISCOUNT ROW ------------
+        if (discountAmount > 0) {
+            document.getElementById("discountRow").style.display = "table-row";
+            document.getElementById("discountLabel").innerHTML = "Discount (" + discountPercent + "%)";
+            document.getElementById("discountValue").innerHTML = discountAmount.toFixed(2);
+        } else {
+            document.getElementById("discountRow").style.display = "none";
+        }
+
+        // ------------ CUTTING ROW ------------
+        if (cutting > 0) {
+            document.getElementById("cuttingRow").style.display = "table-row";
+            document.getElementById("cuttingValue").innerHTML = cutting.toFixed(2);
+        } else {
+            document.getElementById("cuttingRow").style.display = "none";
+        }
+
+        // ------------ CARTAGE ROW ------------
+        if (cartage > 0) {
+            document.getElementById("cartageRow").style.display = "table-row";
+            document.getElementById("cartageValue").innerHTML = cartage.toFixed(2);
+        } else {
+            document.getElementById("cartageRow").style.display = "none";
+        }
+
+        // ------------ PACKING ROW ------------
+        if (packing > 0) {
+            document.getElementById("packingRow").style.display = "table-row";
+            document.getElementById("packingValue").innerHTML = packing.toFixed(2);
+        } else {
+            document.getElementById("packingRow").style.display = "none";
+        }
+
+        // ------------ GST ROW ------------
+        if (gstAmount > 0) {
+            document.getElementById("gstRow").style.display = "table-row";
+            document.getElementById("gstLabel").innerHTML = "GST (" + gstPercent + "%)";
+            document.getElementById("gstValue").innerHTML = gstAmount.toFixed(2);
+        } else {
+            document.getElementById("gstRow").style.display = "none";
+        }
+
+        // GRAND TOTAL
+        document.getElementById("grandTotalValue").innerHTML = grandTotal.toFixed(2);
+
+        // Hidden backend inputs
+        document.getElementById("subtotalInput").value = subtotal.toFixed(2);
+        document.getElementById("discountInput").value = discountAmount.toFixed(2);
+        document.getElementById("gstInput").value = gstAmount.toFixed(2);
+        document.getElementById("cuttingInput").value = cutting.toFixed(2);
+        document.getElementById("cartageInput").value = cartage.toFixed(2);
+        document.getElementById("packingInput").value = packing.toFixed(2);
+        document.getElementById("grandTotalInput").value = grandTotal.toFixed(2);
+    }
+</script>
+
+{% endblock %}
