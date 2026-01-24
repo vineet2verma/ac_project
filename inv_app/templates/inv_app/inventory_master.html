@@ -30,7 +30,76 @@
         </div>
     </div>
 
-    <!-- ================= BULK UPLOAD ALERTS ================= -->
+        <!-- ================= SUMMARY ACCORDION ================= -->
+    <div class="accordion mb-2" id="inventorySummaryAccordion">
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-semibold small"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#inventorySummary">
+                    <i class="bi bi-bar-chart me-2"></i>
+                    Inventory Summary
+                </button>
+            </h2>
+
+            <div id="inventorySummary" class="accordion-collapse collapse">
+                <div class="accordion-body p-2">
+
+                    <!-- OVERALL TOTAL -->
+                    <div class="alert alert-info py-2 mb-2 small fw-semibold">
+                        <span class="me-4">
+                            <i class="bi bi-box-seam"></i>
+                            Total Items: {{ total_items }}
+                        </span>
+                        <span class="me-4">
+                            <i class="bi bi-stack"></i>
+                            Total Stock Qty: {{ total_qty }}
+                        </span>
+                        <span>
+                            <i class="bi bi-currency-rupee"></i>
+                            Stock Value: {{ total_value }}
+                        </span>
+                    </div>
+
+                    <!-- CATEGORY WISE SUMMARY -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Total Items</th>
+                                <th class="text-end">Total Qty</th>
+                                <th class="text-end">Total Value</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for c in category_summary %}
+                            <tr>
+                                <td>{{ c.category }}</td>
+                                <td class="text-end">{{ c.total_items }}</td>
+                                <td class="text-end">{{ c.total_qty }}</td>
+                                <td class="text-end">{{ c.total_value }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    No summary available
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ================= ALERTS ================= -->
     {% if bulk_summary %}
     <div class="alert alert-info alert-dismissible fade show py-2 small">
         <strong>Bulk Upload:</strong>
@@ -154,18 +223,19 @@
                 <td class="text-end">{{ i.reorder_level }}</td>
                 <td class="text-center">
                     <!-- EDIT -->
-                    <button type="button"
-                            class="btn btn-link p-0 text-primary edit-btn"
-                            data-id="{{ i.id }}"
-                            data-name="{{ i.item_name }}"
-                            data-category="{{ i.category }}"
-                            data-location="{{ i.location }}"
-                            data-unit="{{ i.unit }}"
-                            data-opening="{{ i.opening_qty }}"
-                            data-rate="{{ i.rate }}"
-                            data-reorder="{{ i.reorder_level }}"
+                    <button class="btn btn-link p-0 text-primary"
                             data-bs-toggle="modal"
-                            data-bs-target="#inventoryModal">
+                            data-bs-target="#inventoryModal"
+                            onclick="editInventory(
+                                '{{ i.id }}',
+                                '{{ i.item_name }}',
+                                '{{ i.category }}',
+                                '{{ i.location }}',
+                                '{{ i.unit }}',
+                                '{{ i.opening_qty }}',
+                                '{{ i.rate }}',
+                                '{{ i.reorder_level }}'
+                            )">
                         <i class="bi bi-pencil-square"></i>
                     </button>
 
@@ -192,7 +262,7 @@
         </table>
     </div>
 
-    <!-- ================= PAGINATION CONTROLS ================= -->
+    <!-- ================= Footer PAGINATION CONTROLS ================= -->
     {% if total_pages > 1 %}
     <nav class="mt-2">
         <ul class="pagination pagination-sm justify-content-end">
@@ -227,6 +297,172 @@
         </ul>
     </nav>
     {% endif %}
-
 </div>
+
+<!-- ================= BULK UPLOAD MODAL ================= -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST"
+                  action="{% url 'inv_app:inventory_bulk_upload' %}"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h6 class="modal-title">Inventory Bulk Upload</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="file" name="excel_file"
+                           class="form-control form-control-sm" required>
+                    <div class="text-danger small mt-2">
+                        Category must match Category Master
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary btn-sm w-100">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================= ADD / EDIT MODAL ================= -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <form method="POST" action="{% url 'inv_app:inventory_master' %}">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" id="item_id">
+
+                <div class="modal-header">
+                    <h6 class="modal-title">Inventory Item</h6>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body row g-2">
+
+                    <!-- ITEM NAME -->
+                    <div class="col-md-6">
+                        <label class="form-label small">Item Name</label>
+                        <input type="text"
+                               name="item_name"
+                               id="item_name"
+                               class="form-control form-control-sm"
+                               required>
+                    </div>
+
+                    <!-- CATEGORY -->
+                    <div class="col-md-6">
+                        <label class="form-label small">Category</label>
+                        <select name="category"
+                                id="category"
+                                class="form-select form-select-sm"
+                                required>
+                            <option value="">Select Category</option>
+                            {% for c in categories %}
+                            <option value="{{ c.category_name }}">
+                                {{ c.category_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- LOCATION -->
+                    <div class="col-md-4">
+                        <label class="form-label small">Location</label>
+                        <input type="text"
+                               name="location"
+                               id="location"
+                               class="form-control form-control-sm">
+                    </div>
+
+                    <!-- UNIT -->
+                    <div class="col-md-4">
+                        <label class="form-label small">Unit</label>
+                        <input type="text"
+                               name="unit"
+                               id="unit"
+                               class="form-control form-control-sm"
+                               placeholder="Pcs / Sqft / Kg">
+                    </div>
+
+                    <!-- OPENING STOCK -->
+                    <div class="col-md-4">
+                        <label class="form-label small">Opening Stock</label>
+                        <input type="number"
+                               step="any"
+                               name="opening_qty"
+                               id="opening_qty"
+                               class="form-control form-control-sm">
+                    </div>
+
+                    <!-- RATE -->
+                    <div class="col-md-6">
+                        <label class="form-label small">Rate</label>
+                        <input type="number"
+                               step="any"
+                               name="rate"
+                               id="rate"
+                               class="form-control form-control-sm">
+                    </div>
+
+                    <!-- REORDER LEVEL -->
+                    <div class="col-md-6">
+                        <label class="form-label small">Reorder Level</label>
+                        <input type="number"
+                               step="any"
+                               name="reorder_level"
+                               id="reorder_level"
+                               class="form-control form-control-sm">
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="btn btn-success btn-sm">
+                        Save
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function clearInventoryForm() {
+    document.getElementById("item_id").value = "";
+    document.getElementById("item_name").value = "";
+    document.getElementById("category").value = "";
+    document.getElementById("location").value = "";
+    document.getElementById("unit").value = "";
+    document.getElementById("opening_qty").value = "";
+    document.getElementById("rate").value = "";
+    document.getElementById("reorder_level").value = "";
+}
+
+function editInventory(id, name, category, location, unit, opening, rate, reorder) {
+    document.getElementById("item_id").value = id;
+    document.getElementById("item_name").value = name;
+    document.getElementById("category").value = category;
+    document.getElementById("location").value = location || "";
+    document.getElementById("unit").value = unit || "";
+    document.getElementById("opening_qty").value = opening || 0;
+    document.getElementById("rate").value = rate || 0;
+    document.getElementById("reorder_level").value = reorder || 0;
+}
+</script>
+
+
 {% endblock %}

@@ -520,7 +520,6 @@ def download_low_stock_excel(request):
 def inventory_master_delete(request, pk):
     col = get_inventory_master_collection()
     col.delete_one({"_id": ObjectId(pk)})
-    # print("inventory delete ...")
     return redirect("inv_app:inventory_master")
 
 # Inventory Stock In
