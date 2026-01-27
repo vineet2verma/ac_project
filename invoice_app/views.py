@@ -10,10 +10,17 @@ from django.conf import settings
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 
+
 # Create your views here.
 
 
-
+def get_sales_users():
+    return list(
+        users_collection().find(
+            {"roles": "sales"},
+            {"_id": 1, "name": 1}
+        )
+    )
 
 
 # View All Quotation List
@@ -47,7 +54,7 @@ def quotation_list(request):
 
     quotations = []
     for q in raw_data:
-        q["id"] = str(q["_id"])   # ✅ SAFE FIELD
+        q["id"] = str(q["_id"])  # ✅ SAFE FIELD
         quotations.append(q)
 
     return render(request, "invoice_app/quotation_list.html", {
@@ -61,15 +68,13 @@ def quotation_list(request):
 
 # Create Quotation
 def quotation_create(request, customer_id=None):
-
     # ---------- DEMO CUSTOMER (replace with DB later) ----------
     customer = {
-        "id": customer_id,
-        "company": "ABC Pvt Ltd",
-        "name": "Demo Client",
-        "gstin": "07ABCDE1234F1Z5",
-        "phone": "9999999999",
-        "sales_person": "Rahul",
+        "company": request.POST.get("customer_company"),
+        "name": request.POST.get("customer_name"),
+        "gstin": request.POST.get("customer_gstin"),
+        "phone": request.POST.get("customer_phone"),
+        "sales_person": request.POST.get("sales_person"),
     }
 
     # ===================== POST =====================
@@ -86,8 +91,6 @@ def quotation_create(request, customer_id=None):
         amounts = request.POST.getlist("amount[]")
         images = request.FILES.getlist("image[]")
 
-        print("IMAGES RECEIVED:", images)  # ✅ DEBUG
-
         for i in range(len(descriptions)):
             image_url = None
 
@@ -96,7 +99,7 @@ def quotation_create(request, customer_id=None):
                 try:
                     result = upload(
                         images[i],
-                        folder="quotation_items",   # ☁️ Cloudinary folder
+                        folder="quotation_items",  # ☁️ Cloudinary folder
                         resource_type="image"
                     )
                     image_url = result.get("secure_url")
@@ -112,7 +115,7 @@ def quotation_create(request, customer_id=None):
                 "qty_box": float(boxes[i] or 0),
                 "rate": float(rates[i] or 0),
                 "amount": float(amounts[i] or 0),
-                "image": image_url,   # ☁️ URL only
+                "image": image_url,  # ☁️ URL only
             })
 
         # ---------- SAVE QUOTATION ----------
@@ -137,9 +140,21 @@ def quotation_create(request, customer_id=None):
 
         messages.success(request, "Quotation created successfully")
         return redirect("invoice_app:quotation_list")
+    # ===================== GET =====================
+    sales_users = list(
+        users_collection().find({"roles":"SALES"},
+            {"_id": 0, "username": 1,"full_name":1 ,"roles":1}
+        ).sort("username", 1)
+    )
+
+    print(f"sales_users: {sales_users}")
 
     # ===================== GET =====================
-    return render(request,"invoice_app/image_invoice_sraga.html",{"customer": customer})
+    return render(request, "invoice_app/image_invoice_sraga.html",
+                  {
+                      "customer": customer,
+                      "sales_users": sales_users,
+                  })
 
 
 # View Single Quotation
