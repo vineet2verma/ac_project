@@ -2,13 +2,16 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
 
+      <!-- ================= HEADER ================= -->
       <div class="modal-header">
         <h5>Add / Select Customer</h5>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
+      <!-- ================= BODY ================= -->
       <div class="modal-body">
         <div class="row g-2">
+
           <div class="col-6">
             <label>Company</label>
             <input type="text" class="form-control" id="cust_company">
@@ -38,11 +41,33 @@
               {% endfor %}
             </select>
           </div>
+
+          <!-- ================= BILLING ADDRESS ================= -->
+          <div class="col-12">
+            <label>Billing Address</label>
+            <textarea class="form-control"
+                      id="cust_billing_address"
+                      rows="3"
+                      placeholder="Enter billing address"></textarea>
+          </div>
+
+          <!-- ================= DELIVERY ADDRESS ================= -->
+          <div class="col-12">
+            <label>Delivery Address</label>
+            <textarea class="form-control"
+                      id="cust_delivery_address"
+                      rows="3"
+                      placeholder="Enter delivery address"></textarea>
+          </div>
+
         </div>
       </div>
 
+      <!-- ================= FOOTER ================= -->
       <div class="modal-footer">
-        <button class="btn btn-primary" onclick="applyCustomer()">Use Customer</button>
+        <button class="btn btn-primary" onclick="applyCustomer()">
+          Use Customer
+        </button>
       </div>
 
     </div>
@@ -51,7 +76,8 @@
 
 <style>
 .modal input,
-.modal select {
+.modal select,
+.modal textarea {
     pointer-events: auto !important;
     border: 1px solid #ced4da !important;
 }

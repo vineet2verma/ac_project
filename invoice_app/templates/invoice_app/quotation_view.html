@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block title %}View Quotation {% endblock %}
 
 
@@ -140,15 +139,15 @@
     <!-- ================= ADDRESS ================= -->
     <table class="table table-sm table-bordered mb-3">
         <tr>
-            <th width="50%">Company Address</th>
+            <th width="50%">Billing Address</th>
             <th width="50%">Delivery Address</th>
         </tr>
         <tr>
             <td style="white-space: pre-line;">
-                {{ quotation.company_address }}
+                {{ quotation.customer.billing_address }}
             </td>
             <td style="white-space: pre-line;">
-                {{ quotation.delivery_address }}
+                {{ quotation.customer.delivery_address }}
             </td>
         </tr>
     </table>

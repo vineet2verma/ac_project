@@ -44,17 +44,27 @@
                 <th>Date</th>
                 <td>{% now "d-m-Y" %}</td>
             </tr>
+
             <tr>
                 <th>Client</th>
                 <td id="v_name">—</td>
                 <th>GSTIN</th>
                 <td id="v_gst">—</td>
             </tr>
+
             <tr>
                 <th>Sales Person</th>
                 <td id="v_sales">—</td>
                 <th>Mobile</th>
                 <td id="v_phone">—</td>
+            </tr>
+            <tr>
+                <th colspan="2">Billing Address</th>
+                <th colspan="2">Delivery Address</th>
+            </tr>
+            <tr>
+               <td id="v_billing_address" colspan="2">—</td>
+               <td id="v_delivery_address" colspan="2">—</td>
             </tr>
         </table>
 
@@ -155,6 +165,15 @@
         <input type="hidden" name="packing" id="packingInput">
         <input type="hidden" name="grand_total" id="grandTotalInput">
 
+        <!-- 👇 ADD THESE HERE -->
+        <input type="hidden" name="customer_company" id="customer_company">
+        <input type="hidden" name="customer_name" id="customer_name">
+        <input type="hidden" name="customer_gstin" id="customer_gstin">
+        <input type="hidden" name="customer_phone" id="customer_phone">
+        <input type="hidden" name="customer_sales_person" id="customer_sales_person">
+        <input type="hidden" name="billing_address" id="billing_address">
+        <input type="hidden" name="delivery_address" id="delivery_address">
+
         <div class="text-center mt-3 no-print">
             <button class="btn btn-primary px-5">Save Quotation</button>
         </div>
@@ -170,12 +189,31 @@
                 <h5>Add / Select Customer</h5>
                 <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <div class="row g-2">
-                    <div class="col-6"><label>Company</label><input id="cust_company" class="form-control"></div>
-                    <div class="col-6"><label>Client</label><input id="cust_name" class="form-control"></div>
-                    <div class="col-6"><label>GST</label><input id="cust_gst" class="form-control"></div>
-                    <div class="col-6"><label>Mobile</label><input id="cust_phone" class="form-control"></div>
+
+                    <!-- Basic Details -->
+                    <div class="col-6">
+                        <label>Company</label>
+                        <input id="cust_company" class="form-control">
+                    </div>
+
+                    <div class="col-6">
+                        <label>Client</label>
+                        <input id="cust_name" class="form-control">
+                    </div>
+
+                    <div class="col-6">
+                        <label>GST</label>
+                        <input id="cust_gst" class="form-control">
+                    </div>
+
+                    <div class="col-6">
+                        <label>Mobile</label>
+                        <input id="cust_phone" class="form-control">
+                    </div>
+
                     <div class="col-6">
                         <label>Sales Person</label>
                         <select id="cust_sales" class="form-select">
@@ -185,10 +223,46 @@
                             {% endfor %}
                         </select>
                     </div>
+
+                    <!-- Billing Address -->
+                    <div class="col-12 mt-3">
+                        <label><strong>Billing Address</strong></label>
+                        <textarea id="cust_billing_address"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Enter billing address"
+                                  oninput="syncBillingToDelivery()"></textarea>
+                    </div>
+
+                    <!-- Same as Billing Checkbox -->
+                    <div class="col-12">
+                        <div class="form-check mt-1">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="same_as_billing"
+                                   onclick="toggleSameAsBilling()">
+                            <label class="form-check-label" for="same_as_billing">
+                                Delivery address same as Billing
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Address -->
+                    <div class="col-12">
+                        <label><strong>Delivery Address</strong></label>
+                        <textarea id="cust_delivery_address"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Enter delivery address"></textarea>
+                    </div>
+
                 </div>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="applyCustomer()">Use Customer</button>
+                <button class="btn btn-primary" onclick="applyCustomer()">
+                    Use Customer
+                </button>
             </div>
         </div>
     </div>
@@ -215,73 +289,111 @@
 
 <script>
     function addRow() {
-    const tbody=document.querySelector("#itemTable tbody");
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-    <td><input type="file" name="image[]" class="form-control"></td>
-    <td><input name="description[]" class="form-control"></td>
-    <td><input name="size[]" class="form-control"></td>
-    <td><input name="sqft[]" class="form-control" value="0" oninput="calc(this)"></td>
-    <td><input name="qty_box[]" class="form-control" value="0" oninput="calc(this)"></td>
-    <td><input name="rate[]" class="form-control" value="0" oninput="calc(this)"></td>
-    <td><input name="amount[]" class="form-control" readonly></td>
-    <td class="no-print"><button type="button" class="btn btn-danger btn-sm"
-    onclick="this.closest('tr').remove()">×</button></td>`;
-    tbody.appendChild(tr);
+        const tbody=document.querySelector("#itemTable tbody");
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+        <td><input type="file" name="image[]" class="form-control"></td>
+        <td><input name="description[]" class="form-control"></td>
+        <td><input name="size[]" class="form-control"></td>
+        <td><input name="sqft[]" class="form-control" value="0" oninput="calc(this)"></td>
+        <td><input name="qty_box[]" class="form-control" value="0" oninput="calc(this)"></td>
+        <td><input name="rate[]" class="form-control" value="0" oninput="calc(this)"></td>
+        <td><input name="amount[]" class="form-control" readonly></td>
+        <td class="no-print"><button type="button" class="btn btn-danger btn-sm"
+        onclick="this.closest('tr').remove()">×</button></td>`;
+        tbody.appendChild(tr);
     }
 
     function calc(el){
-    const r=el.closest("tr");
-    const sqft=+r.children[3].firstChild.value||0;
-    const qty=+r.children[4].firstChild.value||0;
-    const rate=+r.children[5].firstChild.value||0;
-    r.children[6].firstChild.value=(sqft*qty*rate).toFixed(2);
-    updateTotals();
+        const r=el.closest("tr");
+        const sqft=+r.children[3].firstChild.value||0;
+        const qty=+r.children[4].firstChild.value||0;
+        const rate=+r.children[5].firstChild.value||0;
+        r.children[6].firstChild.value=(sqft*qty*rate).toFixed(2);
+        updateTotals();
     }
 
     function updateTotals(){
-    let sub=0;
-    document.querySelectorAll('[name="amount[]"]').forEach(i=>sub+=+i.value||0);
-    const d=+discountPercent.value||0;
-    const g=+gstPercent.value||0;
-    const c=+cuttingCharges.value||0;
-    const ca=+cartageCharges.value||0;
-    const p=+packingCharges.value||0;
-    const disc=sub*d/100;
-    const gst=(sub-disc)*g/100;
-    const total=sub-disc+gst+c+ca+p;
+        let sub=0;
+        document.querySelectorAll('[name="amount[]"]').forEach(i=>sub+=+i.value||0);
+        const d=+discountPercent.value||0;
+        const g=+gstPercent.value||0;
+        const c=+cuttingCharges.value||0;
+        const ca=+cartageCharges.value||0;
+        const p=+packingCharges.value||0;
+        const disc=sub*d/100;
+        const gst=(sub-disc)*g/100;
+        const total=sub-disc+gst+c+ca+p;
 
-    subtotalValue.innerText=sub.toFixed(2);
-    discountRow.style.display=disc>0?'':'none';
-    discountLabel.innerText=`Discount (${d}%)`;
-    discountValue.innerText=disc.toFixed(2);
-    cuttingRow.style.display=c>0?'':'none';
-    cuttingValue.innerText=c;
-    cartageRow.style.display=ca>0?'':'none';
-    cartageValue.innerText=ca;
-    packingRow.style.display=p>0?'':'none';
-    packingValue.innerText=p;
-    gstRow.style.display=gst>0?'':'none';
-    gstLabel.innerText=`GST (${g}%)`;
-    gstValue.innerText=gst.toFixed(2);
-    grandTotalValue.innerText=total.toFixed(2);
+        subtotalValue.innerText=sub.toFixed(2);
+        discountRow.style.display=disc>0?'':'none';
+        discountLabel.innerText=`Discount (${d}%)`;
+        discountValue.innerText=disc.toFixed(2);
+        cuttingRow.style.display=c>0?'':'none';
+        cuttingValue.innerText=c;
+        cartageRow.style.display=ca>0?'':'none';
+        cartageValue.innerText=ca;
+        packingRow.style.display=p>0?'':'none';
+        packingValue.innerText=p;
+        gstRow.style.display=gst>0?'':'none';
+        gstLabel.innerText=`GST (${g}%)`;
+        gstValue.innerText=gst.toFixed(2);
+        grandTotalValue.innerText=total.toFixed(2);
 
-    subtotalInput.value=sub;
-    discountInput.value=disc;
-    gstInput.value=gst;
-    cuttingInput.value=c;
-    cartageInput.value=ca;
-    packingInput.value=p;
-    grandTotalInput.value=total;
+        subtotalInput.value=sub;
+        discountInput.value=disc;
+        gstInput.value=gst;
+        cuttingInput.value=c;
+        cartageInput.value=ca;
+        packingInput.value=p;
+        grandTotalInput.value=total;
     }
 
-    function applyCustomer(){
-    v_company.innerText=cust_company.value;
-    v_name.innerText=cust_name.value;
-    v_gst.innerText=cust_gst.value;
-    v_phone.innerText=cust_phone.value;
-    v_sales.innerText=cust_sales.value;
-    bootstrap.Modal.getInstance(customerModal).hide();
+    function toggleSameAsBilling() {
+        const billing = document.getElementById('cust_billing_address').value;
+        const delivery = document.getElementById('cust_delivery_address');
+        const checkbox = document.getElementById('same_as_billing');
+
+        if (checkbox.checked) {
+            delivery.value = billing;
+            delivery.setAttribute("readonly", true);
+        } else {
+            delivery.removeAttribute("readonly");
+            delivery.value = "";
+        }
+    }
+
+    // Auto-sync when typing billing address
+    function syncBillingToDelivery() {
+        const checkbox = document.getElementById('same_as_billing');
+        if (checkbox.checked) {
+            document.getElementById('cust_delivery_address').value =
+                document.getElementById('cust_billing_address').value;
+        }
+    }
+
+
+    function applyCustomer() {
+        // Preview table
+        v_company.innerText = cust_company.value || '—';
+        v_name.innerText    = cust_name.value || '—';
+        v_gst.innerText     = cust_gst.value || '—';
+        v_phone.innerText   = cust_phone.value || '—';
+        v_sales.innerText   = cust_sales.value || '—';
+        v_billing_address.innerText  = cust_billing_address.value || '—';
+        v_delivery_address.innerText = cust_delivery_address.value || '—';
+
+        // 🔥 VERY IMPORTANT: hidden inputs (THIS WAS MISSING)
+        customer_company.value        = cust_company.value;
+        customer_name.value           = cust_name.value;
+        customer_gstin.value          = cust_gst.value;
+        customer_phone.value          = cust_phone.value;
+        customer_sales_person.value   = cust_sales.value;
+        billing_address.value         = cust_billing_address.value;
+        delivery_address.value        = cust_delivery_address.value;
+
+        // Close modal
+        bootstrap.Modal.getInstance(customerModal).hide();
     }
 </script>
 

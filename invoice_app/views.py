@@ -1,26 +1,17 @@
 # Mongo db
-from cnc_work_app.mongo import *
+from utils.mongo import *
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from datetime import datetime
 import uuid, os
 from math import ceil
 from bson import ObjectId
-from django.conf import settings
+from utils.common_func import *
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 
-
 # Create your views here.
 
-
-def get_sales_users():
-    return list(
-        users_collection().find(
-            {"roles": "sales"},
-            {"_id": 1, "name": 1}
-        )
-    )
 
 
 # View All Quotation List
@@ -68,18 +59,19 @@ def quotation_list(request):
 
 # Create Quotation
 def quotation_create(request, customer_id=None):
-    # ---------- DEMO CUSTOMER (replace with DB later) ----------
     customer = {
         "company": request.POST.get("customer_company"),
         "name": request.POST.get("customer_name"),
         "gstin": request.POST.get("customer_gstin"),
         "phone": request.POST.get("customer_phone"),
-        "sales_person": request.POST.get("sales_person"),
+        "sales_person": request.POST.get("customer_sales_person"),
+        "billing_address": request.POST.get("billing_address"),
+        "delivery_address": request.POST.get("delivery_address"),
+
     }
 
     # ===================== POST =====================
     if request.method == "POST":
-
         # ---------- ITEMS ----------
         items = []
 
@@ -141,13 +133,7 @@ def quotation_create(request, customer_id=None):
         messages.success(request, "Quotation created successfully")
         return redirect("invoice_app:quotation_list")
     # ===================== GET =====================
-    sales_users = list(
-        users_collection().find({"roles":"SALES"},
-            {"_id": 0, "username": 1,"full_name":1 ,"roles":1}
-        ).sort("username", 1)
-    )
-
-    print(f"sales_users: {sales_users}")
+    sales_users = get_active_sales_users()
 
     # ===================== GET =====================
     return render(request, "invoice_app/image_invoice_sraga.html",
@@ -173,23 +159,6 @@ def quotation_view(request, qid):
     return render(request, "invoice_app/quotation_view.html", {
         "quotation": quotation
     })
-
-
-def get_cloudinary_public_id(url):
-    if not url:
-        return None
-    try:
-        # remove version and extension
-        parts = url.split("/upload/")[1]
-        parts = parts.split(".")[0]
-
-        # remove version folder (v123456)
-        if parts.startswith("v"):
-            parts = "/".join(parts.split("/")[1:])
-
-        return parts
-    except Exception:
-        return None
 
 
 # Delete Quotation
@@ -222,3 +191,20 @@ def quotation_delete(request, qid):
 
     messages.success(request, "Quotation deleted successfully")
     return redirect("invoice_app:quotation_list")
+
+
+def get_cloudinary_public_id(url):
+    if not url:
+        return None
+    try:
+        # remove version and extension
+        parts = url.split("/upload/")[1]
+        parts = parts.split(".")[0]
+
+        # remove version folder (v123456)
+        if parts.startswith("v"):
+            parts = "/".join(parts.split("/")[1:])
+
+        return parts
+    except Exception:
+        return None
