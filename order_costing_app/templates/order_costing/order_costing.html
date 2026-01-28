@@ -135,32 +135,51 @@
 
         <div class="card-body p-0">
             <table class="table table-bordered table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-end" >Info</th>
+                        <th class="text-end">Cost</th>
+                    </tr>
+                </thead>
                 <tbody>
                     <tr>
-                        <th style="width:40%">Material Cost</th>
-                        <td class="text-end">₹ {{ material_cost }}</td>
+                        <th>Material Cost</th>
+                        <td class="text-end" colspan="2">₹ {{ material_cost }}</td>
                     </tr>
+
                     <tr>
                         <th>Machine Cost</th>
+                        <td class="text-end">
+                            {{ machine_hours }} hrs
+                            {% if machine_hours %}
+                                × Avg Rate
+                            {% endif %}
+                        </td>
                         <td class="text-end">₹ {{ machine_cost }}</td>
                     </tr>
+
                     <tr>
                         <th>Design Cost</th>
-                        <td class="text-end">₹ {{ design_cost }}</td>
+                        <td class="text-end" colspan="2">₹ {{ design_cost }}</td>
                     </tr>
+
                     <tr>
                         <th>QC Cost</th>
-                        <td class="text-end">₹ {{ qc_cost }}</td>
+                        <td class="text-end" colspan="2">₹ {{ qc_cost }}</td>
                     </tr>
+
                     <tr>
                         <th>Dispatch Cost</th>
-                        <td class="text-end">₹ {{ dispatch_cost }}</td>
+                        <td class="text-end" colspan="2">₹ {{ dispatch_cost }}</td>
                     </tr>
-                </tbody>
+                    </tbody>
+
                 <tfoot class="table-dark">
                     <tr>
                         <th>Total Order Cost</th>
-                        <th class="text-end">₹ {{ total_cost }}</th>
+<!--                        <td class="text-end"></td>-->
+                        <th class="text-end" colspan="2" >₹ {{ total_cost }}</th>
                     </tr>
                 </tfoot>
             </table>

@@ -6,7 +6,6 @@ from django.shortcuts import render, redirect
 from cnc_work_app.mongo import *
 from bson import ObjectId
 
-# Create your views here.
 # ================= MACHINE MASTER LIST =================
 def machine_master_view(request):
     col = get_machine_master_collection()
@@ -51,7 +50,7 @@ def machine_master_toggle(request, pk):
         )
 
     return redirect("machine_app:machine_master_view")
-
+# ================= MACHINE MASTER COMPLETE =================
 
 # Add Machine For Order Work
 def add_machine_work(request, order_id):
@@ -108,6 +107,7 @@ def add_machine_work(request, order_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 
+# Machine Work Start
 @require_POST
 def machine_work_start(request, order_id, work_id):
 
@@ -182,6 +182,7 @@ def machine_work_start(request, order_id, work_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 
+# Machine Work End
 @require_POST
 def machine_work_complete(request, order_id, work_id):
     work_col = get_machine_work_collection()
@@ -197,7 +198,7 @@ def machine_work_complete(request, order_id, work_id):
     return redirect("cnc_work_app:detail", pk=order_id)
 
 
-# Machine Delete Only if Pending From Order -----
+# Machine Delete Only if Pending In Order -----
 @require_POST
 def machine_delete(request, order_id, work_id):
     col = get_machine_work_collection()

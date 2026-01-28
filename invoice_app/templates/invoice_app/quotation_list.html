@@ -27,6 +27,8 @@
             <th>Date</th>
             <th>Client</th>
             <th>Mobile</th>
+            <th>Sales Person</th>
+            <th>Sub Total</th>
             <th>Total</th>
             <th>Action</th>
         </tr>
@@ -39,6 +41,8 @@
             <td>{{ q.date }}</td>
             <td>{{ q.customer.name }}</td>
             <td>{{ q.customer.phone }}</td>
+            <td>{{q.customer.sales_person}}</td>
+            <td>₹ {{ q.subtotal }}</td>
             <td>₹ {{ q.grand_total }}</td>
             <td>
                 <a href="{% url 'invoice_app:quotation_view' q.id %}"
