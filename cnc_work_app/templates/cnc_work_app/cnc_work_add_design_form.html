@@ -38,10 +38,66 @@
                             <label class="form-label">Party Name</label>
                             <input class="form-control" type="text" name="party_name" required>
                         </div>
-                        <div class="col-4">
-                            <label class="form-label">Packing Instruction</label>
-                            <input class="form-control" type="text" name="packing_instruction" required>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Packing Instruction</label>
+
+                            <div class="dropdown">
+                                <button class="form-control text-start d-flex justify-content-between align-items-center"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        id="packingDropdownBtn">
+                                    <span id="packingDropdownText" class="text-muted">
+                                        Select packing instruction
+                                    </span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+
+                                <ul class="dropdown-menu w-100 p-2 shadow-sm">
+                                    <li class="dropdown-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input packing-check" type="checkbox"
+                                                   name="packing_instruction[]" value="Thermocol Pack" id="pack1">
+                                            <label class="form-check-label" for="pack1">
+                                                Thermocol Pack
+                                            </label>
+                                        </div>
+                                    </li>
+
+                                    <li class="dropdown-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input packing-check" type="checkbox"
+                                                   name="packing_instruction[]" value="Gatta Pack" id="pack2">
+                                            <label class="form-check-label" for="pack2">
+                                                Gatta Pack
+                                            </label>
+                                        </div>
+                                    </li>
+
+                                    <li class="dropdown-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input packing-check" type="checkbox"
+                                                   name="packing_instruction[]" value="Pallete Pack" id="pack3">
+                                            <label class="form-check-label" for="pack3">
+                                                Pallete Pack
+                                            </label>
+                                        </div>
+                                    </li>
+
+                                    <li class="dropdown-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input packing-check" type="checkbox"
+                                                   name="packing_instruction[]" value="Bubble Pack" id="pack4">
+                                            <label class="form-check-label" for="pack4">
+                                                Bubble Pack
+                                            </label>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
+
                         <div class="col-md-4">
                                 <label class="form-label">Sales Person</label>
                                 <select class="form-select" name="sales_person" required>
@@ -82,3 +138,17 @@
         </div>
     </div>
 </div>
+
+<script>
+<!--  Packing Instruction  -->
+document.querySelectorAll('.packing-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+        const checked = Array.from(
+            document.querySelectorAll('.packing-check:checked')
+        ).map(el => el.value);
+
+        document.getElementById('packingDropdownBtn').innerText =
+            checked.length ? checked.join(', ') : 'Select Packing Instruction';
+    });
+});
+</script>

@@ -227,13 +227,16 @@ def add_order(request):
             }
         ]
 
+        packing_instruction = request.POST.getlist('packing_instruction[]')
+        packing_instruction_str = ", ".join(packing_instruction)
+
         data = {
             'title': request.POST.get('title'),
             'image': image_url,
             'stone': request.POST.get('stone'),
             'color': request.POST.get('color'),
             'remarks': request.POST.get('remarks'),
-            'packing_instruction': request.POST.get('packing_instruction'),
+            'packing_instruction': packing_instruction_str,
             'coverage_area': request.POST.get('coverage_area'),
             'party_name': request.POST.get('party_name'),
             'sales_person': request.POST.get('sales_person'),
