@@ -137,62 +137,7 @@ def login_view(request):
             set_cookie(response, "remember_token", str(user["_id"]), days=7)
 
         return response
-
     return render(request, "accounts_app/login.html")
-
-# def login_view(request):
-#     if request.method == "POST":
-#         username = request.POST.get("username", "").strip().lower()
-#         password = request.POST.get("password", "").strip()
-#
-#         user = users_collection().find_one({
-#             "username": username,
-#             "is_active": True
-#         })
-#
-#         # ❌ Invalid username or password
-#         if not user or not check_password(password, user.get("password")):
-#             messages.error(request, "Invalid username or password.")
-#             return render(request, "accounts_app/login.html")
-#
-#         # ✅ Login success – set session
-#         roles = user.get("roles", [])
-#
-#         request.session["mongo_user_id"] = str(user["_id"])
-#         request.session["mongo_username"] = user["username"]
-#         request.session["mongo_roles"] = roles
-#         request.session["access_scope"] = user.get("access_scope", "OWN")
-#         request.session["work_type_access"] = user.get("work_type_access", [])  # ✅ REQUIRED
-#
-#         # 🔥 SAVE LOGIN ACTIVITY
-#         record_login(request, user)
-#
-#         # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
-#         if not roles:
-#             messages.error(
-#                 request,
-#                 "Your role is not defined. Please contact the administrator."
-#             )
-#             return redirect("accounts_app:role_not_defined")
-#
-#         # 🎯 Decide redirect URL
-#         if "ADMIN" in roles:
-#             redirect_url = "core_app:dashboard"
-#         else:
-#             redirect_url = "cnc_work_app:index"
-#
-#         # ✅ Create response FIRST
-#         response = redirect(redirect_url)
-#
-#         # 🍪 SET COOKIES (non-sensitive)
-#         set_cookie(response, "username", user["username"], days=7)
-#         set_cookie(response, "primary_role", roles[0], days=7)
-#
-#         return response
-#
-#     return render(request, "accounts_app/login.html")
-
-
 
 
 @mongo_login_required

@@ -1,7 +1,6 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-
 import cloudinary
 import cloudinary_storage
 
@@ -27,9 +26,6 @@ cloudinary.config(
 )
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
@@ -102,19 +98,29 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# ================= SESSION SETTINGS (REMEMBER ME FIX) =================
+# Keep session alive even after browser close (for Remember Me)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Default session age (7 days)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
+
+# Refresh session expiry on every request
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Use database-backed sessions (recommended)
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # ================= DEFAULT PRIMARY KEY =================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -138,20 +144,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Asia/Kolkata'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
