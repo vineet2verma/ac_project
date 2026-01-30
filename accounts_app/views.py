@@ -3,9 +3,6 @@ import string
 import uuid
 from datetime import datetime
 
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
@@ -16,10 +13,27 @@ from utils.cookies import set_cookie, delete_cookie
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
-        if not request.session.get("mongo_user_id"):
+        user_id = request.session.get("mongo_user_id")
+        device_id = request.session.get("device_id")
+
+        if not user_id or not device_id:
             return redirect("accounts_app:login")
+
+        user = users_collection().find_one({"_id": ObjectId(user_id)})
+
+        if not user or user.get("active_device_id") != device_id:
+            request.session.flush()
+            messages.error(request, "You were logged out (new login detected).")
+            return redirect("accounts_app:login")
+
         return view_func(request, *args, **kwargs)
     return wrapper
+# def mongo_login_required(view_func):
+#     def wrapper(request, *args, **kwargs):
+#         if not request.session.get("mongo_user_id"):
+#             return redirect("accounts_app:login")
+#         return view_func(request, *args, **kwargs)
+#     return wrapper
 
 def mongo_role_required(allowed_roles):
     def decorator(view_func):
@@ -84,53 +98,100 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username", "").strip().lower()
         password = request.POST.get("password", "").strip()
+        remember_me = request.POST.get("remember_me")
 
         user = users_collection().find_one({
             "username": username,
             "is_active": True
         })
 
-        # ❌ Invalid username or password
         if not user or not check_password(password, user.get("password")):
-            messages.error(request, "Invalid username or password.")
+            messages.error(request, "Invalid username or password")
             return render(request, "accounts_app/login.html")
 
-        # ✅ Login success – set session
-        roles = user.get("roles", [])
-
+        # 🔐 SESSION
         request.session["mongo_user_id"] = str(user["_id"])
         request.session["mongo_username"] = user["username"]
-        request.session["mongo_roles"] = roles
+        request.session["mongo_roles"] = user.get("roles", [])
         request.session["access_scope"] = user.get("access_scope", "OWN")
-        request.session["work_type_access"] = user.get("work_type_access", [])  # ✅ REQUIRED
+        request.session["work_type_access"] = user.get("work_type_access", [])
 
-        # 🔥 SAVE LOGIN ACTIVITY
+        # ⏱ SESSION EXPIRY
+        if remember_me:
+            request.session.set_expiry(60 * 60 * 24 * 7)  # 7 days
+        else:
+            request.session.set_expiry(0)  # browser close
+
+
+        # DEVICE ID MUST EXIST FIRST
+        device_id = str(uuid.uuid4())
+        request.session["device_id"] = device_id
+
         record_login(request, user)
 
-        # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
-        if not roles:
-            messages.error(
-                request,
-                "Your role is not defined. Please contact the administrator."
-            )
-            return redirect("accounts_app:role_not_defined")
+        response = redirect(
+            "core_app:dashboard" if "ADMIN" in user["roles"] else "cnc_work_app:index"
+        )
 
-        # 🎯 Decide redirect URL
-        if "ADMIN" in roles:
-            redirect_url = "core_app:dashboard"
-        else:
-            redirect_url = "cnc_work_app:index"
-
-        # ✅ Create response FIRST
-        response = redirect(redirect_url)
-
-        # 🍪 SET COOKIES (non-sensitive)
-        set_cookie(response, "username", user["username"], days=7)
-        set_cookie(response, "primary_role", roles[0], days=7)
+        if remember_me:
+            set_cookie(response, "remember_token", str(user["_id"]), days=7)
 
         return response
 
     return render(request, "accounts_app/login.html")
+
+# def login_view(request):
+#     if request.method == "POST":
+#         username = request.POST.get("username", "").strip().lower()
+#         password = request.POST.get("password", "").strip()
+#
+#         user = users_collection().find_one({
+#             "username": username,
+#             "is_active": True
+#         })
+#
+#         # ❌ Invalid username or password
+#         if not user or not check_password(password, user.get("password")):
+#             messages.error(request, "Invalid username or password.")
+#             return render(request, "accounts_app/login.html")
+#
+#         # ✅ Login success – set session
+#         roles = user.get("roles", [])
+#
+#         request.session["mongo_user_id"] = str(user["_id"])
+#         request.session["mongo_username"] = user["username"]
+#         request.session["mongo_roles"] = roles
+#         request.session["access_scope"] = user.get("access_scope", "OWN")
+#         request.session["work_type_access"] = user.get("work_type_access", [])  # ✅ REQUIRED
+#
+#         # 🔥 SAVE LOGIN ACTIVITY
+#         record_login(request, user)
+#
+#         # 🎯 ROLE BASED REDIRECT ( MULTI ROLE LOGIN )
+#         if not roles:
+#             messages.error(
+#                 request,
+#                 "Your role is not defined. Please contact the administrator."
+#             )
+#             return redirect("accounts_app:role_not_defined")
+#
+#         # 🎯 Decide redirect URL
+#         if "ADMIN" in roles:
+#             redirect_url = "core_app:dashboard"
+#         else:
+#             redirect_url = "cnc_work_app:index"
+#
+#         # ✅ Create response FIRST
+#         response = redirect(redirect_url)
+#
+#         # 🍪 SET COOKIES (non-sensitive)
+#         set_cookie(response, "username", user["username"], days=7)
+#         set_cookie(response, "primary_role", roles[0], days=7)
+#
+#         return response
+#
+#     return render(request, "accounts_app/login.html")
+
 
 
 
@@ -264,35 +325,56 @@ def get_device_name(request):
     return "Unknown Device"
 
 # Record Login Info
-@mongo_login_required
 def record_login(request, user):
     login_activity_col = get_login_activity_collection()
 
-    # 🔹 Unique device id per browser
     device_id = request.session.get("device_id")
     if not device_id:
-        device_id = str(uuid.uuid4())
-        request.session["device_id"] = device_id
+        return  # safety
 
-    login_time = datetime.utcnow()
+    users_collection().update_one(
+        {"_id": user["_id"]},
+        {"$set": {"active_device_id": device_id}}
+    )
 
     activity_id = login_activity_col.insert_one({
         "user_id": str(user["_id"]),
         "username": user["username"],
-
         "device_id": device_id,
-        "device_name": get_device_name(request),
-
-        "login_time": login_time,
-        "logout_time": None,
-        "session_duration": None,
-
-        "ip_address": request.META.get("REMOTE_ADDR"),
-        "user_agent": request.META.get("HTTP_USER_AGENT"),
+        "login_time": datetime.utcnow(),
+        "logout_time": None
     }).inserted_id
 
-    request.session["login_time"] = login_time.isoformat()
     request.session["login_activity_id"] = str(activity_id)
+# def record_login(request, user):
+#     login_activity_col = get_login_activity_collection()
+#
+#     # 🔹 Unique device id per browser
+#     device_id = request.session.get("device_id")
+#     if not device_id:
+#         device_id = str(uuid.uuid4())
+#         request.session["device_id"] = device_id
+#
+#     login_time = datetime.utcnow()
+#
+#     activity_id = login_activity_col.insert_one({
+#         "user_id": str(user["_id"]),
+#         "username": user["username"],
+#
+#         "device_id": device_id,
+#         "device_name": get_device_name(request),
+#
+#         "login_time": login_time,
+#         "logout_time": None,
+#         "session_duration": None,
+#
+#         "ip_address": request.META.get("REMOTE_ADDR"),
+#         "user_agent": request.META.get("HTTP_USER_AGENT"),
+#     }).inserted_id
+#
+#     request.session["login_time"] = login_time.isoformat()
+#     request.session["login_activity_id"] = str(activity_id)
+
 
 # Record Logout Info
 @mongo_login_required
