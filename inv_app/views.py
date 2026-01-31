@@ -263,13 +263,13 @@ def inventory_master_view(request):
 
     # ================= PAGINATION PARAMS =================
     page = int(request.GET.get("page", 1))
-    per_page = int(request.GET.get("per_page", 10))
-    page_sizes = [10, 25, 50, 100]
+    per_page = int(request.GET.get("per_page", 50))
+    page_sizes = [50, 75, 100, 200, 250 ]
 
 
     # allow only valid values
-    if per_page not in [10, 25, 50, 100]:
-        per_page = 10
+    if per_page not in [50, 75, 100, 200, 250]:
+        per_page = 50
 
     skip = (page - 1) * per_page
 
@@ -522,7 +522,7 @@ def inventory_master_delete(request, pk):
     col.delete_one({"_id": ObjectId(pk)})
     return redirect("inv_app:inventory_master")
 
-# Inventory Stock In
+# Inventory Ledger Stock In
 def inventory_ledger_view(request):
     inv_col = get_inventory_master_collection()
     ledger_col = get_inventory_ledger_collection()

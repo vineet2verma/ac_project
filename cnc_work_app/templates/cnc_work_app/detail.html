@@ -216,7 +216,7 @@
                         {{ file.approved_by_name|default:"-" }}
                     </td>
 
-                    <td>{{ file.approved_at|default:"-" }}</td>
+                    <td>{{ file.approved_at|date:"Y-M-d h:i A "|default:"-" }}</td>
 
                     <td>
                         <div class="d-flex gap-1 action-btn-group">
@@ -519,7 +519,7 @@
         <tbody>
         {% for q in quality_checks %}
         <tr>
-            <td>{{ q.created_at|default:"-" }}</td>
+            <td>{{ q.checked_at|date:"Y-M-d"|default:"-" }}</td>
             <td>{{ q.checked_by }}</td>
             <td>
           <span class="badge {% if q.status == 'pass' %}bg-success{% else %}bg-danger{% endif %}">

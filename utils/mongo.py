@@ -65,3 +65,7 @@ def todo_collection():
 # Invoice Collection
 def invoice_collection():
     return _db['invoices']
+
+# Rate Config
+def get_rate_config_collection():
+    return _db["rate_config"]

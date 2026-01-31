@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Order Costing{% endblock %}
 
 {% block navbartitle %}
@@ -152,25 +151,39 @@
                         <th>Machine Cost</th>
                         <td class="text-end">
                             {{ machine_hours }} hrs
-                            {% if machine_hours %}
-                                × Avg Rate
-                            {% endif %}
+                            × ₹ {{ machine_rows.0.rate|default:rate_config.machine.default_hourly_rate }}
                         </td>
+
+<!--                        <td class="text-end">₹ {{ m.unit_cost }}</td>-->
                         <td class="text-end">₹ {{ machine_cost }}</td>
                     </tr>
 
                     <tr>
                         <th>Design Cost</th>
-                        <td class="text-end" colspan="2">₹ {{ design_cost }}</td>
+                        <td class="text-end">
+                            Rate: ₹ {{ rate_config.design.default_rate_per_hour }} / hr
+                        </td>
+                        <td class="text-end">₹ {{ design_cost }}</td>
                     </tr>
 
                     <tr>
                         <th>QC Cost</th>
+                        <td class="text-end">
+                            {% if rate_config.qc.calculation == "flat" %}
+                                Flat ₹ {{ rate_config.qc.rate_per_order }}
+                            {% else %}
+                                ₹ {{ rate_config.qc.rate_per_item }} per item
+                            {% endif %}
+                        </td>
                         <td class="text-end" colspan="2">₹ {{ qc_cost }}</td>
                     </tr>
 
                     <tr>
                         <th>Dispatch Cost</th>
+                        <td class="text-end">
+                            Freight ₹ {{ rate_config.dispatch.freight_default }} +
+                            Loading ₹ {{ rate_config.dispatch.loading_default }}
+                        </td>
                         <td class="text-end" colspan="2">₹ {{ dispatch_cost }}</td>
                     </tr>
                     </tbody>
@@ -178,7 +191,7 @@
                 <tfoot class="table-dark">
                     <tr>
                         <th>Total Order Cost</th>
-<!--                        <td class="text-end"></td>-->
+
                         <th class="text-end" colspan="2" >₹ {{ total_cost }}</th>
                     </tr>
                 </tfoot>
@@ -186,6 +199,9 @@
         </div>
 
     </div>
+
+    <br/>
+    <hr/>
 
 </div>
 

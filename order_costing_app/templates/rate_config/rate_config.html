@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Rate Configuration{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h5 class="fw-bold mb-3">Rate Configuration</h5>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- MATERIAL -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Material</div>
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label class="form-label">Material Cost Calculation</label>
+                    <select name="material_calculation" class="form-select">
+                        <option value="ledger"
+                            {% if config.material.calculation == "ledger" %}selected{% endif %}>
+                            Ledger Based (Inventory)
+                        </option>
+                        <option value="fixed_rate"
+                            {% if config.material.calculation == "fixed_rate" %}selected{% endif %}>
+                            Fixed Rate
+                        </option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Default Material Unit Rate (₹)</label>
+                    <input type="number" step="0.01" name="material_rate"
+                           class="form-control"
+                           placeholder="e.g. 120"
+                           value="{{ config.material.default_unit_rate|default:0 }}">
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MACHINE -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Machine</div>
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label class="form-label">Default Machine Hourly Rate (₹ / hr)</label>
+                    <input type="number" step="0.01" name="machine_rate"
+                           class="form-control"
+                           placeholder="e.g. 350"
+                           value="{{ config.machine.default_hourly_rate|default:0 }}">
+                </div>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           name="machine_use_master" id="machineUseMaster"
+                           {% if config.machine.use_master %}checked{% endif %}>
+                    <label class="form-check-label" for="machineUseMaster">
+                        Use Machine Master Hourly Rate
+                    </label>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DESIGN -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Design</div>
+            <div class="card-body">
+
+                <label class="form-label">Design Rate per Hour (₹)</label>
+                <input type="number" step="0.01" name="design_rate"
+                       class="form-control"
+                       placeholder="e.g. 500"
+                       value="{{ config.design.default_rate_per_hour|default:0 }}">
+
+            </div>
+        </div>
+
+        <!-- QC -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Quality Check (QC)</div>
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label class="form-label">QC Cost Calculation Type</label>
+                    <select name="qc_calculation" class="form-select">
+                        <option value="flat"
+                            {% if config.qc.calculation == "flat" %}selected{% endif %}>
+                            Flat per Order
+                        </option>
+                        <option value="per_item"
+                            {% if config.qc.calculation == "per_item" %}selected{% endif %}>
+                            Per Item
+                        </option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">QC Rate per Order (₹)</label>
+                    <input type="number" step="0.01" name="qc_rate_order"
+                           class="form-control"
+                           placeholder="e.g. 150"
+                           value="{{ config.qc.rate_per_order|default:0 }}">
+                </div>
+
+                <div>
+                    <label class="form-label">QC Rate per Item (₹)</label>
+                    <input type="number" step="0.01" name="qc_rate_item"
+                           class="form-control"
+                           placeholder="e.g. 20"
+                           value="{{ config.qc.rate_per_item|default:0 }}">
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DISPATCH -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Dispatch</div>
+            <div class="card-body">
+
+                <div class="mb-2">
+                    <label class="form-label">Default Freight Cost (₹)</label>
+                    <input type="number" step="0.01" name="freight_rate"
+                           class="form-control"
+                           placeholder="e.g. 200"
+                           value="{{ config.dispatch.freight_default|default:0 }}">
+                </div>
+
+                <div>
+                    <label class="form-label">Default Loading Cost (₹)</label>
+                    <input type="number" step="0.01" name="loading_rate"
+                           class="form-control"
+                           placeholder="e.g. 300"
+                           value="{{ config.dispatch.loading_default|default:0 }}">
+                </div>
+
+            </div>
+        </div>
+
+        <button class="btn btn-primary">
+            Save Rate Configuration
+        </button>
+
+    </form>
+</div>
+{% endblock %}
