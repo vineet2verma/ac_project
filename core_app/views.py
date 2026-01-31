@@ -1,8 +1,12 @@
-from django.http import JsonResponse
+import pandas as pd
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from accounts_app.views import mongo_login_required, mongo_role_required
 from cnc_work_app.mongo import *
 from datetime import datetime, timedelta
+
+from reportlab.platypus import SimpleDocTemplate, Table
+
 
 # Order Status Count
 def get_order_counts():
@@ -20,6 +24,7 @@ def get_order_counts():
         "complete_orders": complete_orders,
     }
 
+
 # Inventory Reorder
 def get_reorder_inventory_count():
     inv_col = get_inventory_master_collection()
@@ -30,6 +35,7 @@ def get_reorder_inventory_count():
         "is_active": True
     })
     return reorder_count
+
 
 # Order Status Count
 def get_order_status_counts():
@@ -66,7 +72,7 @@ def get_order_status_counts():
         "DISPATCH": "dispatch",
     }
 
-    # Default response
+    # Default response (zero-safe)
     counts = {
         "design": 0,
         "inventory": 0,
@@ -86,61 +92,205 @@ def get_order_status_counts():
 # Sales Person Report
 def get_sales_person_order_counts():
     order_col = get_orders_collection()
-    users_col = users_collection()  # your users collection
+    users_col = users_collection()
 
     pipeline = [
-        # 1️⃣ Join with users collection
-        {
-            "$lookup": {
-                "from": users_col.name,   # IMPORTANT
-                "localField": "sales_person",
-                "foreignField": "username",
-                "as": "user"
-            }
-        },
-
-        # 2️⃣ Unwind joined user
-        {"$unwind": "$user"},
-
-        # 3️⃣ Filter only SALES role users
+        # 1️⃣ Only active SALES users
         {
             "$match": {
-                "user.roles": "SALES",
-                "user.is_active": True
+                "roles": "SALES",
+                "is_active": True
             }
         },
 
-        # 4️⃣ Group by sales person + status
+        # 2️⃣ Lookup orders by username
+        {
+            "$lookup": {
+                "from": order_col.name,
+                "localField": "username",
+                "foreignField": "sales_person",
+                "as": "orders"
+            }
+        },
+
+        # 3️⃣ Unwind orders (keep zero-order users)
+        {
+            "$unwind": {
+                "path": "$orders",
+                "preserveNullAndEmptyArrays": True
+            }
+        },
+
+        # 4️⃣ Group by FULL NAME + USERNAME + STATUS
         {
             "$group": {
                 "_id": {
-                    "sales_person": "$sales_person",
+                    "full_name": "$full_name",
+                    "username": "$username",
                     "status": {
                         "$cond": [
-                            {"$eq": ["$current_status", "Complete"]},
+                            {"$eq": ["$orders.current_status", "Complete"]},
                             "complete",
                             "pending"
                         ]
                     }
                 },
-                "count": {"$sum": 1}
+                "count": {
+                    "$sum": {
+                        "$cond": [
+                            {"$ifNull": ["$orders", False]},
+                            1,
+                            0
+                        ]
+                    }
+                }
+            }
+        },
+
+        # 5️⃣ Sort A → Z
+        {
+            "$sort": {
+                "_id.full_name": 1
             }
         }
     ]
 
-    result = order_col.aggregate(pipeline)
+    result = users_col.aggregate(pipeline)
 
     sales_stats = {}
+
     for r in result:
-        person = r["_id"]["sales_person"]
+        full_name = r["_id"]["full_name"]
+        username = r["_id"]["username"]
         status = r["_id"]["status"]
+        count = r["count"]
 
-        if person not in sales_stats:
-            sales_stats[person] = {"pending": 0, "complete": 0}
+        if full_name not in sales_stats:
+            sales_stats[full_name] = {
+                "pending": 0,
+                "complete": 0,
+                "total": 0,
+                "completion_pct": 0,
+                "username": username
+            }
 
-        sales_stats[person][status] = r["count"]
+        sales_stats[full_name][status] = count
+
+    # 6️⃣ Calculate TOTAL & COMPLETION %
+    for full_name, stats in sales_stats.items():
+        pending = stats["pending"]
+        complete = stats["complete"]
+        total = pending + complete
+
+        stats["total"] = total
+        stats["completion_pct"] = (
+            round((complete / total) * 100) if total > 0 else 0
+        )
 
     return sales_stats
+
+
+def sales_person_detail(request, username):
+    order_col = get_orders_collection()
+    users_col = users_collection()
+
+    user = users_col.find_one({"username": username})
+    full_name = user.get("full_name") if user else username
+
+    orders = list(order_col.find({"sales_person": username}))
+
+    pending = sum(1 for o in orders if o.get("current_status") != "Complete")
+    complete = sum(1 for o in orders if o.get("current_status") == "Complete")
+
+    # ✅ Normalize order data for template
+    order_list = []
+
+    for o in orders:
+        # Check if any stage pending
+        is_pending = any(
+            s.get("status") == "PENDING" for s in o.get("order_status", [])
+        )
+
+        order_list.append({
+            "order_no": o.get("title", "-"),
+            "client_name": o.get("party_name", "-"),
+            "image": o.get("image"),
+            "status": "Pending" if is_pending else "Completed",
+            "stages": o.get("order_status", []),  # 👈 stage wise
+            "date": o.get("created_at")
+        })
+
+    context = {
+        "sales_person": full_name,
+        "username": username,
+        "pending_count": pending,
+        "complete_count": complete,
+        "total_count": pending + complete,
+        "orders": order_list
+    }
+
+    return render(request, "core_app/sales_person_detail.html", context)
+
+
+def export_orders_pdf(request, username):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="orders.pdf"'
+
+    doc = SimpleDocTemplate(response)
+    data = [["Order", "Client", "Status"]]
+
+    for o in get_orders_collection().find({"sales_person": username}):
+        data.append([o["title"], o["party_name"], o["current_status"]])
+
+    doc.build([Table(data)])
+    return response
+
+
+def export_orders_excel(request, username):
+    order_col = get_orders_collection()
+    users_col = users_collection()
+
+    # Get sales person full name (for file name)
+    user = users_col.find_one({"username": username})
+    sales_person = user.get("full_name") if user else username
+
+    # Fetch orders
+    orders = list(order_col.find({"sales_person": username}))
+
+    data = []
+
+    for o in orders:
+        # Determine overall order status from stages
+        stages = o.get("order_status", [])
+        is_pending = any(s.get("status") == "PENDING" for s in stages)
+
+        data.append({
+            "Order Title": o.get("title", "-"),
+            "Client Name": o.get("party_name", "-"),
+            "Stone": o.get("stone", "-"),
+            "Color": o.get("color", "-"),
+            "Type Of Work": o.get("type_of_work", "-"),
+            "Status": "Pending" if is_pending else "Completed",
+            "Created Date": o.get("created_at").strftime("%d-%m-%Y")
+            if o.get("created_at") else "-"
+        })
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+
+    # Excel response
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{sales_person}_orders.xlsx"'
+    )
+
+    # Write Excel
+    df.to_excel(response, index=False)
+
+    return response
+
 
 # Machine Report
 def get_last_5_days_machine_summary():
@@ -187,7 +337,7 @@ def get_last_5_days_machine_summary():
                     "machine_name": "$machine_name"
                 },
                 "orders": {
-                    "$addToSet": "$order.title"   # ✅ MULTIPLE ORDERS
+                    "$addToSet": "$order.title"  # ✅ MULTIPLE ORDERS
                 },
                 "ontime": {
                     "$sum": {
@@ -226,6 +376,7 @@ def get_last_5_days_machine_summary():
         }
         for r in result
     ]
+
 
 # 5 Days Inventory Summary - Ledger
 def get_last_5_days_inventory_in_out_summary():
@@ -316,6 +467,7 @@ def get_last_5_days_inventory_in_out_summary():
         for r in result
     ]
 
+
 # Order Life Cycle Summary
 def get_pending_order_lifecycle_summary():
     order_col = get_orders_collection()
@@ -389,6 +541,7 @@ def get_pending_order_lifecycle_summary():
 
     return report
 
+
 @mongo_login_required
 @mongo_role_required(["ADMIN", "MANAGER"])
 def dashboard(request):
@@ -413,6 +566,7 @@ def dashboard(request):
 
 def error_page(request):
     return render(request, "404.html")
+
 
 def custom_404_view(request, exception):
     if request.headers.get("Accept") == "application/json":

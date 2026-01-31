@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Sales Person Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- ================= HEADER ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            Sales Person Detail :
+            <span class="text-primary">{{ sales_person }}</span>
+        </h5>
+
+        <div class="d-flex gap-2">
+            <!-- EXPORT -->
+            <a href="{% url 'core_app:export_orders_excel' username %}"
+               class="btn btn-sm btn-outline-success">
+                Export Excel
+            </a>
+            <a href="{% url 'core_app:export_orders_pdf' username %}"
+               class="btn btn-sm btn-outline-danger">
+                Export PDF
+            </a>
+
+            <a href="{% url 'core_app:dashboard' %}"
+               class="btn btn-sm btn-outline-secondary">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= SUMMARY CARDS ================= -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h6 class="text-warning">Pending Orders</h6>
+                    <h4 class="fw-bold">{{ pending_count|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h6 class="text-success">Completed Orders</h6>
+                    <h4 class="fw-bold">{{ complete_count|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h6 class="text-primary">Total Orders</h6>
+                    <h4 class="fw-bold">{{ total_count|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= FILTER BUTTONS ================= -->
+    <div class="mb-2">
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary" onclick="filterOrders('All')">All</button>
+            <button class="btn btn-outline-warning" onclick="filterOrders('Pending')">Pending</button>
+            <button class="btn btn-outline-success" onclick="filterOrders('Completed')">Completed</button>
+        </div>
+    </div>
+
+    <!-- ================= ORDER TABLE ================= -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <strong>Order List</strong>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Image</th>
+                    <th>Order</th>
+                    <th>Client</th>
+                    <th>Status</th>
+                    <th>Stages</th>
+                    <th>Date</th>
+                </tr>
+                </thead>
+
+                <tbody id="orderTable">
+                {% for order in orders %}
+                <tr data-status="{{ order.status }}">
+                    <!-- IMAGE -->
+                    <td class="text-center">
+                        {% if order.image %}
+                            <img src="{{ order.image }}"
+                                 class="rounded border"
+                                 style="width:60px;height:60px;object-fit:cover;cursor:pointer;"
+                                 onclick="showImage('{{ order.image }}')">
+                        {% else %}
+                            <span class="text-muted">No Image</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- ORDER -->
+                    <td class="fw-semibold">
+                        {{ order.order_no }}
+                    </td>
+
+                    <!-- CLIENT -->
+                    <td>
+                        {{ order.client_name }}
+                    </td>
+
+                    <!-- STATUS -->
+                    <td>
+                        {% if order.status == "Completed" %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- STAGES -->
+                    <td>
+                        {% for s in order.stages %}
+                            <span class="badge
+                                {% if s.status == 'COMPLETE' %}
+                                    bg-success
+                                {% else %}
+                                    bg-danger
+                                {% endif %}
+                                me-1">
+                                {{ s.stage }}
+                            </span>
+                        {% endfor %}
+                    </td>
+
+                    <!-- DATE -->
+                    <td>
+                        {{ order.date|date:"d M Y" }}
+                    </td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No orders found for this sales person
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= IMAGE MODAL ================= -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img id="modalImage" class="img-fluid rounded">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+function showImage(src){
+    document.getElementById("modalImage").src = src;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+
+function filterOrders(status){
+    const rows = document.querySelectorAll("#orderTable tr");
+    rows.forEach(row => {
+        row.style.display =
+            status === "All" || row.dataset.status === status
+            ? ""
+            : "none";
+    });
+}
+</script>
+
+{% endblock %}

@@ -100,41 +100,66 @@
 
     <!-- ================= SALES PERSON WISE ================= -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header">
-            <strong>Sales Person – Order Status</strong>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle mb-0">
-                <thead class="table-light">
-                <tr>
-                    <th>Sales Person</th>
-                    <th class="text-center">Pending</th>
-                    <th class="text-center">Completed</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for person, stats in sales_person_stats.items %}
-                <tr>
-                    <td>{{ person }}</td>
-                    <td class="text-center text-warning fw-bold">
-                        {{ stats.pending }}
-                    </td>
-                    <td class="text-center text-success fw-bold">
-                        {{ stats.complete }}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center text-muted">
-                        No data available
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="card-header">
+        <strong>Sales Person – Order Status</strong>
     </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>Sales Person</th>
+                <th class="text-center">Pending</th>
+                <th class="text-center">Completed</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Completion %</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for person, stats in sales_person_stats.items %}
+
+            <tr
+                class="
+                    {% if stats.total == 0 %}
+                        table-danger
+                    {% elif stats.complete == stats.total %}
+                        table-success
+                    {% endif %}
+                "
+                style="cursor: pointer;"
+                onclick="window.location.href='{% url 'core_app:sales_person_detail' stats.username %}'"
+            >
+                <td class="fw-semibold">
+                    {{ person }}
+                </td>
+
+                <td class="text-center text-warning fw-bold">
+                    {{ stats.pending }}
+                </td>
+
+                <td class="text-center text-success fw-bold">
+                    {{ stats.complete }}
+                </td>
+
+                <td class="text-center fw-bold text-primary">
+                    {{ stats.total }}
+                </td>
+
+                <td class="text-center fw-bold text-primary">{{ stats.completion_pct }}%</td>
+            </tr>
+
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    No data available
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
     <!-- ================= MACHINE REPORT (LAST 5 DAYS) ================= -->
     <div class="card shadow-sm">
