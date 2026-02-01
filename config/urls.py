@@ -11,6 +11,8 @@ urlpatterns = [
     path('',include("core_app.urls")),
     path('',include("inv_app.urls")),
     path('',include("todo_app.urls")),
+    path('',include("todo_app.urls_api")),
+
     path('',include("design_app.urls")),
     path('',include("machine_app.urls")),
     path('',include("order_costing_app.urls")),

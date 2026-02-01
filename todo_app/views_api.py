@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from bson import ObjectId
 from utils.mongo import todo_collection
+from utils.common_func import mongo_login,mongo_login_required,mongo_role_required
 
 
 @csrf_exempt
@@ -33,6 +34,7 @@ def api_todo_add(request):
     return JsonResponse({"status": "success"}, status=201)
 
 
+@mongo_login_required
 def api_todo_list(request):
     col = todo_collection()
     todos = []
@@ -61,7 +63,7 @@ def api_todo_list(request):
             )
         })
 
-    return JsonResponse({"data": todos, "count": counts  }, status=200)
+    return JsonResponse({"count": counts, "data": todos,  }, status=200)
 
 
 @csrf_exempt

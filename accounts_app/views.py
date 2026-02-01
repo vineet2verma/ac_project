@@ -1,15 +1,14 @@
 import random
 import string
 import uuid
-from datetime import datetime
-
-from django.contrib.auth.hashers import make_password, check_password
-from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
+from datetime import datetime
 from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import make_password, check_password
+from utils.mongo import users_collection,get_login_activity_collection
 from utils.cookies import set_cookie, delete_cookie
+from django.shortcuts import render, redirect
+
 
 def mongo_login_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -28,12 +27,6 @@ def mongo_login_required(view_func):
 
         return view_func(request, *args, **kwargs)
     return wrapper
-# def mongo_login_required(view_func):
-#     def wrapper(request, *args, **kwargs):
-#         if not request.session.get("mongo_user_id"):
-#             return redirect("accounts_app:login")
-#         return view_func(request, *args, **kwargs)
-#     return wrapper
 
 def mongo_role_required(allowed_roles):
     def decorator(view_func):
