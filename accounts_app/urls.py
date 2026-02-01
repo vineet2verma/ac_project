@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from .views_api import api_login
+
 
 
 app_name = "accounts_app"
@@ -16,6 +18,8 @@ urlpatterns = [
     # Reset Password
     path("users/<str:user_id>/reset-password/",views.admin_reset_password,name="admin_reset_password"),
     path("admin-reset-password/<str:user_id>/", views.admin_reset_password,name="admin_reset_password"),
+    # urls_api.py
+    path("api/login/", api_login, name="api_login"),
 
 
 

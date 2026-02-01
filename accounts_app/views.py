@@ -1,53 +1,15 @@
 import random
 import string
 import uuid
-from datetime import datetime
-
-from django.contrib.auth.hashers import make_password, check_password
-from cnc_work_app.mongo import users_collection, get_login_activity_collection
 from bson import ObjectId
+from datetime import datetime
 from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import make_password, check_password
+from utils.mongo import users_collection,get_login_activity_collection
 from utils.cookies import set_cookie, delete_cookie
+from django.shortcuts import render, redirect
+from utils.common_func import mongo_role_required, mongo_login_required
 
-def mongo_login_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        user_id = request.session.get("mongo_user_id")
-        device_id = request.session.get("device_id")
-
-        if not user_id or not device_id:
-            return redirect("accounts_app:login")
-
-        user = users_collection().find_one({"_id": ObjectId(user_id)})
-
-        if not user or user.get("active_device_id") != device_id:
-            request.session.flush()
-            messages.error(request, "You were logged out (new login detected).")
-            return redirect("accounts_app:login")
-
-        return view_func(request, *args, **kwargs)
-    return wrapper
-# def mongo_login_required(view_func):
-#     def wrapper(request, *args, **kwargs):
-#         if not request.session.get("mongo_user_id"):
-#             return redirect("accounts_app:login")
-#         return view_func(request, *args, **kwargs)
-#     return wrapper
-
-def mongo_role_required(allowed_roles):
-    def decorator(view_func):
-        def wrapper(request, *args, **kwargs):
-            roles = request.session.get("mongo_roles", [])
-
-            # ✅ MULTI ROLE MATCH
-            if not any(role in allowed_roles for role in roles):
-                messages.error(request, "Permission denied")
-                return redirect("accounts_app:login")
-
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
 
 def role_not_defined(request):
     return render(request,"accounts_app/role_not_defined.html",{"year": datetime.now().year})
@@ -236,7 +198,6 @@ def generate_temp_password(length=8):
 @mongo_login_required
 @mongo_role_required(["ADMIN"])
 def admin_reset_password(request, user_id):
-
     if request.method == "POST":
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
@@ -291,34 +252,6 @@ def record_login(request, user):
     }).inserted_id
 
     request.session["login_activity_id"] = str(activity_id)
-# def record_login(request, user):
-#     login_activity_col = get_login_activity_collection()
-#
-#     # 🔹 Unique device id per browser
-#     device_id = request.session.get("device_id")
-#     if not device_id:
-#         device_id = str(uuid.uuid4())
-#         request.session["device_id"] = device_id
-#
-#     login_time = datetime.utcnow()
-#
-#     activity_id = login_activity_col.insert_one({
-#         "user_id": str(user["_id"]),
-#         "username": user["username"],
-#
-#         "device_id": device_id,
-#         "device_name": get_device_name(request),
-#
-#         "login_time": login_time,
-#         "logout_time": None,
-#         "session_duration": None,
-#
-#         "ip_address": request.META.get("REMOTE_ADDR"),
-#         "user_agent": request.META.get("HTTP_USER_AGENT"),
-#     }).inserted_id
-#
-#     request.session["login_time"] = login_time.isoformat()
-#     request.session["login_activity_id"] = str(activity_id)
 
 
 # Record Logout Info
