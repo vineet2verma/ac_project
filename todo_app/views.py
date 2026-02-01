@@ -1,13 +1,11 @@
-
 from datetime import datetime, date
 from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.core.paginator import Paginator
 from bson import ObjectId
 from cnc_work_app.mongo import todo_collection
-# Create your views here.
 
-# Task List
+
 def todo_list(request):
     col = todo_collection()
     username = request.session.get("mongo_username")
@@ -16,17 +14,15 @@ def todo_list(request):
     status = request.GET.get("status", "pending")
     limit = int(request.GET.get("limit", 10))
     page_number = request.GET.get("page", 1)
+
     query = {}
 
-    # 🔐 ROLE BASED VISIBILITY
     if "ADMIN" not in roles:
         query["created_by"] = username
 
-    # 🔍 SEARCH
     if q:
         query["task"] = {"$regex": q, "$options": "i"}
 
-    # 📌 STATUS FILTER
     if status == "pending":
         query["done_approved"] = False
     elif status == "completed":
@@ -34,26 +30,22 @@ def todo_list(request):
 
     todos = list(col.find(query).sort("created_at", -1))
 
-    # 🔥 VERY IMPORTANT FIX
     for t in todos:
         t["id"] = str(t["_id"])
-
-        # 🔥 Convert string date → date object
-        if isinstance(t.get("task_date"), str):
-            t["task_date_obj"] = datetime.strptime(t["task_date"], "%Y-%m-%d").date()
-        else:
-            t["task_date_obj"] = t["task_date"]
-
-        # 🔥 Overdue flag
-        t["is_overdue"] = (
-                not t.get("done_approved", False)
-                and t["task_date_obj"] < date.today()
+        t["task_date_obj"] = (
+            datetime.strptime(t["task_date"], "%Y-%m-%d").date()
+            if isinstance(t.get("task_date"), str)
+            else t["task_date"]
         )
 
-        # 🔥 Approval pending flag
+        t["is_overdue"] = (
+            not t.get("done_approved", False)
+            and t["task_date_obj"] < date.today()
+        )
+
         t["needs_approval"] = (
-                t.get("done_requested", False)
-                and not t.get("done_approved", False)
+            t.get("done_requested", False)
+            and not t.get("done_approved", False)
         )
 
     paginator = Paginator(todos, limit)
@@ -69,17 +61,7 @@ def todo_list(request):
         "roles": roles
     })
 
-# Task Delete
-def todo_delete(request, todo_id):
-    todo_collection().delete_one({"_id": ObjectId(todo_id)})
-    # return redirect("todo_app:list")
-     # 🔥 Preserve filters
-    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/todo/"))
 
-
-
-
-# Task Created
 def todo_add(request):
     if request.method == "POST":
         todo_collection().insert_one({
@@ -94,7 +76,7 @@ def todo_add(request):
         })
     return redirect("todo_app:list")
 
-# Task Request Done
+
 def request_done(request, todo_id):
     todo_collection().update_one(
         {"_id": ObjectId(todo_id)},
@@ -102,7 +84,7 @@ def request_done(request, todo_id):
     )
     return redirect("todo_app:list")
 
-# Task Approval Done
+
 def approve_done(request, todo_id):
     todo_collection().update_one(
         {"_id": ObjectId(todo_id)},
@@ -114,15 +96,13 @@ def approve_done(request, todo_id):
     )
     return redirect("todo_app:list")
 
-# Task Edit
+
 def todo_edit(request, todo_id):
     col = todo_collection()
-
     todo = col.find_one({"_id": ObjectId(todo_id)})
     if not todo:
         raise Http404("Todo not found")
 
-    # 🔥 convert ObjectId for template
     todo["id"] = str(todo["_id"])
 
     if request.method == "POST":
@@ -136,28 +116,22 @@ def todo_edit(request, todo_id):
         )
         return redirect("todo_app:list")
 
-    # ✅ IMPORTANT: render edit form on GET
-    return render(request, "todo_app/todo_edit.html", {
-        "todo": todo
-    })
+    return render(request, "todo_app/todo_edit.html", {"todo": todo})
 
 
-# Task Dashboard
+def todo_delete(request, todo_id):
+    todo_collection().delete_one({"_id": ObjectId(todo_id)})
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/todo/"))
+
+
 def todo_dashboard(request):
     col = todo_collection()
-
     username = request.session["mongo_username"]
 
     stats = {
         "total": col.count_documents({"created_by": username}),
-        "pending": col.count_documents({
-            "created_by": username,
-            "done_approved": False
-        }),
-        "completed": col.count_documents({
-            "created_by": username,
-            "done_approved": True
-        }),
+        "pending": col.count_documents({"created_by": username, "done_approved": False}),
+        "completed": col.count_documents({"created_by": username, "done_approved": True}),
         "waiting_approval": col.count_documents({
             "created_by": username,
             "done_requested": True,
@@ -166,10 +140,3 @@ def todo_dashboard(request):
     }
 
     return render(request, "todo_app/dashboard.html", {"stats": stats})
-
-
-
-
-
-
-
