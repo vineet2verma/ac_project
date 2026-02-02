@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Leads</title>
+</head>
+<body>
+
+<h1>My Leads</h1>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    {% for lead in leads %}
+    <tr>
+        <td>{{ lead.name }}</td>
+        <td>{{ lead.phone }}</td>
+        <td>{{ lead.status }}</td>
+        <td>
+            <a href="{% url 'lead_app:lead_detail' lead.id %}">
+                View
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="4">No leads assigned</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

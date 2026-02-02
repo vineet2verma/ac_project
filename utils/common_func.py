@@ -1,4 +1,5 @@
 import uuid
+from functools import wraps
 from django.http import JsonResponse
 
 from .mongo import *
@@ -18,23 +19,40 @@ def get_active_sales_users():
 
 
 def mongo_login_required(view_func):
+    @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        user_id = request.session.get("mongo_user_id")
-        device_id = request.session.get("device_id")
-
-        if not user_id or not device_id:
+        if not request.session.get("mongo_user_id"):
             return redirect("accounts_app:login")
-
-        user = users_collection().find_one({"_id": ObjectId(user_id)})
-
-        if not user or user.get("active_device_id") != device_id:
-            request.session.flush()
-            messages.error(request, "You were logged out (new login detected).")
-            return redirect("accounts_app:login")
-
         return view_func(request, *args, **kwargs)
 
     return wrapper
+
+# def mongo_login_required(view_func):
+#     def wrapper(request, *args, **kwargs):
+#         user_id = request.session.get("mongo_user_id")
+#         device_id = request.session.get("device_id")
+#         if not user_id:
+#             return redirect("accounts_app:login")
+#         user = users_collection().find_one({"_id": ObjectId(user_id)})
+#         if not user :
+#             request.session.flush()
+#             return redirect("accounts_app:login")
+#
+#         # 🔥 DEVICE CHECK (FIXED)
+#         active_device_id = user.get("active_device_id")
+#
+#         if active_device_id and device_id and active_device_id != device_id:
+#
+#             request.session.flush()
+#             messages.error(
+#                 request,
+#                 "You were logged out because your account was logged in from another device."
+#             )
+#             return redirect("accounts_app:login")
+#
+#         return view_func(request, *args, **kwargs)
+#
+#     return wrapper
 
 
 def mongo_role_required(allowed_roles):

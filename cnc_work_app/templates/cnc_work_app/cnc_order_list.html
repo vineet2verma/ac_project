@@ -56,22 +56,22 @@
     }
 
     /* Hover preview (desktop only) */
-    @media (min-width: 769px) {
-        .preview-img:hover {
-            position: absolute;
-            z-index: 9999;
-            width: 320px;
-            max-height: 420px;
-            height: auto;
-            object-fit: contain;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            background: #fff;
-            padding: 6px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.35);
-        }
-    }
+<!--    @media (min-width: 769px) {-->
+<!--        .preview-img:hover {-->
+<!--            position: absolute;-->
+<!--            z-index: 9999;-->
+<!--            width: 320px;-->
+<!--            max-height: 420px;-->
+<!--            height: auto;-->
+<!--            object-fit: contain;-->
+<!--            left: 50%;-->
+<!--            top: 50%;-->
+<!--            transform: translate(-50%, -50%);-->
+<!--            background: #fff;-->
+<!--            padding: 6px;-->
+<!--            box-shadow: 0 15px 35px rgba(0,0,0,0.35);-->
+<!--        }-->
+<!--    }-->
 
     /* ================= MOBILE RESPONSIVE ================= */
     @media (max-width: 768px) {
@@ -405,7 +405,7 @@
                 <table class="table table-sm erp-table mb-2">
                     <tr>
                         <th>Sales</th>
-                        <td>{{ img.sales_person }}</td>
+                        <td>{{ img.sales_person|title }}</td>
                     </tr>
                     <tr>
                         <th>Design</th>

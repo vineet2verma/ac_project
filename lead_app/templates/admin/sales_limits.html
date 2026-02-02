@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin – Sales Lead Limits</title>
+</head>
+<body>
+
+<h1>Admin – Sales Lead Limits</h1>
+
+<h2>Sales Limits</h2>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Sales User</th>
+        <th>Total Limit</th>
+        <th>Assigned</th>
+        <th>Balance</th>
+    </tr>
+
+    {% for l in limits %}
+    <tr>
+        <td>{{ l.sales_user }}</td>
+        <td>{{ l.total_limit }}</td>
+        <td>{{ l.assigned_count }}</td>
+        <td>{{ l.balance }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="4">No sales limits found</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<hr>
+
+<h2>Unassigned Leads</h2>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Assign</th>
+    </tr>
+
+    {% for lead in leads %}
+    <tr>
+        <td>{{ lead.name }}</td>
+        <td>{{ lead.phone }}</td>
+        <td>
+            {% for l in limits %}
+                <a href="{% url 'lead_app:assign_lead' lead.id l.sales_user %}">
+                    Assign to {{ l.sales_user }}
+                </a><br>
+            {% endfor %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="3">No unassigned leads</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

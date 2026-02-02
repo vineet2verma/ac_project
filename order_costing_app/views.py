@@ -222,6 +222,17 @@ def order_costing_view(request, order_id):
         dispatch_cost, 2
     )
 
+    machine_rate = RATE_CONFIG["machine"]["default_hourly_rate"]
+
+    created_at = order.get("created_at")
+    dispatched_at = order.get("dispatched_at")
+
+    total_days = None
+    if created_at and dispatched_at:
+        total_days = (dispatched_at.date() - created_at.date()).days
+
+    print(f"==>>  machine hour {machine_hours} machine cost {machine_cost} ")
+
     # ---------- RENDER ----------
     return render(
         request,
@@ -232,12 +243,14 @@ def order_costing_view(request, order_id):
             "material_rows": material_rows,
             "material_cost": material_cost,
             "machine_rows": machine_rows,
+            "machine_rate": machine_rate,
             "machine_hours": machine_hours,
             "machine_cost": machine_cost,
             "design_cost": design_cost,
             "qc_cost": qc_cost,
             "dispatch_cost": dispatch_cost,
             "total_cost": total_cost,
+            "total_days" : total_days,
             "rate_config": RATE_CONFIG,
         }
     )
