@@ -7,6 +7,7 @@ from utils.mongo import todo_collection
 from utils.common_func import mongo_login_required,mongo_role_required
 
 
+
 @csrf_exempt
 def api_todo_add(request):
     if request.method != "POST":
