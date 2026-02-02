@@ -5,10 +5,18 @@ from bson import ObjectId
 from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
+
 from utils.mongo import users_collection,get_login_activity_collection
 from utils.cookies import set_cookie, delete_cookie
 from django.shortcuts import render, redirect
 from utils.common_func import mongo_role_required, mongo_login_required
+
+def get_client_ip(request):
+    x_forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded:
+        return x_forwarded.split(",")[0]
+    return request.META.get("REMOTE_ADDR")
 
 
 def role_not_defined(request):
@@ -58,10 +66,16 @@ def forgot_password(request):
 
 def login_view(request):
     if request.method == "POST":
+        # -------------------------
+        # 1️⃣ GET FORM DATA
+        # -------------------------
         username = request.POST.get("username", "").strip().lower()
         password = request.POST.get("password", "").strip()
         remember_me = request.POST.get("remember_me")
 
+        # -------------------------
+        # 2️⃣ AUTHENTICATE USER
+        # -------------------------
         user = users_collection().find_one({
             "username": username,
             "is_active": True
@@ -71,34 +85,105 @@ def login_view(request):
             messages.error(request, "Invalid username or password")
             return render(request, "accounts_app/login.html")
 
-        # 🔐 SESSION
+        # -------------------------
+        # 3️⃣ SET SESSION
+        # -------------------------
+        request.session.flush()  # clear old session safely
+
         request.session["mongo_user_id"] = str(user["_id"])
         request.session["mongo_username"] = user["username"]
         request.session["mongo_roles"] = user.get("roles", [])
         request.session["access_scope"] = user.get("access_scope", "OWN")
         request.session["work_type_access"] = user.get("work_type_access", [])
 
-        # ⏱ SESSION EXPIRY
-        if remember_me:
-            request.session.set_expiry(60 * 60 * 24 * 7)  # 7 days
+        # Session expiry
+        request.session.set_expiry(
+            60 * 60 * 24 * 7 if remember_me else 0
+        )
+
+        # -------------------------
+        # 4️⃣ DEVICE / BROWSER INFO
+        # -------------------------
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        ua = user_agent.lower()
+
+        # Device
+        if "mobile" in ua:
+            device = "Mobile"
+        elif "tablet" in ua or "ipad" in ua:
+            device = "Tablet"
         else:
-            request.session.set_expiry(0)  # browser close
+            device = "Desktop"
 
+        # Browser
+        if "edg" in ua:
+            browser = "Edge"
+        elif "chrome" in ua:
+            browser = "Chrome"
+        elif "firefox" in ua:
+            browser = "Firefox"
+        elif "safari" in ua:
+            browser = "Safari"
+        else:
+            browser = "Other"
 
-        # DEVICE ID MUST EXIST FIRST
+        # OS
+        if "windows" in ua:
+            os_name = "Windows"
+        elif "android" in ua:
+            os_name = "Android"
+        elif "iphone" in ua or "ipad" in ua:
+            os_name = "iOS"
+        elif "linux" in ua:
+            os_name = "Linux"
+        else:
+            os_name = "Other"
+
+        ip_address = get_client_ip(request)
+
+        # -------------------------
+        # 5️⃣ LOGIN ACTIVITY LOG
+        # -------------------------
         device_id = str(uuid.uuid4())
         request.session["device_id"] = device_id
 
-        record_login(request, user)
+        result = get_login_activity_collection().insert_one({
+            "user_id": user["_id"],
+            "username": user["username"],
+            "login_time": timezone.now(),
+            "logout_time": None,
+            "device_id": device_id,
+            "device": device,
+            "browser": browser,
+            "os": os_name,
+            "ip_address": ip_address,
+        })
+
+        # save activity id for logout
+        request.session["login_activity_id"] = str(result.inserted_id)
+
+        # -------------------------
+        # 6️⃣ REDIRECT (NO LOOP)
+        # -------------------------
+        roles = user.get("roles") or []
+        if isinstance(roles, str):
+            roles = [roles]
 
         response = redirect(
-            "core_app:dashboard" if "ADMIN" in user["roles"] else "cnc_work_app:index"
+            "core_app:dashboard"
+            if "ADMIN" in roles
+            else "cnc_work_app:index"
         )
 
+        # Remember-me cookie (optional)
         if remember_me:
             set_cookie(response, "remember_token", str(user["_id"]), days=7)
 
         return response
+
+    # -------------------------
+    # GET REQUEST
+    # -------------------------
     return render(request, "accounts_app/login.html")
 
 
@@ -108,7 +193,7 @@ def logout_view(request):
     delete_cookie(response, "username")
     delete_cookie(response, "primary_role")
     record_logout(request)  # 🔥 save logout activity
-    request.session.flush()
+
     return response
 
 
@@ -258,22 +343,17 @@ def record_login(request, user):
 @mongo_login_required
 def record_logout(request):
     activity_id = request.session.get("login_activity_id")
-    login_time_str = request.session.get("login_time")
 
-    if not activity_id or not login_time_str:
+    if not activity_id:
         return
 
-    login_activity_col = get_login_activity_collection()
+    logout_time = timezone.now()
 
-    login_time = datetime.fromisoformat(login_time_str)
-    logout_time = datetime.utcnow()
-
-    login_activity_col.update_one(
-        {"_id": ObjectId(activity_id)},
+    get_login_activity_collection().update_one(
+        {"_id": ObjectId(activity_id), "logout_time": None},
         {
             "$set": {
-                "logout_time": logout_time,
-                "session_duration": (logout_time - login_time).total_seconds()
+                "logout_time": logout_time
             }
         }
     )

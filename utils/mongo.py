@@ -69,3 +69,13 @@ def invoice_collection():
 # Rate Config
 def get_rate_config_collection():
     return _db["rate_config"]
+
+
+def leads_col():
+    return _db.leads
+
+def limits_col():
+    return _db.sales_limits
+
+def followups_col():
+    return _db.lead_followups

@@ -1,8 +1,33 @@
+import requests
 from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timezone as dt_timezone
-from cnc_work_app.mongo import get_login_activity_collection
+from utils.mongo import get_login_activity_collection
+
+
+
+
+def get_area(lat, lng):
+    url = "https://nominatim.openstreetmap.org/reverse"
+    params = {
+        "lat": lat,
+        "lon": lng,
+        "format": "json"
+    }
+    res = requests.get(url, params=params).json()
+    return res.get("address", {})
+
+def get_location(ip):
+    response = requests.get(f"https://ipapi.co/{ip}/json/")
+    data = response.json()
+    return {
+        "city": data.get("city"),
+        "region": data.get("region"),
+        "country": data.get("country_name"),
+        "org": data.get("org"),
+    }
+
 
 def make_aware(dt):
     if dt and timezone.is_naive(dt):
