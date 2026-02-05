@@ -68,12 +68,10 @@ INSTALLED_APPS = [
     'invoice_app',
     'user_log_app',
     'todo_app',
-    'lead_app',
-
 ]
 
 MIDDLEWARE = [
-    # 'config.middleware.GlobalCookieMiddleware', # global cookies middleware
+    'config.middleware.GlobalCookieMiddleware', # global cookies middleware
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

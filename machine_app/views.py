@@ -3,7 +3,7 @@ from datetime import datetime, date
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect
-from cnc_work_app.mongo import *
+from utils.mongo import *
 from bson import ObjectId
 
 # ================= MACHINE MASTER LIST =================

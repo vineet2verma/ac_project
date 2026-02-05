@@ -48,6 +48,14 @@
                         Reset
                     </a>
                 </div>
+                <div class="col-md-2">
+                    <select name="page_size" class="form-select form-select-sm">
+                        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
 
             </form>
         </div>

@@ -1,11 +1,10 @@
-import traceback
 
-import cloudinary
 from django.shortcuts import render, get_object_or_404, redirect
 from datetime import datetime, date
-from cnc_work_app.mongo import *
+from utils.mongo import *
 from bson import ObjectId
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, Http404
+import cloudinary
 from cloudinary.uploader import upload, destroy
 from accounts_app.views import mongo_login_required, mongo_role_required
 

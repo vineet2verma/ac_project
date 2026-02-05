@@ -2,9 +2,8 @@ import pandas as pd
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from accounts_app.views import mongo_login_required, mongo_role_required
-from cnc_work_app.mongo import *
+from utils.mongo import *
 from datetime import datetime, timedelta
-
 from reportlab.platypus import SimpleDocTemplate, Table
 
 

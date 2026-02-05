@@ -7,10 +7,11 @@ from django.http import Http404
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 from bson import ObjectId
+from accounts_app.views import mongo_login_required, mongo_role_required
+# Mongo db
 from utils.mongo import  *
-from utils.common_func import mongo_role_required,mongo_login_required, get_active_sales_users
+# Permission
 from utils.permissions import get_user_permissions
-
 
 def is_order_complete(order_status):
     return order_status and all(s["status"] == "COMPLETE" for s in order_status)
@@ -153,7 +154,10 @@ def cnc_order_list(request):
         o["status_badge"] = badge
 
     # ================= SALES USERS =================
-    sales_users = get_active_sales_users()
+    sales_users = list(users_col.find(
+        {"roles": "SALES", "is_active": True},
+        {"username": 1, "full_name": 1}
+    ))
 
     # ================= PAGINATOR =================
     paginator = Paginator(range(total_count), per_page)
@@ -226,13 +230,6 @@ def add_order(request):
         packing_instruction = request.POST.getlist('packing_instruction[]')
         packing_instruction_str = ", ".join(packing_instruction)
 
-        # ---------- CREATED BY ----------
-        created_by = request.session.get("mongo_username")
-
-
-
-
-
         data = {
             'title': request.POST.get('title'),
             'image': image_url,
@@ -245,7 +242,6 @@ def add_order(request):
             'sales_person': request.POST.get('sales_person'),
             'type_of_work': request.POST.get('type_of_work'),
             'created_at': datetime.now(),
-            'created_by' : created_by,
             'approval_date': approval_date_obj,
             'exp_delivery_date': exp_delivery_date_obj,
             'current_status': "Design Pending",

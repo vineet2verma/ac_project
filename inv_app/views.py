@@ -3,7 +3,7 @@ from bson import ObjectId
 import openpyxl
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from cnc_work_app.mongo import *
+from utils.mongo import *
 from django.http import Http404
 from collections import defaultdict
 import math
