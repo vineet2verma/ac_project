@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lead Detail</title>
+</head>
+<body>
+
+<h1>Lead Detail</h1>
+
+<p><b>Name:</b> {{ lead.name }}</p>
+<p><b>Phone:</b> {{ lead.phone }}</p>
+<p><b>Status:</b> {{ lead.status }}</p>
+
+<hr>
+
+<h2>Update Status</h2>
+<form method="post">
+    {% csrf_token %}
+    <select name="status">
+        <option value="New">New</option>
+        <option value="Contacted">Contacted</option>
+        <option value="Follow-Up">Follow-Up</option>
+        <option value="Converted">Converted</option>
+        <option value="Lost">Lost</option>
+    </select>
+    <button type="submit">Update</button>
+</form>
+
+<hr>
+
+<h2>Add Follow-up</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="date" name="followup_date" required>
+    <br><br>
+    <textarea name="remark" placeholder="Enter remark" required></textarea>
+    <br><br>
+    <button type="submit">Save Follow-up</button>
+</form>
+
+<hr>
+
+<h2>Last 5 Follow-ups</h2>
+<ul>
+    {% for f in followups %}
+        <li>
+            {{ f.followup_date }} – {{ f.remarks }}
+        </li>
+    {% empty %}
+        <li>No follow-ups yet</li>
+    {% endfor %}
+</ul>
+
+</body>
+</html>

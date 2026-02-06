@@ -95,8 +95,13 @@ def login_activity_view(request):
     # ----------------------------
     # PAGINATION
     # ----------------------------
-    paginator = Paginator(activities, 10)  # 10 records per page
+    # paginator = Paginator(activities, 10)  # 10 records per page
+    page_size = int(request.GET.get("page_size", 10))
+
+    paginator = Paginator(activities, page_size)
+
     page_obj = paginator.get_page(page_number)
+
 
     return render(
         request,
@@ -106,5 +111,6 @@ def login_activity_view(request):
             "search": search,
             "status": status,
             "page_obj": page_obj,
+            "page_size": page_size,
         }
     )

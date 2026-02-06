@@ -1,50 +1,143 @@
 {% extends "base.html" %}
 {% block title %}Order Costing{% endblock %}
 
-{% block navbartitle %}
-<span class="fw-bold text-primary">Order Costing</span>
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid mt-4">
 
-    <!-- ================= HEADER ================= -->
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-        <h5 class="fw-semibold mb-0">
-            Order Costing Sheet
-        </h5>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
-                <i class="bi bi-printer"></i> Print
-            </button>
-            <a href="{% url 'cnc_work_app:detail' order.id %}"
-               class="btn btn-outline-secondary btn-sm">
-                ← Back to Order
-            </a>
-        </div>
+<style>
+    body {
+        font-size: 14px;
+        background: #fff;
+    }
+
+    .erp-title {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .erp-subtitle {
+        font-size: 12px;
+        font-weight: 500;
+        color: #666;
+        display: block;
+        margin-top: 4px;
+    }
+
+    table th {
+        background: #f2f4f7;
+        font-weight: 600;
+        vertical-align: middle;
+    }
+
+    table td {
+        vertical-align: middle;
+    }
+
+    .section-card {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 16px;
+    }
+
+    .section-header {
+        background: #f8f9fa;
+        font-weight: 700;
+        padding: 8px 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    /* ---------- PRINT ---------- */
+    @media print {
+
+        body {
+            font-size: 12px;
+        }
+        .erp-subtitle {
+            display: block !important;
+        }
+
+        .print-row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .print-image {
+            width: 35% !important;
+            max-width: 35% !important;
+            padding-right: 10px;
+        }
+
+        .print-table {
+            width: 65% !important;
+            max-width: 65% !important;
+        }
+
+        img {
+            max-height: 320px;
+            page-break-inside: avoid;
+        }
+
+        table, tr, td, th {
+            page-break-inside: avoid;
+        }
+
+        .no-print, button {
+            display: none !important;
+        }
+    }
+
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+</style>
+
+<div class="container mt-3">
+
+    <!-- TOP BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-2 no-print">
+        <button class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+            ← Back
+        </button>
+
+        <button class="btn btn-primary btn-sm" onclick="window.print()">
+            🖨 Print
+        </button>
     </div>
 
-    <!-- ================= ORDER INFO ================= -->
-    <div class="row mb-4">
+    <!-- HEADER -->
+    <div class="mb-3">
+        <div class="erp-title">Order Costing</div>
+        <div class="erp-subtitle">
+            Created: {{ order.created_at|date:"d M Y" }}  &nbsp; |
+            Completed: {{ order.dispatched_at|date:"d M Y"|default:"—" }} &nbsp; |
+            No of Days: &nbsp;
+            <span class="{% if total_days and total_days > 10 %}text-danger{% endif %}">
+                {{ total_days|default:"—" }}
+            </span>
+        </div>
+        <hr>
+    </div>
+
+    <!-- IMAGE + DESIGN DETAILS -->
+    <div class="row print-row mb-4">
 
         <!-- IMAGE -->
-        <div class="col-md-4 text-center">
+        <div class="col-md-4 print-image text-center">
             {% if order.image %}
                 <img src="{{ order.image }}"
-                     class="img-fluid rounded border mb-2"
-                     style="max-height:260px;"
-                     alt="{{ order.title }}">
+                     class="img-fluid border rounded shadow-sm"
+                     alt="Design Image">
             {% else %}
-                <p class="text-muted">No Image</p>
+                <div class="text-muted">No Image</div>
             {% endif %}
         </div>
 
-        <!-- ORDER DETAILS -->
-        <div class="col-md-8">
-            <table class="table table-sm table-bordered">
+        <!-- DESIGN DETAILS -->
+        <div class="col-md-8 print-table">
+            <table class="table table-bordered table-sm">
                 <tbody>
                     <tr>
-                        <th style="width:30%">Design Title</th>
+                        <th style="width:35%">Design Title</th>
                         <td>{{ order.title }}</td>
                     </tr>
                     <tr>
@@ -53,7 +146,7 @@
                     </tr>
                     <tr>
                         <th>Color</th>
-                        <td>{{ order.color }}</td>
+                        <td>{{ order.color|title }}</td>
                     </tr>
                     <tr>
                         <th>Coverage Area</th>
@@ -61,159 +154,117 @@
                     </tr>
                     <tr>
                         <th>Party Name</th>
-                        <td>{{ order.party_name }}</td>
+                        <td>{{ order.party_name|title }}</td>
                     </tr>
                     <tr>
                         <th>Sales Person</th>
-                        <td>{{ order.sales_person }}</td>
+                        <td>{{ order.sales_person|title }}</td>
                     </tr>
                     <tr>
                         <th>Packing</th>
-                        <td>{{ order.packing_instruction }}</td>
+                        <td>{{ order.packing_instruction|default:"—" }}</td>
                     </tr>
                     <tr>
                         <th>Remarks</th>
-                        <td>{{ order.remarks|default:"-" }}</td>
+                        <td>{{ order.remarks|default:"—" }}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
     </div>
-    
-    <!-- ================= MATERIAL COST DETAILS ================= -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light">
-            <h6 class="mb-0">Material Cost Details</h6>
-        </div>
-    
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Item</th>
-                            <th class="text-end">Qty</th>
-                            <th class="text-end">Rate</th>
-                            <th class="text-end">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for m in material_rows %}
-                        <tr>
-                            <td>{{ m.item_name }}</td>
-                            <td class="text-end">{{ m.qty }}</td>
-                            <td class="text-end">₹ {{ m.unit_cost }}</td>
-                            <td class="text-end">₹ {{ m.total_cost }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted">
-                                No material consumed
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot class="table-dark">
-                        <tr>
-                            <th colspan="3">Material Total</th>
-                            <th class="text-end">₹ {{ material_cost }}</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
+
+    <!-- MATERIAL / INVENTORY -->
+    <div class="section-card">
+        <div class="section-header">Material / Inventory Consumption</div>
+
+        <table class="table table-bordered table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Rate</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            {% if material_rows %}
+                {% for item in material_rows %}
+                <tr>
+                    <td>{{ item.item_name }}</td>
+                    <td class="text-end">{{ item.qty }}</td>
+                    <td class="text-end">₹ {{ item.unit_cost }}</td>
+                    <td class="text-end">₹ {{ item.total_cost }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        No material consumed
+                    </td>
+                </tr>
+            {% endif %}
+
+                <tr class="fw-bold">
+                    <td colspan="3" class="text-end">Material Total</td>
+                    <td class="text-end">₹ {{ material_cost|default:"0" }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <!-- ================= COSTING SUMMARY ================= -->
-    <div class="card shadow-sm">
+    <!-- PRODUCTION COST -->
+    <div class="section-card">
+        <div class="section-header">Production Cost Summary</div>
 
-        <div class="card-header bg-light">
-            <h6 class="mb-0">Production Cost Summary</h6>
-        </div>
+        <table class="table table-bordered table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Info</th>
+                    <th class="text-end">Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Material Cost</td>
+                    <td></td>
+                    <td class="text-end">₹ {{ material_cost|default:"0" }}</td>
+                </tr>
 
-        <div class="card-body p-0">
-            <table class="table table-bordered table-sm mb-0">
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th class="text-end" >Info</th>
-                        <th class="text-end">Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>Material Cost</th>
-                        <td class="text-end" colspan="2">₹ {{ material_cost }}</td>
-                    </tr>
+                <tr>
+                    <td>Machine Cost</td>
+                    <td>{{ machine_hours|default:"0" }} hrs × ₹ {{ machine_rate|default:"0" }}</td>
+                    <td class="text-end">₹ {{ machine_cost|default:"0" }}</td>
+                </tr>
 
-                    <tr>
-                        <th>Machine Cost</th>
-                        <td class="text-end">
-                            {{ machine_hours }} hrs
-                            × ₹ {{ machine_rows.0.rate|default:rate_config.machine.default_hourly_rate }}
-                        </td>
+                <tr>
+                    <td>Design Cost</td>
+                    <td>Rate ₹ {{ rate_config.design.default_rate_per_hour|default:"0" }} / hr</td>
+                    <td class="text-end">₹ {{ design_cost|default:"0" }}</td>
+                </tr>
 
-<!--                        <td class="text-end">₹ {{ m.unit_cost }}</td>-->
-                        <td class="text-end">₹ {{ machine_cost }}</td>
-                    </tr>
+                <tr>
+                    <td>QC Cost</td>
+                    <td>Flat</td>
+                    <td class="text-end">₹ {{ qc_cost|default:"0" }}</td>
+                </tr>
 
-                    <tr>
-                        <th>Design Cost</th>
-                        <td class="text-end">
-                            Rate: ₹ {{ rate_config.design.default_rate_per_hour }} / hr
-                        </td>
-                        <td class="text-end">₹ {{ design_cost }}</td>
-                    </tr>
+                <tr>
+                    <td>Dispatch Cost</td>
+                    <td>Freight + Loading</td>
+                    <td class="text-end">₹ {{ dispatch_cost|default:"0" }}</td>
+                </tr>
 
-                    <tr>
-                        <th>QC Cost</th>
-                        <td class="text-end">
-                            {% if rate_config.qc.calculation == "flat" %}
-                                Flat ₹ {{ rate_config.qc.rate_per_order }}
-                            {% else %}
-                                ₹ {{ rate_config.qc.rate_per_item }} per item
-                            {% endif %}
-                        </td>
-                        <td class="text-end" colspan="2">₹ {{ qc_cost }}</td>
-                    </tr>
-
-                    <tr>
-                        <th>Dispatch Cost</th>
-                        <td class="text-end">
-                            Freight ₹ {{ rate_config.dispatch.freight_default }} +
-                            Loading ₹ {{ rate_config.dispatch.loading_default }}
-                        </td>
-                        <td class="text-end" colspan="2">₹ {{ dispatch_cost }}</td>
-                    </tr>
-                    </tbody>
-
-                <tfoot class="table-dark">
-                    <tr>
-                        <th>Total Order Cost</th>
-
-                        <th class="text-end" colspan="2" >₹ {{ total_cost }}</th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
+                <tr class="fw-bold">
+                    <td colspan="2" class="text-end">Total Order Cost</td>
+                    <td class="text-end">₹ {{ total_cost|default:"0" }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-
-    <br/>
-    <hr/>
 
 </div>
-
-<style>
-@media print {
-    .btn, .navbar, .no-print {
-        display: none !important;
-    }
-    table {
-        font-size: 12px;
-    }
-}
-</style>
 
 {% endblock %}

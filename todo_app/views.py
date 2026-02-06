@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, Http404
 from django.core.paginator import Paginator
 from bson import ObjectId
-from cnc_work_app.mongo import todo_collection
+from utils.mongo import todo_collection
 
 
 def todo_list(request):

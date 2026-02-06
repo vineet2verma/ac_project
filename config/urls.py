@@ -5,7 +5,10 @@ from core_app.views import custom_404_view
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
+
+    path('', include("lead_app.urls")),
+
     path('', include('cnc_work_app.urls')),
     path('', include("accounts_app.urls")),
     path('',include("core_app.urls")),
@@ -18,6 +21,7 @@ urlpatterns = [
     path('',include("order_costing_app.urls")),
     path('',include("user_log_app.urls")),
     path('',include('invoice_app.urls')),
+
 ]
 
 # 🔥 Custom 404 handler

@@ -7,10 +7,11 @@ from django.http import Http404
 # Cloudinary
 from cloudinary.uploader import upload, destroy
 from bson import ObjectId
+from accounts_app.views import mongo_login_required, mongo_role_required
+# Mongo db
 from utils.mongo import  *
-from utils.common_func import mongo_role_required,mongo_login_required
+# Permission
 from utils.permissions import get_user_permissions
-
 
 def is_order_complete(order_status):
     return order_status and all(s["status"] == "COMPLETE" for s in order_status)
